@@ -12,6 +12,10 @@ const GROUP_ENEMIES := &"enemies"
 
 @export var data: CharacterData
 
+## Direction the character is facing, in radians (0 = right, PI = left).
+## Updated by face_towards(). Cards use it for "behind the target" positioning.
+var facing_angle: float = 0.0
+
 @onready var health: HealthComponent = %HealthComponent
 @onready var sprite: Sprite2D = %Sprite
 #@onready var name_label: Label = %NameLabel
@@ -22,6 +26,7 @@ const GROUP_ENEMIES := &"enemies"
 @onready var click_area: Area2D = %ClickArea
 @onready var click_shape: CollisionShape2D = %ClickShape
 @onready var shape := click_shape.shape as CircleShape2D
+
 
 func _ready() -> void:
 	health.health_changed.connect(_on_health_changed)
@@ -52,11 +57,21 @@ func is_dead() -> bool:
 	return health.is_dead()
 
 
+## Turns the character towards a world position (e.g. the enemy it just attacked).
+## Only stores the angle; the visual (flip_h when facing left) is up to you:
+##   sprite.flip_h = cos(facing_angle) < 0.0
+func face_towards(world_position: Vector2) -> void:
+	facing_angle = global_position.direction_to(world_position).angle()
+
+
 func _apply_data() -> void:
 	# Team (groups let you do get_tree().get_nodes_in_group("enemies"))
 	remove_from_group(GROUP_ALLIES)
 	remove_from_group(GROUP_ENEMIES)
 	add_to_group(GROUP_ALLIES if is_ally() else GROUP_ENEMIES)
+
+	# Default facing: allies look right, enemies look left
+	facing_angle = 0.0 if is_ally() else PI
 
 	# Sprite cut out of the tileset
 	var atlas := AtlasTexture.new()
@@ -79,7 +94,6 @@ func _apply_data() -> void:
 
 
 func _on_health_changed(current: int, maximum: int) -> void:
-	print("in fct _on_health_changed", current, maximum)
 	health_bar.max_value = maximum
 	health_bar.value = current
 	armor_bar.max_value = maximum  # armor bar is drawn relative to max health

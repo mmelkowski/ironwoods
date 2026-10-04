@@ -1,0 +1,103 @@
+@tool
+class_name CardData
+extends Resource
+## Static definition of a card. Never modify this at runtime: it is shared by
+## every copy of the card. Runtime changes (crit buff, bonus damage...) go on a
+## CardInstance instead.
+##
+## @tool lets the inspector hide fields that don't apply to the current
+## card type / target type.
+
+enum Type { ATTACK, SUPPORT, MANA }
+enum TargetType { SINGLE, MULTIPLE, CHAINED, AOE }
+enum TargetTeam { ENEMY, ALLY, SELF }
+enum Knockback { NONE, STANDARD, FORCEFUL }
+
+@export_group("Identity")
+@export var id: StringName
+@export var display_name: String = ""
+@export_multiline var description: String = ""
+@export var art: Texture2D
+
+@export_group("Type & Mana")
+@export var card_type: Type = Type.ATTACK:
+	set(value):
+		card_type = value
+		notify_property_list_changed()
+## Mana gained when played. Attack cards: 1, support cards: 2 or more.
+@export var mana_generation: int = 1
+## Mana spent when played. Only used by MANA cards.
+@export var mana_cost: int = 1
+
+@export_group("Damage")
+@export var damage: int = 0
+@export var knockback: Knockback = Knockback.NONE
+## Base critical state. Other cards can turn it on through the CardInstance.
+@export var critical: bool = false
+
+@export_group("Targeting")
+@export var target_team: TargetTeam = TargetTeam.ENEMY
+@export var target_type: TargetType = TargetType.SINGLE:
+	set(value):
+		target_type = value
+		notify_property_list_changed()
+## MULTIPLE / CHAINED: how many targets the player picks.
+@export var max_targets: int = 2
+## CHAINED: each next target must be within this radius of the previous one.
+@export_range(0.0, 1000.0, 1.0, "or_greater", "suffix:px") var chain_radius: float = 64.0
+## AOE: radius around the chosen target.
+@export_range(0.0, 1000.0, 1.0, "or_greater", "suffix:px") var aoe_radius: float = 64.0
+
+@export_group("Movement")
+## Max distance from the target at which the card can be played.
+## The caster moves to the closest position that satisfies it (melee ~32, ranged more).
+## If already in range, the caster doesn't move.
+@export_range(0.0, 1000.0, 1.0, "or_greater", "suffix:px") var approach_distance: float = 32.0
+@export var use_approach_angle: bool = false:
+	set(value):
+		use_approach_angle = value
+		notify_property_list_changed()
+## Forces the caster to a specific spot around the target, relative to the
+## direction the target is facing (Character.facing_angle):
+## 0 = in front, 180 = behind (backstab), +/-90 = sides.
+## The caster is placed exactly approach_distance away at that angle.
+## (Godot 2D: positive angles go clockwise on screen.)
+@export_range(-180.0, 180.0, 1.0, "degrees") var approach_angle: float = 0.0
+
+@export_group("Effects")
+## Statuses given on play or on kill. See StatusApplication.
+@export var effects: Array[StatusApplication] = []
+
+
+## Where the caster must stand to play this card on a target.
+## target_facing is in radians (see Character.facing_angle).
+func get_approach_position(caster_pos: Vector2, target_pos: Vector2, target_facing: float) -> Vector2:
+	if use_approach_angle:
+		# Fixed spot around the target (e.g. behind it for a backstab).
+		var angle := target_facing + deg_to_rad(approach_angle)
+		return target_pos + Vector2.from_angle(angle) * approach_distance
+
+	if caster_pos.distance_to(target_pos) <= approach_distance:
+		return caster_pos  # already in range, don't move
+
+	# Closest in-range point: stop on the line between the target and the caster.
+	return target_pos + target_pos.direction_to(caster_pos) * approach_distance
+
+
+func _validate_property(property: Dictionary) -> void:
+	var hide := false
+	match property.name:
+		"mana_generation":
+			hide = card_type == Type.MANA
+		"mana_cost":
+			hide = card_type != Type.MANA
+		"max_targets":
+			hide = target_type == TargetType.SINGLE or target_type == TargetType.AOE
+		"chain_radius":
+			hide = target_type != TargetType.CHAINED
+		"aoe_radius":
+			hide = target_type != TargetType.AOE
+		"approach_angle":
+			hide = not use_approach_angle
+	if hide:
+		property.usage = PROPERTY_USAGE_NO_EDITOR
