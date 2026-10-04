@@ -79,6 +79,7 @@ func _apply_data() -> void:
 
 
 func _on_health_changed(current: int, maximum: int) -> void:
+	print("in fct _on_health_changed", current, maximum)
 	health_bar.max_value = maximum
 	health_bar.value = current
 	armor_bar.max_value = maximum  # armor bar is drawn relative to max health

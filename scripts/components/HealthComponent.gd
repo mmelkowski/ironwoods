@@ -32,6 +32,7 @@ func _ready() -> void:
 func initialize(max_hp: int) -> void:
 	max_health = max_hp
 	current_health = max_health
+	print("health_changed.emit(current_health, max_health)")
 	health_changed.emit(current_health, max_health)
 
 
