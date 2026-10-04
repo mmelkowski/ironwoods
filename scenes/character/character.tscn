@@ -1,0 +1,33 @@
+[gd_scene format=3 uid="uid://ctanrm1egexev"]
+
+[ext_resource type="Script" uid="uid://cqgod6r07513m" path="res://scenes/character/character.gd" id="1_cuyo6"]
+[ext_resource type="Script" uid="uid://brlj6tgn046yw" path="res://scripts/components/HealthComponent.gd" id="2_mutn8"]
+[ext_resource type="PackedScene" uid="uid://7mhtpf0y7wek" path="res://scenes/UI/ui.tscn" id="3_mutn8"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_0gch8"]
+radius = 18.0
+
+[node name="Character" type="Node2D" unique_id=1317330728]
+script = ExtResource("1_cuyo6")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=112222086]
+unique_name_in_owner = true
+
+[node name="HealthComponent" type="Node" parent="." unique_id=926017751]
+unique_name_in_owner = true
+script = ExtResource("2_mutn8")
+
+[node name="ClickArea" type="Area2D" parent="." unique_id=1203534079]
+unique_name_in_owner = true
+
+[node name="ClickShape" type="CollisionShape2D" parent="ClickArea" unique_id=1550556252]
+unique_name_in_owner = true
+shape = SubResource("CircleShape2D_0gch8")
+
+[node name="UI" parent="." unique_id=1973114055 instance=ExtResource("3_mutn8")]
+unique_name_in_owner = true
+offset_left = -12.0
+offset_top = -34.000004
+offset_right = 83.0
+offset_bottom = 20.999996
+scale = Vector2(0.26718795, 0.26718795)

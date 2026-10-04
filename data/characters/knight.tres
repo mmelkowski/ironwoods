@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CharacterData" format=3 uid="uid://dbgmk8kp5jadj"]
+
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/resources/CharacterData.gd" id="1_5owmk"]
+[ext_resource type="Texture2D" uid="uid://lo8hamvapv4i" path="res://assets/32rogues/rogues.png" id="2_0gch8"]
+
+[resource]
+script = ExtResource("1_5owmk")
+id = &"0"
+display_name = "knight"
+team = 0
+tileset = ExtResource("2_0gch8")
+tile_coords = Vector2i(0, 1)
+starting_armor = 10
+metadata/_custom_type_script = "uid://y7hn1ijwr8yv"
