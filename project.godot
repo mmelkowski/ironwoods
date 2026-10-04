@@ -10,6 +10,7 @@ config_version=5
 
 [application]
 
+config/name="IronWoods"
 run/main_scene="uid://cf4josvlj3d2h"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"

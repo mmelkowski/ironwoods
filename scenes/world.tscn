@@ -2,7 +2,8 @@
 
 [ext_resource type="TileSet" uid="uid://ccpuhatw5whh8" path="res://data/TileSet/tile_map_layer_object.tres" id="1_nnsk1"]
 [ext_resource type="PackedScene" uid="uid://ctanrm1egexev" path="res://scenes/character/character.tscn" id="2_rwgxs"]
-[ext_resource type="Resource" uid="uid://dbgmk8kp5jadj" path="res://data/characters/knight.tres" id="3_4wyf3"]
+[ext_resource type="Resource" uid="uid://dbgmk8kp5jadj" path="res://data/allies/knight.tres" id="3_4wyf3"]
+[ext_resource type="Resource" uid="uid://dxhflavq7koc8" path="res://data/enemies/goblin.tres" id="4_k0juu"]
 
 [node name="world" type="Node2D" unique_id=2014053538]
 
@@ -12,8 +13,12 @@ tile_set = ExtResource("1_nnsk1")
 
 [node name="heroes" type="Node" parent="." unique_id=1987774575]
 
-[node name="enemies" type="Node" parent="." unique_id=1430148351]
-
-[node name="Character" parent="." unique_id=1317330728 instance=ExtResource("2_rwgxs")]
+[node name="Character" parent="heroes" unique_id=1317330728 instance=ExtResource("2_rwgxs")]
 position = Vector2(411, 324)
 data = ExtResource("3_4wyf3")
+
+[node name="enemies" type="Node" parent="." unique_id=1430148351]
+
+[node name="Character" parent="enemies" unique_id=1708651149 instance=ExtResource("2_rwgxs")]
+position = Vector2(701, 319)
+data = ExtResource("4_k0juu")

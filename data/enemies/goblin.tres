@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CharacterData" format=3 uid="uid://dxhflavq7koc8"]
+
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/resources/CharacterData.gd" id="1_4y8k2"]
+[ext_resource type="Texture2D" uid="uid://uhqi1oryicdy" path="res://assets/32rogues/monsters.png" id="2_dk6at"]
+
+[resource]
+script = ExtResource("1_4y8k2")
+id = &"goblin"
+display_name = "goblin"
+tileset = ExtResource("2_dk6at")
+tile_coords = Vector2i(2, 0)
+metadata/_custom_type_script = "uid://y7hn1ijwr8yv"
