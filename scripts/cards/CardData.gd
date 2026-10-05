@@ -35,6 +35,10 @@ enum Knockback { NONE, STANDARD, FORCEFUL }
 ## Base critical state. Other cards can turn it on through the CardInstance.
 @export var critical: bool = false
 
+@export_group("Rules")
+## Quick: the action point is refunded if this card kills at least one target.
+@export var quick: bool = false
+
 @export_group("Targeting")
 @export var target_team: TargetTeam = TargetTeam.ENEMY
 @export var target_type: TargetType = TargetType.SINGLE:
@@ -77,11 +81,15 @@ func get_approach_position(caster_pos: Vector2, target_pos: Vector2, target_faci
 		var angle := target_facing + deg_to_rad(approach_angle)
 		return target_pos + Vector2.from_angle(angle) * approach_distance
 
-	if caster_pos.distance_to(target_pos) <= approach_distance:
-		return caster_pos  # already in range, don't move
+	return closest_in_range(caster_pos, target_pos, approach_distance)
 
-	# Closest in-range point: stop on the line between the target and the caster.
-	return target_pos + target_pos.direction_to(caster_pos) * approach_distance
+
+## Closest position to `from` that is within `max_distance` of `to`.
+## Returns `from` unchanged if already in range. Also used for enemy attacks.
+static func closest_in_range(from: Vector2, to: Vector2, max_distance: float) -> Vector2:
+	if from.distance_to(to) <= max_distance:
+		return from
+	return to + to.direction_to(from) * max_distance
 
 
 func _validate_property(property: Dictionary) -> void:

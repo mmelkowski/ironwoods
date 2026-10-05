@@ -8,14 +8,17 @@ extends RefCounted
 ##   card.damage += 3
 
 var data: CardData
+## The hero who owns this card (it comes from their deck).
+var caster: Character
 var damage: int
 var critical: bool
 var mana_generation: int
 var mana_cost: int
 
 
-func _init(card_data: CardData) -> void:
+func _init(card_data: CardData, card_caster: Character) -> void:
 	data = card_data
+	caster = card_caster
 	damage = card_data.damage
 	critical = card_data.critical
 	mana_generation = card_data.mana_generation

@@ -23,6 +23,14 @@ enum Team { ALLY, ENEMY }
 @export var starting_armor: int = 0
 @export var starting_evasion: int = 0
 
-# Extension points for later:
-# @export var deck: Array[CardData]            # heroes: cards drawn each turn
+@export_group("Cards")
+## Heroes: the cards this hero adds to the shared draw pile.
+@export var deck: Array[CardData] = []
+
+@export_group("Default attack (enemies, placeholder)")
+## Used until enemies get real attack patterns made of cards.
+@export var attack_damage: int = 5
+@export_range(0.0, 1000.0, 1.0, "or_greater", "suffix:px") var attack_range: float = 32.0
+
+# Extension point for later:
 # @export var action_pattern: Array[CardData]  # enemies: telegraphed actions

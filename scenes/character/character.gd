@@ -5,6 +5,7 @@ extends Node2D
 
 signal clicked(character: Character)  # for card targeting
 signal died(character: Character)
+signal statuses_changed
 
 const TILE_SIZE := 32
 const GROUP_ALLIES := &"allies"
@@ -16,10 +17,14 @@ const GROUP_ENEMIES := &"enemies"
 ## Updated by face_towards(). Cards use it for "behind the target" positioning.
 var facing_angle: float = 0.0
 
+## Enemies only: the ally this enemy will attack on its next turn.
+var intent_target: Character
+
+## Active statuses: StatusData -> stacks (Evasion is handled by HealthComponent).
+var statuses: Dictionary = {}
+
 @onready var health: HealthComponent = %HealthComponent
 @onready var sprite: Sprite2D = %Sprite
-#@onready var name_label: Label = %NameLabel
-@onready var UI: Control = %UI
 @onready var health_bar: ProgressBar = %UI/HealthBar
 @onready var armor_bar: ProgressBar = %UI/ArmorBar
 @onready var evasion_label: Label = %UI/EvasionLabel
@@ -55,6 +60,16 @@ func is_ally() -> bool:
 
 func is_dead() -> bool:
 	return health.is_dead()
+
+
+## Gives stacks of a status. Placeholder: only Evasion has an effect so far.
+## TODO: tick TURNS statuses each turn, consume USES statuses, apply Stun/Bleeding.
+func apply_status(status: StatusData, stacks: int) -> void:
+	if status.id == &"evasion":
+		health.add_evasion(stacks)
+		return
+	statuses[status] = statuses.get(status, 0) + stacks
+	statuses_changed.emit()
 
 
 ## Turns the character towards a world position (e.g. the enemy it just attacked).
