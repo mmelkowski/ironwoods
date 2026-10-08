@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://b3w3uvxco452i"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_gjvbq"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_vuedt"]
+
+[resource]
+script = ExtResource("2_vuedt")
+id = &"thief_attack_2"
+display_name = "thief_attack_2_backstab"
+description = "thief_attack_2_backstab"
+damage = 20
+use_approach_angle = true
+approach_angle = 180.0
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

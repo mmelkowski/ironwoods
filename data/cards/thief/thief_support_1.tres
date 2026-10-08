@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://do63hnbg03gwc"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_vo88j"]
+[ext_resource type="Resource" uid="uid://cyflpsfmwkmax" path="res://data/status_application/evasion_on_self.tres" id="2_awahw"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_iyte2"]
+
+[resource]
+script = ExtResource("2_iyte2")
+id = &"thief_support_1"
+display_name = "thief_support_1"
+description = "Add evasion"
+card_type = 1
+mana_generation = 2
+effects = Array[ExtResource("1_vo88j")]([ExtResource("2_awahw")])
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

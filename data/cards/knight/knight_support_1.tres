@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://d0y714pd48tib"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_tm27k"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_1enei"]
+
+[resource]
+script = ExtResource("2_1enei")
+id = &"knight_support_1"
+display_name = "knight_support_1"
+description = "knight_support_1"
+card_type = 1
+mana_generation = 2
+target_team = 2
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

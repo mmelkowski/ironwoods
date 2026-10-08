@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://0hkd6dd7jo7g"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_fxqyd"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_awplt"]
+
+[resource]
+script = ExtResource("2_awplt")
+id = &"wizard_attack_1"
+display_name = "wizard_attack_1"
+description = "wizard_attack_1"
+damage = 15
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

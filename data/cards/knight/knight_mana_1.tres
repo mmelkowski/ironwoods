@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://bw2uyrhq2j2va"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_ymrrf"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_13o2c"]
+
+[resource]
+script = ExtResource("2_13o2c")
+id = &"knight_mana_1"
+display_name = "knight_mana_1"
+description = "knight_mana_1"
+card_type = 2
+mana_cost = 3
+damage = 35
+knockback = 2
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

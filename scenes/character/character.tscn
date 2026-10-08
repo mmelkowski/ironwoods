@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cqgod6r07513m" path="res://scenes/character/character.gd" id="1_cuyo6"]
 [ext_resource type="Script" uid="uid://brlj6tgn046yw" path="res://scripts/components/HealthComponent.gd" id="2_mutn8"]
-[ext_resource type="PackedScene" uid="uid://7mhtpf0y7wek" path="res://scenes/UI/ui.tscn" id="3_mutn8"]
+[ext_resource type="PackedScene" uid="uid://7mhtpf0y7wek" path="res://scenes/UI/character_ui.tscn" id="3_mutn8"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_0gch8"]
 resource_local_to_scene = true

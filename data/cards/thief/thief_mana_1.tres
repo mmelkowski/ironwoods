@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cc0a21jjjsj06"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_j3tv6"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_pw3cw"]
+
+[resource]
+script = ExtResource("2_pw3cw")
+id = &"thief_mana_1"
+display_name = "thief_mana_1"
+description = "thief_mana_1"
+card_type = 2
+mana_cost = 2
+damage = 20
+target_type = 2
+max_targets = 4
+chain_radius = 98.0
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

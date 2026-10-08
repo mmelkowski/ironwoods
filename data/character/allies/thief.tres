@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CharacterData" format=3 uid="uid://c0j1uoil31vac"]
+
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="1_lmexd"]
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="2_musuj"]
+[ext_resource type="Texture2D" uid="uid://lo8hamvapv4i" path="res://assets/32rogues/rogues.png" id="3_musuj"]
+
+[resource]
+script = ExtResource("2_musuj")
+id = &"thief"
+display_name = "Thief"
+team = 0
+tileset = ExtResource("3_musuj")
+tile_coords = Vector2i(3, 0)
+metadata/_custom_type_script = "uid://y7hn1ijwr8yv"

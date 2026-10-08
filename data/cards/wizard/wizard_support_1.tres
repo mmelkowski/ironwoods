@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cbnlyfankyide"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_lf2rv"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_krs2d"]
+
+[resource]
+script = ExtResource("2_krs2d")
+id = &"wizard_support_1"
+display_name = "wizard_support_1"
+description = "wizard_support_1"
+card_type = 1
+mana_generation = 3
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

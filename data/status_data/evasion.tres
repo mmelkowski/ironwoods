@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="StatusData" format=3 uid="uid://cbxpdh006otqk"]
+
+[ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="1_og3gn"]
+
+[resource]
+script = ExtResource("1_og3gn")
+id = &"evasion"
+display_name = "Evasion"
+description = "Evasion"
+duration_type = 1
+metadata/_custom_type_script = "uid://cf8nrmcbw5y70"

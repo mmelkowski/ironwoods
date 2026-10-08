@@ -33,10 +33,14 @@ const MOVE_TIME := 0.25
 const KNOCKBACK_TIME := 0.15
 const ENEMY_ACTION_DELAY := 0.4
 
-@export var character_scene: PackedScene
+@export var character_scene: PackedScene = preload("res://scenes/character/character.tscn")
 ## Everyone to spawn. Each CharacterData's `team` decides which side it joins.
 ## If filled in, the battle starts automatically (handy for testing).
-@export var roster: Array[CharacterData] = []
+@export var roster: Array[CharacterData] = [
+	preload("res://data/character/allies/knight.tres"), 
+	preload("res://data/character/allies/thief.tres"),
+	preload("res://data/character/allies/wizard.tres"),
+]
 
 @onready var allies_root: Node2D = %Allies
 @onready var enemies_root: Node2D = %Enemies
