@@ -26,8 +26,8 @@ var statuses: Dictionary = {}
 @onready var health: HealthComponent = %HealthComponent
 @onready var sprite: Sprite2D = %Sprite
 @onready var health_bar: ProgressBar = %UI/HealthBar
-@onready var armor_bar: ProgressBar = %UI/ArmorBar
-@onready var evasion_label: Label = %UI/EvasionLabel
+@onready var armor_bar: ProgressBar = %UI/%ArmorBar
+@onready var evasion_label: Label = %UI/%EvasionLabel
 @onready var click_area: Area2D = %ClickArea
 @onready var click_shape: CollisionShape2D = %ClickShape
 @onready var shape := click_shape.shape as CircleShape2D
@@ -60,6 +60,11 @@ func is_ally() -> bool:
 
 func is_dead() -> bool:
 	return health.is_dead()
+
+
+## Placeholder target highlight (tints the sprite). Swap for an outline or marker later.
+func set_highlighted(on: bool) -> void:
+	sprite.modulate = Color(1.0, 0.9, 0.4) if on else Color.WHITE
 
 
 ## Gives stacks of a status. Placeholder: only Evasion has an effect so far.
@@ -98,7 +103,6 @@ func _apply_data() -> void:
 	shape.radius = atlas.region.size.x / 2.0
 
 	# Stats
-	#name_label.text = data.display_name
 	health.initialize(data.max_health)
 	health.add_armor(data.starting_armor)
 	health.add_evasion(data.starting_evasion)
