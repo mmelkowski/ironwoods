@@ -13,10 +13,6 @@ const GROUP_ENEMIES := &"enemies"
 
 @export var data: CharacterData
 
-## Direction the character is facing, in radians (0 = right, PI = left).
-## Updated by face_towards(). Cards use it for "behind the target" positioning.
-var facing_angle: float = 0.0
-
 ## Enemies only: the ally this enemy will attack on its next turn.
 var intent_target: Character
 
@@ -77,11 +73,13 @@ func apply_status(status: StatusData, stacks: int) -> void:
 	statuses_changed.emit()
 
 
-## Turns the character towards a world position (e.g. the enemy it just attacked).
-## Only stores the angle; the visual (flip_h when facing left) is up to you:
-##   sprite.flip_h = cos(facing_angle) < 0.0
+## Makes the character look at a world position by flipping the sprite.
+## The art is drawn facing LEFT, so it is flipped when the target is on the right.
+## Only the sprite is flipped, so the health bars stay readable.
 func face_towards(world_position: Vector2) -> void:
-	facing_angle = global_position.direction_to(world_position).angle()
+	var dx := world_position.x - global_position.x
+	if not is_zero_approx(dx):
+		sprite.flip_h = dx > 0.0
 
 
 func _apply_data() -> void:
@@ -89,9 +87,6 @@ func _apply_data() -> void:
 	remove_from_group(GROUP_ALLIES)
 	remove_from_group(GROUP_ENEMIES)
 	add_to_group(GROUP_ALLIES if is_ally() else GROUP_ENEMIES)
-
-	# Default facing: allies look right, enemies look left
-	facing_angle = 0.0 if is_ally() else PI
 
 	# Sprite cut out of the tileset
 	var atlas := AtlasTexture.new()

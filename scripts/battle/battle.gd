@@ -42,6 +42,9 @@ const ENEMY_ACTION_DELAY := 0.4
 	   preload("res://data/character/allies/thief.tres"),
 	   preload("res://data/character/allies/wizard.tres"),
 	   preload("res://data/character/enemies/goblin.tres"),
+	   preload("res://data/character/enemies/goblin.tres"),
+	   preload("res://data/character/enemies/goblin.tres"),
+	   preload("res://data/character/enemies/goblin.tres"),
 ]
 
 @onready var allies_root: Node2D = %Allies
@@ -73,6 +76,7 @@ func _ready() -> void:
 
 func start_battle(characters: Array[CharacterData]) -> void:
 	_spawn_roster(characters)
+	_update_facings()
 	deck.build_from(allies)
 	for enemy in enemies:
 		_assign_target(enemy)
@@ -190,10 +194,10 @@ func play_card(card: CardInstance, selected: Array[Character]) -> void:
 	#    (with several targets, movement is relative to the first pick)
 	if data.target_team == CardData.TargetTeam.ENEMY:
 		var first := selected[0]
-		var destination := data.get_approach_position(
-			caster.global_position, first.global_position, first.facing_angle)
+		var destination := data.get_approach_position(caster.global_position, first.global_position)
+		caster.face_towards(first.global_position)  # look at the target while walking
 		await _move_characters({caster: destination}, MOVE_TIME)
-		caster.face_towards(first.global_position)
+		caster.face_towards(first.global_position)  # a backstab ends up on the other side
 
 	# 3. Damage (the hit is dodged / absorbed by evasion and armor inside HealthComponent)
 	var killed: Array[Character] = []
@@ -223,6 +227,7 @@ func play_card(card: CardInstance, selected: Array[Character]) -> void:
 	deck.discard(card)
 	card_played.emit(card)
 	_free_dead()
+	_update_facings()
 
 	if not _check_battle_end():
 		_set_phase(Phase.PLAYER_TURN)
@@ -282,17 +287,23 @@ func _enemy_attack(enemy: Character) -> void:
 
 	var destination := CardData.closest_in_range(
 		enemy.global_position, target.global_position, enemy.data.attack_range)
+	enemy.face_towards(target.global_position)
 	await _move_characters({enemy: destination}, MOVE_TIME)
 	enemy.face_towards(target.global_position)
 
 	target.health.take_damage(enemy.data.attack_damage)
 	_free_dead()
+	_update_facings()
 	_assign_target(enemy)  # telegraph the target for next turn
 
 
 ## Placeholder: random living ally.
 func _assign_target(enemy: Character) -> void:
 	enemy.intent_target = allies.pick_random() if not allies.is_empty() else null
+	print("allies.is_empty()   ", allies.is_empty())
+	print("enemy.intent_target ", enemy.intent_target)
+	if enemy.intent_target != null:
+		enemy.face_towards(enemy.intent_target.global_position)
 	intents_changed.emit()
 
 
@@ -376,3 +387,33 @@ func _move_characters(moves: Dictionary, duration: float) -> void:
 		tween.tween_property(character, "global_position", moves[character], duration)
 	if tween != null:
 		await tween.finished
+
+
+## Allies look at their closest enemy; enemies look at the ally they plan to attack
+## (their intent_target), or at the closest ally if they have none.
+## Called after anything that moves or removes characters (spawn, card, enemy attack).
+## Attackers face their actual target while they strike.
+func _update_facings() -> void:
+	_face_closest(allies, enemies)
+	for enemy in enemies:
+		var focus: Character = enemy.intent_target if allies.has(enemy.intent_target) else _closest_to(enemy, allies)
+		if focus != null:
+			enemy.face_towards(focus.global_position)
+
+
+func _face_closest(team: Array[Character], opponents: Array[Character]) -> void:
+	for character in team:
+		var closest := _closest_to(character, opponents)
+		if closest != null:
+			character.face_towards(closest.global_position)
+
+
+func _closest_to(character: Character, candidates: Array[Character]) -> Character:
+	var best: Character = null
+	var best_distance := INF
+	for candidate in candidates:
+		var distance := character.global_position.distance_squared_to(candidate.global_position)
+		if distance < best_distance:
+			best = candidate
+			best_distance = distance
+	return best

@@ -62,9 +62,9 @@ enum Knockback { NONE, STANDARD, FORCEFUL }
 		use_approach_angle = value
 		notify_property_list_changed()
 ## Forces the caster to a specific spot around the target, relative to the
-## direction the target is facing (Character.facing_angle):
-## 0 = in front, 180 = behind (backstab), +/-90 = sides.
-## The caster is placed exactly approach_distance away at that angle.
+## direction the caster is coming from:
+## 0 = same side as the caster (straight approach), 180 = opposite side (backstab),
+## +/-90 = the flanks. The caster is placed exactly approach_distance away.
 ## (Godot 2D: positive angles go clockwise on screen.)
 @export_range(-180.0, 180.0, 1.0, "degrees") var approach_angle: float = 0.0
 
@@ -74,12 +74,14 @@ enum Knockback { NONE, STANDARD, FORCEFUL }
 
 
 ## Where the caster must stand to play this card on a target.
-## target_facing is in radians (see Character.facing_angle).
-func get_approach_position(caster_pos: Vector2, target_pos: Vector2, target_facing: float) -> Vector2:
+func get_approach_position(caster_pos: Vector2, target_pos: Vector2) -> Vector2:
 	if use_approach_angle:
-		# Fixed spot around the target (e.g. behind it for a backstab).
-		var angle := target_facing + deg_to_rad(approach_angle)
-		return target_pos + Vector2.from_angle(angle) * approach_distance
+		# Fixed spot around the target, measured from the side the caster comes from
+		# (e.g. 180 = behind the target relative to the caster, for a backstab).
+		var from_dir := target_pos.direction_to(caster_pos)
+		if from_dir == Vector2.ZERO:
+			from_dir = Vector2.LEFT
+		return target_pos + from_dir.rotated(deg_to_rad(approach_angle)) * approach_distance
 
 	return closest_in_range(caster_pos, target_pos, approach_distance)
 

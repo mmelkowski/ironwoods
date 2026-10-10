@@ -36,6 +36,15 @@ unique_name_in_owner = true
 [node name="Marker2D" type="Marker2D" parent="EnemySpawns" unique_id=1526618720]
 position = Vector2(704, 315)
 
+[node name="Marker2D2" type="Marker2D" parent="EnemySpawns" unique_id=212997311]
+position = Vector2(704, 450)
+
+[node name="Marker2D3" type="Marker2D" parent="EnemySpawns" unique_id=2014090736]
+position = Vector2(807, 281)
+
+[node name="Marker2D4" type="Marker2D" parent="EnemySpawns" unique_id=1521035928]
+position = Vector2(816, 400)
+
 [node name="BattleUI" type="Control" parent="." unique_id=1932553233]
 layout_mode = 3
 anchors_preset = 0
@@ -46,12 +55,20 @@ mouse_filter = 2
 [node name="hand_container" type="HBoxContainer" parent="BattleUI" unique_id=892358315 node_paths=PackedStringArray("battle")]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 433.0
-offset_top = 465.0
-offset_right = 473.0
-offset_bottom = 505.0
+offset_left = 432.0
+offset_top = 501.0
+offset_right = 472.0
+offset_bottom = 541.0
 script = ExtResource("5_lpir7")
 battle = NodePath("../..")
+
+[node name="turn_counter" type="Label" parent="BattleUI" unique_id=1826872994]
+layout_mode = 0
+offset_left = 976.0
+offset_top = 597.0
+offset_right = 1075.0
+offset_bottom = 620.0
+text = "turn counter"
 
 [node name="TargetingController" type="Node" parent="." unique_id=1049644035 node_paths=PackedStringArray("battle", "hand")]
 script = ExtResource("6_6vh42")
