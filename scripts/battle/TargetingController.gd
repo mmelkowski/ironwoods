@@ -76,6 +76,7 @@ func _on_card_clicked(card: CardInstance) -> void:
 		return
 
 	_card = card
+	hand.set_selected_card(card)  # raise the card
 	_refresh_preview()
 
 
@@ -224,6 +225,7 @@ func _clear_selection() -> void:
 	_pickable.clear()
 	_picks.clear()
 	_card = null
+	hand.set_selected_card(null)  # lower the cards
 	if overlay != null:
 		overlay.clear()
 

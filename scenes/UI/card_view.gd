@@ -9,6 +9,11 @@ extends Control
 @onready var mana_cost: Label = %ManaCost
 @onready var mana_generation: Label = %ManaGeneration
 
+const RAISE_HEIGHT := 24.0
+const RAISE_TIME := 0.12
+
+var _raise_tween: Tween
+
 signal clicked(card: CardInstance)
 
 var card: CardInstance
@@ -56,3 +61,15 @@ func _update_display():
 # Potential signal to connect for updating UI after card buff
 func _on_card_update():
 	_update_display()
+
+
+func set_selected(selected: bool) -> void:
+	var target_y := -RAISE_HEIGHT if selected else 0.0
+	if not is_inside_tree():
+		position.y = target_y
+		return
+	if _raise_tween:
+		_raise_tween.kill()
+	_raise_tween = create_tween()
+	_raise_tween.tween_property(self, "position:y", target_y, RAISE_TIME) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
