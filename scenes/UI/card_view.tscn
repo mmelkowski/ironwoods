@@ -6,7 +6,7 @@
 font_size = 8
 
 [sub_resource type="LabelSettings" id="LabelSettings_wi6ju"]
-font_size = 4
+font_size = 8
 
 [sub_resource type="LabelSettings" id="LabelSettings_13qdw"]
 font_size = 10
@@ -18,7 +18,7 @@ font_size = 10
 font_size = 8
 
 [sub_resource type="LabelSettings" id="LabelSettings_7f2x3"]
-font_size = 4
+font_size = 10
 
 [node name="CardView" type="Control" unique_id=1682822857]
 custom_minimum_size = Vector2(100, 130)
@@ -59,7 +59,8 @@ horizontal_alignment = 1
 [node name="ManaCost" type="Label" parent="." unique_id=783853926]
 unique_name_in_owner = true
 layout_mode = 0
-offset_right = 21.0
+offset_left = 3.0
+offset_right = 44.0
 offset_bottom = 15.0
 text = "Mana Cost"
 label_settings = SubResource("LabelSettings_wi6ju")
@@ -98,8 +99,9 @@ autowrap_mode = 2
 [node name="ManaGeneration" type="Label" parent="." unique_id=7752147]
 unique_name_in_owner = true
 layout_mode = 0
+offset_left = 2.0
 offset_top = 116.0
-offset_right = 34.0
+offset_right = 85.0
 offset_bottom = 139.0
 text = "Mana generation"
 label_settings = SubResource("LabelSettings_7f2x3")

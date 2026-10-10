@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_d1wef")
 id = &"thief_attack_3"
-display_name = "thief_attack_3"
+display_name = "thief_attack_3_chain"
 description = "thief_attack_3"
 damage = 10
 target_type = 2

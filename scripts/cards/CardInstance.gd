@@ -17,7 +17,7 @@ var mana_cost: int
 var name: String
 var critical_damage: int
 var card_type: String
-
+var card_description: String
 
 func _init(card_data: CardData, card_caster: Character) -> void:
 	data = card_data
@@ -28,7 +28,11 @@ func _init(card_data: CardData, card_caster: Character) -> void:
 	critical = card_data.critical
 	critical_damage = round(int(card_data.damage) * 1.5)
 	mana_generation = card_data.mana_generation
-	mana_cost = card_data.mana_cost
+	if card_type == "2":  # 2 is enum for mana
+		mana_cost = card_data.mana_cost
+	else:
+		mana_cost = 0
+	card_description = card_data.description
 
 
 ## All effects of the card for a given trigger (ON_PLAY or ON_KILL).

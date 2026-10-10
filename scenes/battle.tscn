@@ -55,9 +55,9 @@ mouse_filter = 2
 [node name="hand_container" type="HBoxContainer" parent="BattleUI" unique_id=892358315 node_paths=PackedStringArray("battle")]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 432.0
+offset_left = 255.0
 offset_top = 501.0
-offset_right = 472.0
+offset_right = 295.0
 offset_bottom = 541.0
 script = ExtResource("5_lpir7")
 battle = NodePath("../..")
@@ -69,6 +69,22 @@ offset_top = 597.0
 offset_right = 1075.0
 offset_bottom = 620.0
 text = "turn counter"
+
+[node name="EndTurnButton" type="Button" parent="BattleUI" unique_id=7873388]
+layout_mode = 0
+offset_left = 982.0
+offset_top = 558.0
+offset_right = 1057.0
+offset_bottom = 589.0
+text = "End turn"
+
+[node name="ManaCounter" type="Label" parent="BattleUI" unique_id=21312795]
+layout_mode = 0
+offset_left = 977.0
+offset_top = 529.0
+offset_right = 1017.0
+offset_bottom = 552.0
+text = "Mana Counter"
 
 [node name="TargetingController" type="Node" parent="." unique_id=1049644035 node_paths=PackedStringArray("battle", "hand")]
 script = ExtResource("6_6vh42")

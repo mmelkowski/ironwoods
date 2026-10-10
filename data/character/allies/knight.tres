@@ -6,6 +6,8 @@
 [ext_resource type="Resource" uid="uid://dhkhcdankohly" path="res://data/cards/knight/knight_attack_1_basic.tres" id="2_m1dl4"]
 [ext_resource type="Resource" uid="uid://dlasu8mfoclji" path="res://data/cards/knight/knight_attack_2_push.tres" id="3_iofjx"]
 [ext_resource type="Resource" uid="uid://bn44muiwr55p5" path="res://data/cards/knight/knight_attack_3_quick.tres" id="4_igbxb"]
+[ext_resource type="Resource" uid="uid://d0y714pd48tib" path="res://data/cards/knight/knight_support_1.tres" id="5_fiwss"]
+[ext_resource type="Resource" uid="uid://bw2uyrhq2j2va" path="res://data/cards/knight/knight_mana_1.tres" id="6_fstyp"]
 
 [resource]
 script = ExtResource("1_5owmk")
@@ -15,5 +17,5 @@ team = 0
 tileset = ExtResource("2_0gch8")
 tile_coords = Vector2i(0, 1)
 starting_armor = 10
-deck = Array[ExtResource("1_bv0jo")]([ExtResource("2_m1dl4"), ExtResource("3_iofjx"), ExtResource("4_igbxb")])
+deck = Array[ExtResource("1_bv0jo")]([ExtResource("2_m1dl4"), ExtResource("3_iofjx"), ExtResource("4_igbxb"), ExtResource("5_fiwss"), ExtResource("6_fstyp")])
 metadata/_custom_type_script = "uid://y7hn1ijwr8yv"

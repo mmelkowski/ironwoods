@@ -32,15 +32,24 @@ func _gui_input(event: InputEvent) -> void:
 
 func _update_display():
 	card_name.text = card.name
-	if  card.critical:
+	if card.damage == 0:
 		attack_value.text = ""
 	elif card.critical:
 		attack_value.text = str(card.critical_damage)
 	else:
 		attack_value.text = str(card.damage)
-	card_type.text = card.card_type
-	card_description.text = ""
-	mana_cost.text = str(card.mana_cost)
+	match card.card_type:
+		"0":
+			card_type.text = "Attack"
+		"1":
+			card_type.text = "Support"
+		"2":
+			card_type.text = "Mana"
+	card_description.text = card.card_description
+	if card.mana_cost == 0:
+		mana_cost.text = ""
+	else:
+		mana_cost.text = str(card.mana_cost)
 	mana_generation.text = str(card.mana_generation)
 
 
