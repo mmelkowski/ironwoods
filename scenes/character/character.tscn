@@ -33,4 +33,9 @@ offset_right = 83.0
 offset_bottom = 20.999996
 scale = Vector2(0.26718795, 0.26718795)
 
+[node name="IntentIcon" type="Sprite2D" parent="." unique_id=59992876]
+unique_name_in_owner = true
+position = Vector2(0, -44)
+scale = Vector2(0.7, 0.7)
+
 [editable path="UI"]

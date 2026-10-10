@@ -17,6 +17,9 @@ enum Team { ALLY, ENEMY }
 @export var tile_coords: Vector2i = Vector2i.ZERO
 ## Size in tiles. Leave at (1, 1) for 32x32, use (2, 2) for a big boss.
 @export var size_in_tiles: Vector2i = Vector2i.ONE
+## Where the head is, in pixels from the top-left of the sprite.
+## Used to cut the head out for the intent icon shown above enemies.
+@export var head_position: Vector2 = Vector2(16, 8)
 
 @export_group("Stats")
 @export var max_health: int = 50

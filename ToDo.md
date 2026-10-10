@@ -61,6 +61,10 @@ and the intent arrows from each enemy to its intent_target, redrawn on intents_c
 Add a victory/defeat screen on battle_ended.
 Block input while phase != PLAYER_TURN.
 
+The intent cutout you plan above the head can listen to intents_changed and read enemy.intent_target. 
+A target moving without being replaced doesn’t fire that signal, 
+but the cutout shows the sprite, not a position, so it doesn’t need updating.
+
 - Phase 8: Feedback and polish
 Add floating damage numbers (damaged), a "Dodge!" popup (dodged), and status icons driven by statuses_changed.
 Flip the sprite from facing_angle, add a hit flash, a death effect, and card play and draw animations.

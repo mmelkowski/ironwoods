@@ -11,10 +11,17 @@ const TILE_SIZE := 32
 const GROUP_ALLIES := &"allies"
 const GROUP_ENEMIES := &"enemies"
 
+# Intent cutout: size of the square cut around the target's head (CharacterData.head_position).
+const INTENT_CUTOUT_SIZE := Vector2(16, 16)
+
 @export var data: CharacterData
 
 ## Enemies only: the ally this enemy will attack on its next turn.
-var intent_target: Character
+## Setting it updates the cutout above the enemy's head.
+var intent_target: Character:
+	set(value):
+		intent_target = value
+		_update_intent_icon()
 
 ## Active statuses: StatusData -> stacks (Evasion is handled by HealthComponent).
 var statuses: Dictionary = {}
@@ -24,6 +31,7 @@ var statuses: Dictionary = {}
 @onready var health_bar: ProgressBar = %UI/HealthBar
 @onready var armor_bar: ProgressBar = %UI/%ArmorBar
 @onready var evasion_label: Label = %UI/%EvasionLabel
+@onready var intent_icon: Sprite2D = %IntentIcon
 @onready var click_area: Area2D = %ClickArea
 @onready var click_shape: CollisionShape2D = %ClickShape
 @onready var shape := click_shape.shape as CircleShape2D
@@ -35,6 +43,7 @@ func _ready() -> void:
 	health.evasion_changed.connect(_on_evasion_changed)
 	health.died.connect(func(): died.emit(self))
 	click_area.input_event.connect(_on_click_area_input_event)
+	_update_intent_icon()  # hidden until an intent target is assigned
 
 	if data:
 		_apply_data()
@@ -80,6 +89,29 @@ func face_towards(world_position: Vector2) -> void:
 	var dx := world_position.x - global_position.x
 	if not is_zero_approx(dx):
 		sprite.flip_h = dx > 0.0
+
+
+## Shows the head of the intent target's sprite above this character,
+## or hides the cutout when there is no target (allies never have one).
+func _update_intent_icon() -> void:
+	if not is_node_ready():
+		return
+
+	var source: AtlasTexture = null
+	if intent_target != null:
+		source = intent_target.sprite.texture as AtlasTexture
+	if source == null:
+		intent_icon.hide()
+		return
+
+	var crop := Rect2(
+		source.region.position + intent_target.data.head_position - INTENT_CUTOUT_SIZE / 2.0,
+		INTENT_CUTOUT_SIZE)
+	var icon := AtlasTexture.new()
+	icon.atlas = source.atlas
+	icon.region = crop.intersection(source.region)  # never bleed into a neighbouring tile
+	intent_icon.texture = icon
+	intent_icon.show()
 
 
 func _apply_data() -> void:
