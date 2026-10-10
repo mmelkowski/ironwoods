@@ -146,31 +146,59 @@ func get_valid_targets(card: CardInstance) -> Array[Character]:
 	return [card.caster]
 
 
-## Checks the player's picks against the card's target type.
+## How many targets the player picks for this card (1 for SINGLE and AOE).
+func get_max_picks(card: CardInstance) -> int:
+	match card.data.target_type:
+		CardData.TargetType.MULTIPLE, CardData.TargetType.CHAINED:
+			return card.data.max_targets
+	return 1
+
+
+## CHAINED cards can pick the same character several times (the chain bounces).
+func allows_repeat_picks(card: CardInstance) -> bool:
+	return card.data.target_type == CardData.TargetType.CHAINED
+
+
+## Who can be added to the picks made so far.
+## Already picked characters are excluded, except for CHAINED cards (see allows_repeat_picks).
+## MULTIPLE: anyone within select_radius of the caster (0 = no limit).
+## CHAINED: the first pick is free, then each pick must be within chain_radius
+## of the previous one (the previous target itself counts, distance 0).
+func get_pickable_targets(card: CardInstance, selected: Array[Character]) -> Array[Character]:
+	var result: Array[Character] = []
+	if selected.size() >= get_max_picks(card):
+		return result
+
+	var data := card.data
+	for candidate in get_valid_targets(card):
+		if selected.has(candidate) and not allows_repeat_picks(card):
+			continue
+		match data.target_type:
+			CardData.TargetType.MULTIPLE:
+				var reach := candidate.global_position.distance_to(card.caster.global_position)
+				if data.select_radius > 0.0 and reach > data.select_radius:
+					continue
+			CardData.TargetType.CHAINED:
+				if not selected.is_empty():
+					var jump := candidate.global_position.distance_to(selected.back().global_position)
+					if jump > data.chain_radius:
+						continue
+		result.append(candidate)
+	return result
+
+
+## Checks the player's picks, in order, with the same rules as get_pickable_targets().
 ## SINGLE / AOE: exactly 1 pick (AOE then hits everything around it).
-## MULTIPLE: up to max_targets. CHAINED: up to max_targets, each within chain_radius of the previous.
+## MULTIPLE / CHAINED: 1 to max_targets picks.
 func is_valid_selection(card: CardInstance, selected: Array[Character]) -> bool:
 	if selected.is_empty():
 		return false
 
-	var valid := get_valid_targets(card)
+	var picked: Array[Character] = []
 	for target in selected:
-		if not valid.has(target) or selected.count(target) > 1:
+		if not get_pickable_targets(card, picked).has(target):
 			return false
-
-	var data := card.data
-	match data.target_type:
-		CardData.TargetType.SINGLE, CardData.TargetType.AOE:
-			return selected.size() == 1
-		CardData.TargetType.MULTIPLE:
-			return selected.size() <= data.max_targets
-		CardData.TargetType.CHAINED:
-			if selected.size() > data.max_targets:
-				return false
-			for i in range(1, selected.size()):
-				var gap := selected[i].global_position.distance_to(selected[i - 1].global_position)
-				if gap > data.chain_radius:
-					return false
+		picked.append(target)
 	return true
 
 
@@ -183,39 +211,32 @@ func play_card(card: CardInstance, selected: Array[Character]) -> void:
 	_set_phase(Phase.RESOLVING)
 	var data := card.data
 	var caster := card.caster
-	var targets := _expand_targets(card, selected)
+	var targets := get_affected_targets(card, selected)
 
 	# 1. Pay: one action, plus mana for MANA cards
 	_set_actions(actions_left - 1)
 	if data.card_type == CardData.Type.MANA:
 		_set_mana(mana - card.mana_cost)
 
-	# 2. Attack cards: the caster walks to the target and turns towards it
-	#    (with several targets, movement is relative to the first pick)
-	if data.target_team == CardData.TargetTeam.ENEMY:
-		var first := selected[0]
-		var destination := data.get_approach_position(caster.global_position, first.global_position)
-		caster.face_towards(first.global_position)  # look at the target while walking
-		await _move_characters({caster: destination}, MOVE_TIME)
-		caster.face_towards(first.global_position)  # a backstab ends up on the other side
-
-	# 3. Damage (the hit is dodged / absorbed by evasion and armor inside HealthComponent)
+	# 2. Move, hit and knock back
 	var killed: Array[Character] = []
-	if card.damage > 0:
-		var amount := roundi(card.damage * (CRIT_MULTIPLIER if card.critical else 1.0))
+	var attacks := data.target_team == CardData.TargetTeam.ENEMY
+	if data.target_type == CardData.TargetType.CHAINED:
+		# The caster follows the chain: walk to each target, hit it, move on
 		for target in targets:
-			target.health.take_damage(amount)
 			if target.is_dead():
-				killed.append(target)
-
-	# 4. Knockback (survivors only), all targets at the same time
-	if data.knockback != CardData.Knockback.NONE:
-		var pushes := {}
-		for target in targets:
-			if not target.is_dead():
-				var direction := caster.global_position.direction_to(target.global_position)
-				pushes[target] = target.global_position + direction * KNOCKBACK_DISTANCE[data.knockback]
-		await _move_characters(pushes, KNOCKBACK_TIME)
+				continue  # killed earlier in this same chain
+			if attacks:
+				await _approach(card, target)
+			var hit: Array[Character] = [target]
+			_deal_damage(card, hit, killed)
+			await _knock_back(card, hit)
+	else:
+		# Attack cards walk to the first pick, then every target is hit at once
+		if attacks:
+			await _approach(card, selected[0])
+		_deal_damage(card, targets, killed)
+		await _knock_back(card, targets)
 
 	# 5. Statuses, then mana, Quick refund and cleanup
 	_apply_effects(card, targets, killed)
@@ -233,8 +254,10 @@ func play_card(card: CardInstance, selected: Array[Character]) -> void:
 		_set_phase(Phase.PLAYER_TURN)
 
 
-## AOE hits everyone of the target's team within aoe_radius of the picked target.
-func _expand_targets(card: CardInstance, selected: Array[Character]) -> Array[Character]:
+## Who the card will really hit for these picks. Only AOE differs from the picks:
+## it hits everyone of the target's team within aoe_radius of the picked target.
+## (The UI uses this to preview the area.)
+func get_affected_targets(card: CardInstance, selected: Array[Character]) -> Array[Character]:
 	if card.data.target_type != CardData.TargetType.AOE:
 		return selected
 	var center := selected[0].global_position
@@ -243,6 +266,60 @@ func _expand_targets(card: CardInstance, selected: Array[Character]) -> Array[Ch
 		if candidate.global_position.distance_to(center) <= card.data.aoe_radius:
 			result.append(candidate)
 	return result
+
+
+## Where the caster will stand after each step of its move, for the UI preview.
+## Empty for cards that make no one walk (support cards) or when nothing is picked yet.
+func get_approach_positions(card: CardInstance, selected: Array[Character]) -> Array[Vector2]:
+	var result: Array[Vector2] = []
+	if card.data.target_team != CardData.TargetTeam.ENEMY or selected.is_empty():
+		return result
+
+	# A chain walks to every pick, other cards only to the first one
+	var walk_to: Array[Character] = [selected[0]]
+	if card.data.target_type == CardData.TargetType.CHAINED:
+		walk_to = selected
+
+	var stand_at := card.caster.global_position
+	for target in walk_to:
+		stand_at = card.data.get_approach_position(stand_at, target.global_position)
+		if result.is_empty() or not result.back().is_equal_approx(stand_at):
+			result.append(stand_at)
+	return result
+
+
+## The caster walks to the position this card needs around the target, looking at it.
+func _approach(card: CardInstance, target: Character) -> void:
+	var caster := card.caster
+	var destination := card.data.get_approach_position(caster.global_position, target.global_position)
+	caster.face_towards(target.global_position)  # look at the target while walking
+	await _move_characters({caster: destination}, MOVE_TIME)
+	caster.face_towards(target.global_position)  # a backstab ends up on the other side
+
+
+## One hit on each target (dodged / absorbed by evasion and armor inside HealthComponent).
+## Characters that die are added to `killed`.
+func _deal_damage(card: CardInstance, targets: Array[Character], killed: Array[Character]) -> void:
+	if card.damage <= 0:
+		return
+	var amount := roundi(card.damage * (CRIT_MULTIPLIER if card.critical else 1.0))
+	for target in targets:
+		var was_alive := not target.is_dead()
+		target.health.take_damage(amount)
+		if was_alive and target.is_dead():
+			killed.append(target)
+
+
+## Pushes survivors away from the caster, all at the same time.
+func _knock_back(card: CardInstance, targets: Array[Character]) -> void:
+	if card.data.knockback == CardData.Knockback.NONE:
+		return
+	var pushes := {}
+	for target in targets:
+		if not target.is_dead():
+			var direction := card.caster.global_position.direction_to(target.global_position)
+			pushes[target] = target.global_position + direction * KNOCKBACK_DISTANCE[card.data.knockback]
+	await _move_characters(pushes, KNOCKBACK_TIME)
 
 
 func _apply_effects(card: CardInstance, targets: Array[Character], killed: Array[Character]) -> void:
@@ -300,8 +377,6 @@ func _enemy_attack(enemy: Character) -> void:
 ## Placeholder: random living ally.
 func _assign_target(enemy: Character) -> void:
 	enemy.intent_target = allies.pick_random() if not allies.is_empty() else null
-	print("allies.is_empty()   ", allies.is_empty())
-	print("enemy.intent_target ", enemy.intent_target)
 	if enemy.intent_target != null:
 		enemy.face_towards(enemy.intent_target.global_position)
 	intents_changed.emit()

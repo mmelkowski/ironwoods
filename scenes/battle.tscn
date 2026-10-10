@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://dr5jmt4io3m23" path="res://scripts/battle/battle.gd" id="1_a12nh"]
 [ext_resource type="TileSet" uid="uid://ccpuhatw5whh8" path="res://data/TileSet/tile_map_layer_object.tres" id="2_lpir7"]
+[ext_resource type="Script" uid="uid://3o00irvjbvwf" path="res://scripts/battle/TargetingOverlay.gd" id="5_6vh42"]
 [ext_resource type="Script" uid="uid://c4ono223gonmk" path="res://scripts/battle/Hand.gd" id="5_lpir7"]
 [ext_resource type="Script" uid="uid://l8hpb8f6xelx" path="res://scripts/battle/TargetingController.gd" id="6_6vh42"]
 
@@ -90,3 +91,6 @@ text = "Mana Counter"
 script = ExtResource("6_6vh42")
 battle = NodePath("..")
 hand = NodePath("../BattleUI/hand_container")
+
+[node name="TargetingOverlay" type="Node2D" parent="." unique_id=1309423650]
+script = ExtResource("5_6vh42")

@@ -47,6 +47,8 @@ enum Knockback { NONE, STANDARD, FORCEFUL }
 		notify_property_list_changed()
 ## MULTIPLE / CHAINED: how many targets the player picks.
 @export var max_targets: int = 2
+## MULTIPLE: only targets within this radius of the caster can be picked (0 = no limit).
+@export_range(0.0, 1000.0, 1.0, "or_greater", "suffix:px") var select_radius: float = 160.0
 ## CHAINED: each next target must be within this radius of the previous one.
 @export_range(0.0, 1000.0, 1.0, "or_greater", "suffix:px") var chain_radius: float = 64.0
 ## AOE: radius around the chosen target.
@@ -103,6 +105,8 @@ func _validate_property(property: Dictionary) -> void:
 			hide = card_type != Type.MANA
 		"max_targets":
 			hide = target_type == TargetType.SINGLE or target_type == TargetType.AOE
+		"select_radius":
+			hide = target_type != TargetType.MULTIPLE
 		"chain_radius":
 			hide = target_type != TargetType.CHAINED
 		"aoe_radius":

@@ -51,7 +51,7 @@ This is the most complex part of the UI, so build it in this order:
 18. Add multi-select for MULTIPLE and CHAINED cards with a confirm action, 
     highlight only characters within chain_radius for CHAINED.
 19. Add an AOE radius preview.
-20. Add cancel (right click or Esc).
+DONE 20. Add cancel (right click or Esc).
 21. Add a destination preview using get_approach_position(), 
     so the player sees where the caster will stand.
 
