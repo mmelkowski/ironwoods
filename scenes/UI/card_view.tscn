@@ -1,0 +1,105 @@
+[gd_scene format=3 uid="uid://8r6fksfvgibp"]
+
+[ext_resource type="Script" uid="uid://c0eaaf8yx5t28" path="res://scenes/UI/card_view.gd" id="1_ymyi4"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_xrivr"]
+font_size = 8
+
+[sub_resource type="LabelSettings" id="LabelSettings_wi6ju"]
+font_size = 4
+
+[sub_resource type="LabelSettings" id="LabelSettings_13qdw"]
+font_size = 10
+
+[sub_resource type="LabelSettings" id="LabelSettings_b1lj4"]
+font_size = 10
+
+[sub_resource type="LabelSettings" id="LabelSettings_njqwk"]
+font_size = 8
+
+[sub_resource type="LabelSettings" id="LabelSettings_7f2x3"]
+font_size = 4
+
+[node name="CardView" type="Control" unique_id=1682822857]
+custom_minimum_size = Vector2(100, 130)
+custom_maximum_size = Vector2(100, 130)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_ymyi4")
+
+[node name="Artwork" type="ColorRect" parent="." unique_id=1393141127]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.556953, 0.556953, 0.556953, 1)
+
+[node name="CardName" type="Label" parent="." unique_id=267122656]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -37.0
+offset_right = 37.0
+offset_bottom = 14.0
+grow_horizontal = 2
+text = "Name placeholder"
+label_settings = SubResource("LabelSettings_xrivr")
+horizontal_alignment = 1
+
+[node name="ManaCost" type="Label" parent="." unique_id=783853926]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 21.0
+offset_bottom = 15.0
+text = "Mana Cost"
+label_settings = SubResource("LabelSettings_wi6ju")
+
+[node name="AttackValue" type="Label" parent="." unique_id=1181477465]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 18.0
+offset_right = 100.0
+offset_bottom = 33.0
+text = "AttackValue"
+label_settings = SubResource("LabelSettings_13qdw")
+
+[node name="CardType" type="Label" parent="." unique_id=1540568506]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 62.0
+offset_right = 100.0
+offset_bottom = 85.0
+text = "Card Type"
+label_settings = SubResource("LabelSettings_b1lj4")
+horizontal_alignment = 1
+
+[node name="CardDescription" type="Label" parent="." unique_id=1749409253]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 0)
+custom_maximum_size = Vector2(100, -1)
+layout_mode = 0
+offset_top = 79.0
+offset_right = 100.0
+offset_bottom = 130.0
+text = "Card description"
+label_settings = SubResource("LabelSettings_njqwk")
+autowrap_mode = 2
+
+[node name="ManaGeneration" type="Label" parent="." unique_id=7752147]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 116.0
+offset_right = 34.0
+offset_bottom = 139.0
+text = "Mana generation"
+label_settings = SubResource("LabelSettings_7f2x3")

@@ -33,7 +33,9 @@ const MOVE_TIME := 0.25
 const KNOCKBACK_TIME := 0.15
 const ENEMY_ACTION_DELAY := 0.4
 
+
 @export var character_scene: PackedScene = preload("res://scenes/character/character.tscn")
+@export var card_view_scene: PackedScene = preload("res://scenes/UI/card_view.tscn")
 ## Everyone to spawn. Each CharacterData's `team` decides which side it joins.
 ## If filled in, the battle starts automatically (handy for testing).
 @export var roster: Array[CharacterData] = [
@@ -46,6 +48,7 @@ const ENEMY_ACTION_DELAY := 0.4
 @onready var enemies_root: Node2D = %Enemies
 @onready var ally_spawns: Node2D = %AllySpawns
 @onready var enemy_spawns: Node2D = %EnemySpawns
+@onready var hand_container: HBoxContainer = %hand_container
 
 ## Living characters only. Dead ones are removed as soon as they die.
 var allies: Array[Character] = []
@@ -61,6 +64,7 @@ var _dead: Array[Character] = []  # hidden, freed once the current action ends
 
 
 func _ready() -> void:
+	deck.hand_changed.connect(_refresh_hand)   # must come before start_battle
 	if not roster.is_empty():
 		start_battle(roster)
 
@@ -110,6 +114,15 @@ func _start_player_turn() -> void:
 	deck.draw_to_full()
 	turn_started.emit(turn)
 
+func _refresh_hand() -> void:
+	for child in hand_container.get_children():
+		hand_container.remove_child(child)   # removed now, freed at end of frame
+		child.queue_free()
+
+	for card in deck.hand:
+		var view := card_view_scene.instantiate()
+		view.setup(card)
+		hand_container.add_child(view)
 
 ## Call this from the "End turn" button.
 func end_player_turn() -> void:

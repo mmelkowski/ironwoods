@@ -14,13 +14,19 @@ var damage: int
 var critical: bool
 var mana_generation: int
 var mana_cost: int
+var name: String
+var critical_damage: int
+var card_type: String
 
 
 func _init(card_data: CardData, card_caster: Character) -> void:
 	data = card_data
+	name = card_data.display_name
+	card_type = str(card_data.card_type)
 	caster = card_caster
 	damage = card_data.damage
 	critical = card_data.critical
+	critical_damage = round(int(card_data.damage) * 1.5)
 	mana_generation = card_data.mana_generation
 	mana_cost = card_data.mana_cost
 
