@@ -11,5 +11,6 @@ display_name = "thief_support_1"
 description = "Add evasion"
 card_type = 1
 mana_generation = 2
+target_team = 2
 effects = Array[ExtResource("1_vo88j")]([ExtResource("2_awahw")])
 metadata/_custom_type_script = "uid://j0prpwx7b06d"

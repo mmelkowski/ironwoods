@@ -35,6 +35,12 @@ const MOVE_TIME := 0.25
 const KNOCKBACK_TIME := 0.15
 const ENEMY_ACTION_DELAY := 0.4
 
+# Finding a free spot around a target (see _find_free_position)
+const PLACEMENT_ANGLE_STEP := PI / 12.0  # 15 degrees between two tested spots
+const PLACEMENT_STEPS := 24              # 24 x 15 degrees = a full turn
+const PLACEMENT_RINGS := 4               # how many times the distance grows by one body radius
+const PLACEMENT_TOLERANCE := 0.5         # px: bodies that merely touch don't overlap
+
 @export var character_scene: PackedScene = preload("res://scenes/character/character.tscn")
 ## Everyone to spawn. Each CharacterData's `team` decides which side it joins.
 ## If filled in, the battle starts automatically (handy for testing).
@@ -282,6 +288,56 @@ func get_affected_targets(card: CardInstance, selected: Array[Character]) -> Arr
 	return result
 
 
+## Where the caster really stands to hit `target` when coming from `from`:
+## the card's ideal spot (CardData.get_approach_position), moved to the nearest
+## free place if another character is in the way. Used by the move and by the preview.
+func find_approach_position(card: CardInstance, from: Vector2, target: Character) -> Vector2:
+	var ideal := card.data.get_approach_position(from, target.global_position)
+	return _free_position(ideal, from, target, card.caster)
+
+
+## `ideal` is where `mover` would like to stand next to `target`. Returns `from`
+## when no move is needed, otherwise the closest free spot to `ideal`.
+func _free_position(ideal: Vector2, from: Vector2, target: Character, mover: Character) -> Vector2:
+	if ideal.is_equal_approx(from):
+		return from  # already in range, the mover doesn't walk
+	return _find_free_position(ideal, target.global_position, mover)
+
+
+## Searches around `center` for a spot where `mover` doesn't overlap anyone:
+## 1. try the ideal spot, then turn around the center, alternating sides
+##    (+15, -15, +30, -30 degrees...) so the first free spot is the closest to the ideal one;
+## 2. if the whole circle is blocked, grow the distance by the mover's radius and turn again.
+## Falls back to the ideal spot if nothing is free.
+func _find_free_position(ideal: Vector2, center: Vector2, mover: Character) -> Vector2:
+	var offset := ideal - center
+	var base_radius := offset.length()
+	var base_angle := offset.angle()
+
+	for ring in PLACEMENT_RINGS:
+		var radius := base_radius + ring * mover.shape.radius
+		for step in PLACEMENT_STEPS:
+			var turns := ceili(step / 2.0)                    # 0, 1, 1, 2, 2, 3...
+			var side := 1.0 if step % 2 == 1 else -1.0        # + first, then -
+			var angle := base_angle + side * turns * PLACEMENT_ANGLE_STEP
+			var spot := center + Vector2.from_angle(angle) * radius
+			if _is_spot_free(spot, mover):
+				return spot
+	return ideal
+
+
+## True if a body of the mover's size standing at `spot` overlaps no other character.
+func _is_spot_free(spot: Vector2, mover: Character) -> bool:
+	for team in [allies, enemies]:
+		for other in team:
+			if other == mover:
+				continue
+			var min_gap: float = mover.shape.radius + other.shape.radius - PLACEMENT_TOLERANCE
+			if spot.distance_to(other.global_position) < min_gap:
+				return false
+	return true
+
+
 ## Where the caster will stand after each step of its move, for the UI preview.
 ## Empty for cards that make no one walk (support cards) or when nothing is picked yet.
 func get_approach_positions(card: CardInstance, selected: Array[Character]) -> Array[Vector2]:
@@ -296,7 +352,7 @@ func get_approach_positions(card: CardInstance, selected: Array[Character]) -> A
 
 	var stand_at := card.caster.global_position
 	for target in walk_to:
-		stand_at = card.data.get_approach_position(stand_at, target.global_position)
+		stand_at = find_approach_position(card, stand_at, target)
 		if result.is_empty() or not result.back().is_equal_approx(stand_at):
 			result.append(stand_at)
 	return result
@@ -305,7 +361,7 @@ func get_approach_positions(card: CardInstance, selected: Array[Character]) -> A
 ## The caster walks to the position this card needs around the target, looking at it.
 func _approach(card: CardInstance, target: Character) -> void:
 	var caster := card.caster
-	var destination := card.data.get_approach_position(caster.global_position, target.global_position)
+	var destination := find_approach_position(card, caster.global_position, target)
 	caster.face_towards(target.global_position)  # look at the target while walking
 	await _move_characters({caster: destination}, MOVE_TIME)
 	caster.face_towards(target.global_position)  # a backstab ends up on the other side
@@ -376,8 +432,9 @@ func _enemy_attack(enemy: Character) -> void:
 	if target == null:
 		return
 
-	var destination := CardData.closest_in_range(
+	var ideal := CardData.closest_in_range(
 		enemy.global_position, target.global_position, enemy.data.attack_range)
+	var destination := _free_position(ideal, enemy.global_position, target, enemy)
 	enemy.face_towards(target.global_position)
 	await _move_characters({enemy: destination}, MOVE_TIME)
 	enemy.face_towards(target.global_position)
