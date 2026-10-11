@@ -1,0 +1,64 @@
+[gd_scene format=3 uid="uid://5ibfh6xrbysw"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_xrivr"]
+font_size = 64
+
+[node name="MainMenu" type="Control" unique_id=1447541915]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="GameName" type="Label" parent="." unique_id=855841900]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -168.0
+offset_top = 89.0
+offset_right = 169.0
+offset_bottom = 177.0
+grow_horizontal = 2
+text = "IronWoods"
+label_settings = SubResource("LabelSettings_xrivr")
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=1617727702]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1345694794]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -48.0
+offset_top = -85.5
+offset_right = 48.0
+offset_bottom = 85.5
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="new_game" type="Button" parent="VBoxContainer" unique_id=11994316]
+layout_mode = 2
+text = "New Game"
+
+[node name="continue" type="Button" parent="VBoxContainer" unique_id=1917591837]
+layout_mode = 2
+text = "Continue"
+
+[node name="load_game" type="Button" parent="VBoxContainer" unique_id=538002406]
+layout_mode = 2
+text = "Load Game"
+
+[node name="options" type="Button" parent="VBoxContainer" unique_id=1617073570]
+layout_mode = 2
+text = "Options"
+
+[node name="quit" type="Button" parent="VBoxContainer" unique_id=215457673]
+layout_mode = 2
+text = "Quit"

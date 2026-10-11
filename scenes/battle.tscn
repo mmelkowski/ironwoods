@@ -2,9 +2,11 @@
 
 [ext_resource type="Script" uid="uid://dr5jmt4io3m23" path="res://scripts/battle/battle.gd" id="1_a12nh"]
 [ext_resource type="TileSet" uid="uid://ccpuhatw5whh8" path="res://data/TileSet/tile_map_layer_object.tres" id="2_lpir7"]
+[ext_resource type="Script" uid="uid://cccw08xgogu7p" path="res://scripts/battle/BattleUI.gd" id="3_6vh42"]
 [ext_resource type="Script" uid="uid://3o00irvjbvwf" path="res://scripts/battle/TargetingOverlay.gd" id="5_6vh42"]
 [ext_resource type="Script" uid="uid://c4ono223gonmk" path="res://scripts/battle/Hand.gd" id="5_lpir7"]
 [ext_resource type="Script" uid="uid://l8hpb8f6xelx" path="res://scripts/battle/TargetingController.gd" id="6_6vh42"]
+[ext_resource type="Script" uid="uid://cq8gpvysm63ui" path="res://scripts/battle/battle_objective.gd" id="7_4k1nj"]
 
 [node name="world" type="Node2D" unique_id=2014053538]
 script = ExtResource("1_a12nh")
@@ -46,12 +48,17 @@ position = Vector2(807, 281)
 [node name="Marker2D4" type="Marker2D" parent="EnemySpawns" unique_id=1521035928]
 position = Vector2(816, 400)
 
-[node name="BattleUI" type="Control" parent="." unique_id=1932553233]
+[node name="BattleUI" type="Control" parent="." unique_id=1932553233 node_paths=PackedStringArray("battle", "action_counter", "mana_counter", "end_turn_button")]
 layout_mode = 3
 anchors_preset = 0
 offset_right = 1152.0
 offset_bottom = 672.0
 mouse_filter = 2
+script = ExtResource("3_6vh42")
+battle = NodePath("..")
+action_counter = NodePath("ActionCounter")
+mana_counter = NodePath("ManaCounter")
+end_turn_button = NodePath("EndTurnButton")
 
 [node name="hand_container" type="HBoxContainer" parent="BattleUI" unique_id=892358315 node_paths=PackedStringArray("battle")]
 unique_name_in_owner = true
@@ -64,7 +71,7 @@ alignment = 1
 script = ExtResource("5_lpir7")
 battle = NodePath("../..")
 
-[node name="turn_counter" type="Label" parent="BattleUI" unique_id=1826872994]
+[node name="ActionCounter" type="Label" parent="BattleUI" unique_id=1826872994]
 layout_mode = 0
 offset_left = 976.0
 offset_top = 597.0
@@ -95,3 +102,6 @@ hand = NodePath("../BattleUI/hand_container")
 
 [node name="TargetingOverlay" type="Node2D" parent="." unique_id=1309423650]
 script = ExtResource("5_6vh42")
+
+[node name="BattleObjective" type="Node" parent="." unique_id=170777165]
+script = ExtResource("7_4k1nj")

@@ -10,4 +10,5 @@ display_name = "wizard_support_1"
 description = "wizard_support_1"
 card_type = 1
 mana_generation = 3
+target_team = 2
 metadata/_custom_type_script = "uid://j0prpwx7b06d"

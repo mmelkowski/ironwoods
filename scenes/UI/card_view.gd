@@ -11,6 +11,7 @@ extends Control
 
 const RAISE_HEIGHT := 24.0
 const RAISE_TIME := 0.12
+const UNPLAYABLE_TINT := Color(0.3, 0.3, 0.3, 1.0)
 
 var _raise_tween: Tween
 
@@ -28,7 +29,7 @@ func _ready() -> void:
 		_update_display()
 
 func set_playable(playable: bool) -> void:
-	modulate = Color.WHITE if playable else Color(1, 1, 1, 0.5)
+	modulate = Color.WHITE if playable else UNPLAYABLE_TINT
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -46,10 +47,13 @@ func _update_display():
 	match card.card_type:
 		"0":
 			card_type.text = "Attack"
+			artwork.color = Color(0.51, 0.0, 0.188, 0.667)
 		"1":
 			card_type.text = "Support"
+			artwork.color = Color(0.0, 0.321, 0.219, 0.667)
 		"2":
 			card_type.text = "Mana"
+			artwork.color = Color(0.045, 0.112, 0.758, 0.667)
 	card_description.text = card.card_description
 	if card.mana_cost == 0:
 		mana_cost.text = ""
