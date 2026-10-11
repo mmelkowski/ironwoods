@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://c7kl8dc7ifntg"]
+
+[ext_resource type="Script" uid="uid://cgkt0qy867ouj" path="res://scripts/hub/HubLocation.gd" id="1_hceq6"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_xrivr"]
+radius = 70.0
+
+[node name="location" type="Area2D" unique_id=854752293 node_paths=PackedStringArray("visual")]
+script = ExtResource("1_hceq6")
+visual = NodePath("Sprite2D")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=463501038]
+shape = SubResource("CircleShape2D_xrivr")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=333314467]

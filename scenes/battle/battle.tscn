@@ -14,7 +14,7 @@ font_size = 64
 [sub_resource type="LabelSettings" id="LabelSettings_13qdw"]
 font_size = 64
 
-[node name="world" type="Node2D" unique_id=2014053538 node_paths=PackedStringArray("objective")]
+[node name="battle" type="Node2D" unique_id=2014053538 node_paths=PackedStringArray("objective")]
 script = ExtResource("1_a12nh")
 objective = NodePath("BattleObjective/KillAllObjective")
 
@@ -28,19 +28,19 @@ unique_name_in_owner = true
 [node name="Enemies" type="Node2D" parent="." unique_id=1300632256]
 unique_name_in_owner = true
 
-[node name="EnemySpawns" type="Node2D" parent="Enemies" unique_id=37792728]
+[node name="EnemySpawns" type="Node2D" parent="." unique_id=37792728]
 unique_name_in_owner = true
 
-[node name="Marker2D" type="Marker2D" parent="Enemies/EnemySpawns" unique_id=1526618720]
+[node name="Marker2D" type="Marker2D" parent="EnemySpawns" unique_id=1526618720]
 position = Vector2(704, 315)
 
-[node name="Marker2D2" type="Marker2D" parent="Enemies/EnemySpawns" unique_id=212997311]
+[node name="Marker2D2" type="Marker2D" parent="EnemySpawns" unique_id=212997311]
 position = Vector2(704, 200)
 
-[node name="Marker2D3" type="Marker2D" parent="Enemies/EnemySpawns" unique_id=2014090736]
+[node name="Marker2D3" type="Marker2D" parent="EnemySpawns" unique_id=2014090736]
 position = Vector2(807, 281)
 
-[node name="Marker2D4" type="Marker2D" parent="Enemies/EnemySpawns" unique_id=1521035928]
+[node name="Marker2D4" type="Marker2D" parent="EnemySpawns" unique_id=1521035928]
 position = Vector2(784, 378)
 
 [node name="AllySpawns" type="Node2D" parent="." unique_id=1567768452]
@@ -123,6 +123,7 @@ text = "VICTORY"
 label_settings = SubResource("LabelSettings_xrivr")
 
 [node name="Defeat" type="Label" parent="BattleUI" unique_id=1364596866]
+visible = false
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5

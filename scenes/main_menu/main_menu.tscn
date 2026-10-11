@@ -1,5 +1,7 @@
 [gd_scene format=3 uid="uid://5ibfh6xrbysw"]
 
+[ext_resource type="Script" uid="uid://bl2opxlpovem0" path="res://scenes/main_menu/main_menu.gd" id="1_ysd44"]
+
 [sub_resource type="LabelSettings" id="LabelSettings_xrivr"]
 font_size = 64
 
@@ -10,6 +12,12 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_ysd44")
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=1617727702]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
 
 [node name="GameName" type="Label" parent="." unique_id=855841900]
 layout_mode = 1
@@ -23,11 +31,6 @@ offset_bottom = 177.0
 grow_horizontal = 2
 text = "IronWoods"
 label_settings = SubResource("LabelSettings_xrivr")
-
-[node name="TextureRect" type="TextureRect" parent="." unique_id=1617727702]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1345694794]
 layout_mode = 1
