@@ -22,6 +22,7 @@ signal mana_changed(mana: int)
 signal character_clicked(character: Character)  # forwarded from every Character
 signal intents_changed  # an enemy picked a new target (redraw the intent arrows)
 signal card_played(card: CardInstance)
+signal objective_updated  # the objective may have changed (refresh the HUD)
 signal battle_ended(victory: bool)
 
 const ACTIONS_PER_TURN := 3
@@ -46,6 +47,10 @@ const ENEMY_ACTION_DELAY := 0.4
 	   preload("res://data/character/enemies/goblin.tres"),
 	   preload("res://data/character/enemies/goblin.tres"),
 ]
+
+## What has to be done to win. If empty, a KillAllObjective is created.
+## Add an objective node to the scene and assign it here to change the mission goal.
+@export var objective: BattleObjective
 
 @onready var allies_root: Node2D = %Allies
 @onready var enemies_root: Node2D = %Enemies
@@ -82,7 +87,16 @@ func start_battle(characters: Array[CharacterData]) -> void:
 		_assign_target(enemy)
 	mana = 0
 	turn = 0
+	_start_objective()
 	_start_player_turn()
+
+
+func _start_objective() -> void:
+	if objective == null:
+		objective = KillAllObjective.new()
+		add_child(objective)
+	objective.start(self)
+	objective_updated.emit()
 
 
 func _spawn_roster(characters: Array[CharacterData]) -> void:
@@ -406,20 +420,13 @@ func _free_dead() -> void:
 	_dead.clear()
 
 
-## Objective check. Only "defeat all enemies" exists for now; hostage / chest
-## objectives would replace _is_victory().
-func _is_victory() -> bool:
-	return enemies.is_empty()
-
-
-func _is_defeat() -> bool:
-	return allies.is_empty()
-
-
+## Called after every action. Returns true when the battle just ended.
+## Victory comes from the objective; defeat is "all allies dead" or the objective failing.
 func _check_battle_end() -> bool:
-	if _is_victory():
+	objective_updated.emit()
+	if objective.is_complete():
 		_end_battle(true)
-	elif _is_defeat():
+	elif allies.is_empty() or objective.is_failed():
 		_end_battle(false)
 	else:
 		return false

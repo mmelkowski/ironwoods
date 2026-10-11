@@ -18,6 +18,12 @@ extends Node
 var battle: Battle
 
 
+## False until the Battle has called start(). Before that, `battle` is null,
+## so anything reading the battle (the HUD, for instance) must check this first.
+func is_started() -> bool:
+	return battle != null
+
+
 ## Called once by the Battle after the characters are spawned.
 func start(target_battle: Battle) -> void:
 	battle = target_battle
