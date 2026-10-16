@@ -1,0 +1,89 @@
+[gd_scene format=3 uid="uid://bwqm4if4nwsb5"]
+
+[ext_resource type="Script" uid="uid://cktt1rbu6l8q1" path="res://scenes/hub/gate/menu_gate.gd" id="1_8uier"]
+[ext_resource type="PackedScene" uid="uid://cxiqr01406t78" path="res://scenes/hub/gate/hero_portrait.tscn" id="2_mxqdd"]
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="2_p7qf4"]
+[ext_resource type="Resource" uid="uid://dbgmk8kp5jadj" path="res://data/character/allies/knight.tres" id="3_mpjb5"]
+[ext_resource type="PackedScene" uid="uid://btbu7h62i3nnk" path="res://scenes/hub/gate/hero_slot.tscn" id="3_tdx5d"]
+[ext_resource type="Resource" uid="uid://c0j1uoil31vac" path="res://data/character/allies/thief.tres" id="4_kv8q4"]
+[ext_resource type="Resource" uid="uid://d4ajgtrfmmxm" path="res://data/character/allies/wizard.tres" id="5_51rd4"]
+
+[node name="Gate" type="Control" unique_id=2136784914 node_paths=PackedStringArray("hero_grid", "team_slots", "launch_button", "close_button")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_8uier")
+heroes = Array[ExtResource("2_p7qf4")]([ExtResource("3_mpjb5"), ExtResource("4_kv8q4"), ExtResource("5_51rd4"), ExtResource("3_mpjb5")])
+hero_portrait_scene = ExtResource("2_mxqdd")
+hero_slot_scene = ExtResource("3_tdx5d")
+hero_grid = NodePath("Backdrop/Layout/LeftPanel/VBoxContainer/ScrollContainer/HeroGrid")
+team_slots = NodePath("Backdrop/Layout/RightPanel/TeamSlots")
+launch_button = NodePath("Footer/LaunchButton")
+close_button = NodePath("Footer/CloseButton")
+
+[node name="Backdrop" type="ColorRect" parent="." unique_id=1686372180]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -482.0
+offset_top = -248.0
+offset_right = 482.0
+offset_bottom = 248.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.4509804)
+
+[node name="Layout" type="HBoxContainer" parent="Backdrop" unique_id=330361259]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LeftPanel" type="PanelContainer" parent="Backdrop/Layout" unique_id=655684982]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Backdrop/Layout/LeftPanel" unique_id=1836736908]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Backdrop/Layout/LeftPanel/VBoxContainer" unique_id=2130078379]
+layout_mode = 2
+text = "  Choose your 3 characters  
+"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Backdrop/Layout/LeftPanel/VBoxContainer" unique_id=597348606]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HeroGrid" type="GridContainer" parent="Backdrop/Layout/LeftPanel/VBoxContainer/ScrollContainer" unique_id=413493938]
+layout_mode = 2
+columns = 3
+
+[node name="RightPanel" type="PanelContainer" parent="Backdrop/Layout" unique_id=1920996246]
+layout_mode = 2
+size_flags_stretch_ratio = 2.0
+
+[node name="TeamSlots" type="HBoxContainer" parent="Backdrop/Layout/RightPanel" unique_id=159469571]
+layout_mode = 2
+
+[node name="Footer" type="HBoxContainer" parent="." unique_id=1962877889]
+layout_mode = 0
+offset_left = 500.0
+offset_top = 578.0
+offset_right = 705.0
+offset_bottom = 618.0
+
+[node name="CloseButton" type="Button" parent="Footer" unique_id=1691100498]
+layout_mode = 2
+text = "Close"
+
+[node name="LaunchButton" type="Button" parent="Footer" unique_id=1332930243]
+layout_mode = 2
+text = "Launch expedition"

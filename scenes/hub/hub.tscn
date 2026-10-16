@@ -3,7 +3,9 @@
 [ext_resource type="Script" uid="uid://dc3ns72psnuq4" path="res://scripts/hub/Hub.gd" id="1_ajtfx"]
 [ext_resource type="TileSet" uid="uid://ccpuhatw5whh8" path="res://data/TileSet/tile_map_layer_object.tres" id="1_qssp3"]
 [ext_resource type="PackedScene" uid="uid://c7kl8dc7ifntg" path="res://scenes/hub/hub_location.tscn" id="2_d1od2"]
-[ext_resource type="Texture2D" uid="uid://bjp1hmd2a6hq5" path="res://assets/Isometric_pixel-art_room_diorama_tileset/isometricroomtileset(67).png" id="3_w6xti"]
+[ext_resource type="PackedScene" uid="uid://bwqm4if4nwsb5" path="res://scenes/hub/gate/menu_gate.tscn" id="4_pf6nx"]
+[ext_resource type="Texture2D" uid="uid://dxvxybugrtete" path="res://assets/Isometric_pixel-art_room_diorama_tileset/isometricroomtileset(1).png" id="4_ursuo"]
+[ext_resource type="Texture2D" uid="uid://cdr7qnnlmdys" path="res://assets/Isometric_pixel-art_room_diorama_tileset/isometricroomtileset(15).png" id="5_pf6nx"]
 
 [node name="Hub" type="Node2D" unique_id=1907624046]
 script = ExtResource("1_ajtfx")
@@ -14,9 +16,22 @@ tile_set = ExtResource("1_qssp3")
 
 [node name="MainGate" parent="." unique_id=854752293 instance=ExtResource("2_d1od2")]
 position = Vector2(574, 154)
+location_id = &"gate"
+display_name = "Gate"
+menu_scene = ExtResource("4_pf6nx")
 
 [node name="Sprite2D" parent="MainGate" index="1" unique_id=333314467]
 scale = Vector2(0.5, 0.5)
-texture = ExtResource("3_w6xti")
+texture = ExtResource("4_ursuo")
+
+[node name="location" parent="." unique_id=808067017 instance=ExtResource("2_d1od2")]
+position = Vector2(373, 274)
+location_id = &"carpenter"
+display_name = "Carpenter"
+
+[node name="Sprite2D" parent="location" index="1" unique_id=333314467]
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("5_pf6nx")
 
 [editable path="MainGate"]
+[editable path="location"]

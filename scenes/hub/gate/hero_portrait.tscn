@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://cxiqr01406t78"]
+
+[ext_resource type="Script" uid="uid://dvg3rw75k6712" path="res://scenes/hub/gate/HeroPortrait.gd" id="1_wl6o0"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wl6o0"]
+draw_center = false
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.54027706, 0.4867608, 0.12910983, 1)
+corner_detail = 4
+
+[sub_resource type="LabelSettings" id="LabelSettings_wl6o0"]
+font_size = 8
+
+[node name="HeroPortrait" type="Button" unique_id=338173226]
+custom_minimum_size = Vector2(64, 64)
+offset_right = 64.0
+offset_bottom = 64.0
+theme_override_styles/pressed = SubResource("StyleBoxFlat_wl6o0")
+script = ExtResource("1_wl6o0")
+
+[node name="Badge" type="Label" parent="." unique_id=1935917513]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+label_settings = SubResource("LabelSettings_wl6o0")

@@ -5,10 +5,15 @@ extends Resource
 
 enum Team { ALLY, ENEMY }
 
+const TILE_SIZE := 32
+
 @export_group("Identity")
 @export var id: StringName
 @export var display_name: String = ""
 @export var team: Team = Team.ENEMY
+## Heroes only. Locked heroes are hidden from the team selection.
+## TODO: replace by the player's save data once there is one.
+@export var unlocked_by_default: bool = true
 
 @export_group("Sprite")
 ## The tileset image (e.g. the 32x32 spritesheet).
@@ -37,3 +42,22 @@ enum Team { ALLY, ENEMY }
 
 # Extension point for later:
 # @export var action_pattern: Array[CardData]  # enemies: telegraphed actions
+
+
+## The whole sprite, cut from the tileset.
+func get_sprite_texture() -> AtlasTexture:
+	var atlas := AtlasTexture.new()
+	atlas.atlas = tileset
+	atlas.region = Rect2(Vector2(tile_coords * TILE_SIZE), Vector2(size_in_tiles * TILE_SIZE))
+	return atlas
+
+
+## A cut of the sprite centered on the head (portraits, intent icons...).
+## Never goes outside the sprite, so it can't show a neighbouring tile.
+func get_head_texture(size: Vector2 = Vector2(16, 16)) -> AtlasTexture:
+	var full := get_sprite_texture()
+	var atlas := AtlasTexture.new()
+	atlas.atlas = tileset
+	var crop := Rect2(full.region.position + head_position - size / 2.0, size)
+	atlas.region = crop.intersection(full.region)
+	return atlas
