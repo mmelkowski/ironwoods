@@ -20,6 +20,19 @@ const EMPTY_TINT := Color(1, 1, 1, 0.35)
 @onready var stats_label: Label = %StatsLabel
 
 
+func _ready() -> void:
+	# Every spot takes an equal share of the row, empty or not,
+	# so nothing moves when a hero is picked or removed.
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_flags_vertical = Control.SIZE_EXPAND_FILL
+	size_flags_stretch_ratio = 1.0
+
+	# A label's minimum width follows its text. Without this, a long name or
+	# stat line would make its column wider than the others.
+	for label in [name_label, stats_label]:
+		label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+
+
 ## null empties the slot.
 func set_hero(hero: CharacterData) -> void:
 	if hero == null:
