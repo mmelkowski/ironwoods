@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="HeroCatalog" format=3 uid="uid://t0psau33asce"]
+
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="1_rikdf"]
+[ext_resource type="Resource" uid="uid://dbgmk8kp5jadj" path="res://data/character/allies/knight.tres" id="2_cckat"]
+[ext_resource type="Script" uid="uid://bsxrpsa1o2t44" path="res://scripts/hero_catalog/HeroCatalog.gd" id="2_dkwb6"]
+[ext_resource type="Resource" uid="uid://c0j1uoil31vac" path="res://data/character/allies/thief.tres" id="3_lyh8g"]
+[ext_resource type="Resource" uid="uid://d4ajgtrfmmxm" path="res://data/character/allies/wizard.tres" id="4_rjnm5"]
+
+[resource]
+script = ExtResource("2_dkwb6")
+heroes = Array[ExtResource("1_rikdf")]([ExtResource("2_cckat"), ExtResource("3_lyh8g"), ExtResource("4_rjnm5")])
+metadata/_custom_type_script = "uid://bsxrpsa1o2t44"

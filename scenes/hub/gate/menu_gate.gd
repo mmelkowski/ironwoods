@@ -3,9 +3,9 @@ extends HubMenu
 ## Left third: the heroes you own. Right two thirds: the team as it is built.
 
 const TEAM_SIZE := 3
+## TODO: the destination will be chosen in this menu. Until then, a fixed expedition.
+const DEFAULT_EXPEDITION_ID := &"first_expedition"
 
-## Every playable hero (drag the hero .tres files here). Only the unlocked ones are shown.
-@export var heroes: Array[CharacterData] = []
 @export var hero_portrait_scene: PackedScene   # hero_portrait.tscn
 @export var hero_slot_scene: PackedScene       # hero_slot.tscn
 ## The GridContainer of the left side (columns = 3). Filled by this script.
@@ -33,18 +33,14 @@ func _ready() -> void:
 func launch() -> void:
 	if selected_team.size() < TEAM_SIZE:
 		return
-	pass  # TODO start the expedition with `selected_team`
+	GameState.start_run(DEFAULT_EXPEDITION_ID, selected_team)
+	SceneManager.go_to(&"expedition")
 
 
 ## Heroes the player owns. Locked heroes are never listed, so the grid doesn't
 ## reveal how many are left to unlock.
-## TODO: read the player's save instead of unlocked_by_default.
 func _get_available_heroes() -> Array[CharacterData]:
-	var result: Array[CharacterData] = []
-	for hero in heroes:
-		if hero.team == CharacterData.Team.ALLY and hero.unlocked_by_default:
-			result.append(hero)
-	return result
+	return GameState.get_unlocked_heroes()
 
 
 func _build_grid() -> void:

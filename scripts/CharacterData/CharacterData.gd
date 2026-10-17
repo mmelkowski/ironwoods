@@ -11,8 +11,8 @@ const TILE_SIZE := 32
 @export var id: StringName
 @export var display_name: String = ""
 @export var team: Team = Team.ENEMY
-## Heroes only. Locked heroes are hidden from the team selection.
-## TODO: replace by the player's save data once there is one.
+## Heroes only: part of the roster of a new game. The other heroes are unlocked
+## later and recorded in the PlayerProfile. Locked heroes are hidden from the team selection.
 @export var unlocked_by_default: bool = true
 
 @export_group("Sprite")

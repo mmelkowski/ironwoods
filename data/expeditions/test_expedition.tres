@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ExpeditionData" format=3 uid="uid://drsuciagschsy"]
+
+[ext_resource type="Script" uid="uid://djuxvwgpk5gw6" path="res://scripts/expedition/ExpeditionData.gd" id="1_7dhtj"]
+
+[resource]
+script = ExtResource("1_7dhtj")
+id = &"first_expedition"
+display_name = "The Old Road"
+description = "A test expedition."
+goal = "Reach the end of the road."
