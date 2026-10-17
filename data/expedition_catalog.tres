@@ -1,8 +1,9 @@
 [gd_resource type="Resource" script_class="ExpeditionCatalog" format=3 uid="uid://gq7v51mxjgqx"]
 
+[ext_resource type="Script" uid="uid://djuxvwgpk5gw6" path="res://scripts/expedition/ExpeditionData.gd" id="1_3oh7p"]
 [ext_resource type="Resource" uid="uid://drsuciagschsy" path="res://data/expeditions/test_expedition.tres" id="1_vcwum"]
 [ext_resource type="Script" uid="uid://cu3bk0l3v0mmb" path="res://scripts/expedition/ExpeditionCatalog.gd" id="2_3oh7p"]
 
 [resource]
 script = ExtResource("2_3oh7p")
-expeditions = Array[Resource]([ExtResource("1_vcwum")])
+expeditions = Array[ExtResource("1_3oh7p")]([ExtResource("1_vcwum")])

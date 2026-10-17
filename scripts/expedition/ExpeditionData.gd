@@ -170,8 +170,8 @@ func _print_validation() -> void:
 
 func _count_unique(ids: Array[StringName]) -> int:
 	var unique := {}
-	for _id in ids:
-		unique[_id] = true
+	for id in ids:
+		unique[id] = true
 	return unique.size()
 
 

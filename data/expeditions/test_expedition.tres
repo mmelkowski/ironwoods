@@ -1,6 +1,77 @@
 [gd_resource type="Resource" script_class="ExpeditionData" format=3 uid="uid://drsuciagschsy"]
 
 [ext_resource type="Script" uid="uid://djuxvwgpk5gw6" path="res://scripts/expedition/ExpeditionData.gd" id="1_7dhtj"]
+[ext_resource type="Script" uid="uid://dsg3xmy0citai" path="res://scripts/expedition/ExpeditionNode.gd" id="1_wvuf0"]
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="2_nk4hx"]
+[ext_resource type="Resource" uid="uid://dxhflavq7koc8" path="res://data/character/enemies/goblin.tres" id="3_r176i"]
+[ext_resource type="Script" uid="uid://c0pdfac1nyf65" path="res://scripts/expedition/EncounterData.gd" id="4_olven"]
+
+[sub_resource type="Resource" id="Resource_wvuf0"]
+script = ExtResource("1_wvuf0")
+id = &"start"
+type = 0
+title = "Departure"
+next_nodes = Array[StringName]([&"fight_1"])
+
+[sub_resource type="Resource" id="Resource_nk4hx"]
+script = ExtResource("4_olven")
+enemies = Array[ExtResource("2_nk4hx")]([ExtResource("3_r176i"), ExtResource("3_r176i")])
+
+[sub_resource type="Resource" id="Resource_r176i"]
+script = ExtResource("1_wvuf0")
+id = &"fight_1"
+title = "Ambush on the road"
+next_nodes = Array[StringName]([&"fight_hard", &"camp"])
+encounter = SubResource("Resource_nk4hx")
+
+[sub_resource type="Resource" id="Resource_olven"]
+script = ExtResource("4_olven")
+enemies = Array[ExtResource("2_nk4hx")]([ExtResource("3_r176i"), ExtResource("3_r176i"), ExtResource("3_r176i")])
+
+[sub_resource type="Resource" id="Resource_x2bst"]
+script = ExtResource("1_wvuf0")
+id = &"fight_hard"
+title = "The goblin patrol"
+next_nodes = Array[StringName]([&"fight_2"])
+encounter = SubResource("Resource_olven")
+lane = -0.7
+
+[sub_resource type="Resource" id="Resource_euodn"]
+script = ExtResource("1_wvuf0")
+id = &"camp"
+type = 3
+title = "A quiet camp"
+next_nodes = Array[StringName]([&"fight_2"])
+lane = 0.7
+
+[sub_resource type="Resource" id="Resource_oqnlf"]
+script = ExtResource("4_olven")
+enemies = Array[ExtResource("2_nk4hx")]([ExtResource("3_r176i"), ExtResource("3_r176i"), ExtResource("3_r176i")])
+
+[sub_resource type="Resource" id="Resource_cl0hm"]
+script = ExtResource("1_wvuf0")
+id = &"fight_2"
+title = "The bridge"
+next_nodes = Array[StringName]([&"boss"])
+encounter = SubResource("Resource_oqnlf")
+
+[sub_resource type="Resource" id="Resource_io62w"]
+script = ExtResource("4_olven")
+enemies = Array[ExtResource("2_nk4hx")]([ExtResource("3_r176i"), ExtResource("3_r176i"), ExtResource("3_r176i"), ExtResource("3_r176i")])
+
+[sub_resource type="Resource" id="Resource_6lrbh"]
+script = ExtResource("1_wvuf0")
+id = &"boss"
+type = 2
+title = "The goblin chief"
+next_nodes = Array[StringName]([&"end"])
+encounter = SubResource("Resource_io62w")
+
+[sub_resource type="Resource" id="Resource_wa0ft"]
+script = ExtResource("1_wvuf0")
+id = &"end"
+type = 5
+title = "The end of the road"
 
 [resource]
 script = ExtResource("1_7dhtj")
@@ -8,3 +79,4 @@ id = &"first_expedition"
 display_name = "The Old Road"
 description = "A test expedition."
 goal = "Reach the end of the road."
+nodes = Array[ExtResource("1_wvuf0")]([SubResource("Resource_wvuf0"), SubResource("Resource_r176i"), SubResource("Resource_x2bst"), SubResource("Resource_euodn"), SubResource("Resource_cl0hm"), SubResource("Resource_6lrbh"), SubResource("Resource_wa0ft")])
