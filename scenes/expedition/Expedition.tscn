@@ -1,0 +1,102 @@
+[gd_scene format=3 uid="uid://b5e6c4i0ibaed"]
+
+[ext_resource type="Script" uid="uid://bkhllrdr1wn4h" path="res://scripts/expedition/Expedition.gd" id="1_fx6xn"]
+[ext_resource type="Script" uid="uid://cq832eym8jx8k" path="res://scripts/expedition/ExpeditionMap.gd" id="2_y7w4j"]
+
+[node name="Expedition" type="Control" unique_id=1750114630]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_fx6xn")
+
+[node name="Background" type="ColorRect" parent="." unique_id=586476543]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.16565639, 0.16565642, 0.16565639, 1)
+metadata/_edit_use_anchors_ = true
+
+[node name="Layout" type="VBoxContainer" parent="." unique_id=1361378199]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = -277.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Header" type="HBoxContainer" parent="Layout" unique_id=2058488087]
+layout_mode = 2
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="Layout/Header" unique_id=177875673]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="GoalLabel" type="Label" parent="Layout/Header" unique_id=1133275982]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="MapScroll" type="ScrollContainer" parent="Layout" unique_id=1168609667]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Map" type="Control" parent="Layout/MapScroll" unique_id=1031866219]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("2_y7w4j")
+
+[node name="TeamPanel" type="HBoxContainer" parent="Layout" unique_id=1764392120]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="DialogLayer" type="Control" parent="." unique_id=2070871883]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 376.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="DialogLayer" unique_id=630916221]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.22595415, 0.30520445, 0.3664138, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="DialogLayer" unique_id=2134408300]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="DialogLayer/CenterContainer" unique_id=1095992388]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="DialogLayer/CenterContainer/PanelContainer" unique_id=550679750]
+layout_mode = 2
+
+[node name="DialogTitle" type="Label" parent="DialogLayer/CenterContainer/PanelContainer/VBoxContainer" unique_id=891756658]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="DialogBody" type="Label" parent="DialogLayer/CenterContainer/PanelContainer/VBoxContainer" unique_id=1889772010]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="DialogButtons" type="HBoxContainer" parent="DialogLayer/CenterContainer/PanelContainer/VBoxContainer" unique_id=227837766]
+unique_name_in_owner = true
+layout_mode = 2

@@ -12,6 +12,10 @@ var expedition_id: StringName
 var team: Array[StringName] = []           # hero ids, in team order
 var hero_health: Dictionary = {}           # hero id -> current health (carries over between battles)
 var current_node_id: StringName = &""      # empty until the first node is entered
+## False while the content of the current node (battle, camp, event) is not finished.
+## The player can only pick the next node once it is resolved, and a saved run
+## resumes the unfinished node.
+var node_resolved: bool = true
 var visited_nodes: Array[StringName] = []
 var loot: Dictionary = {}                  # resource id -> amount
 
@@ -26,9 +30,16 @@ static func start(expedition: StringName, heroes: Array[CharacterData]) -> RunSt
 	return run
 
 
+## The player goes to a node: it has to be resolved before moving on.
 func enter_node(node_id: StringName) -> void:
 	current_node_id = node_id
 	visited_nodes.append(node_id)
+	node_resolved = false
+
+
+## The content of the current node is done: the player may pick the next node.
+func resolve_node() -> void:
+	node_resolved = true
 
 
 func get_health(hero_id: StringName) -> int:
