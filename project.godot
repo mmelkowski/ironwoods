@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 GameState="*uid://dlqom5rye3nwk"
 SceneManager="*uid://but0ubd6akcuw"
+PauseMenu="*uid://chsnrsuur54jt"
 
 [display]
 

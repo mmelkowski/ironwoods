@@ -28,12 +28,12 @@ func _run() -> void:
 
 	_add(expedition, &"start", ExpeditionNode.Type.START, "Departure", 0.0, [&"fight_1"])
 	_add(expedition, &"fight_1", ExpeditionNode.Type.BATTLE, "Ambush on the road", 0.0,
-		[&"fight_hard", &"camp"], goblin, 2)
+		[&"fight_hard", &"camp"], goblin, 2, {&"wood": 3})
 	_add(expedition, &"fight_hard", ExpeditionNode.Type.BATTLE, "The goblin patrol", -0.7,
-		[&"fight_2"], goblin, 3)
+		[&"fight_2"], goblin, 3, {&"wood": 2, &"stone": 3})
 	_add(expedition, &"camp", ExpeditionNode.Type.CAMP, "A quiet camp", 0.7, [&"fight_2"])
-	_add(expedition, &"fight_2", ExpeditionNode.Type.BATTLE, "The bridge", 0.0, [&"boss"], goblin, 3)
-	_add(expedition, &"boss", ExpeditionNode.Type.BOSS, "The goblin chief", 0.0, [&"end"], goblin, 4)
+	_add(expedition, &"fight_2", ExpeditionNode.Type.BATTLE, "The bridge", 0.0, [&"boss"], goblin, 3, {&"stone": 3, &"wood": 2})
+	_add(expedition, &"boss", ExpeditionNode.Type.BOSS, "The goblin chief", 0.0, [&"end"], goblin, 4, {&"iron": 3, &"stone": 2})
 	_add(expedition, &"end", ExpeditionNode.Type.END, "The end of the road", 0.0, [])
 
 	var problems := expedition.validate()
@@ -63,12 +63,14 @@ func _run() -> void:
 
 
 func _add(expedition: ExpeditionData, id: StringName, type: ExpeditionNode.Type, title: String,
-		lane: float, next_ids: Array, enemy: CharacterData = null, enemy_count: int = 0) -> void:
+		lane: float, next_ids: Array, enemy: CharacterData = null, enemy_count: int = 0, loot: Dictionary = {}) -> void:
 	var node := ExpeditionNode.new()
 	node.id = id
 	node.type = type
 	node.title = title
 	node.lane = lane
+	for resource_id in loot:
+		node.loot[resource_id] = loot[resource_id]
 	for next_id in next_ids:
 		node.next_nodes.append(next_id)
 	if enemy_count > 0:

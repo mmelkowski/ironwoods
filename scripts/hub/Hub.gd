@@ -6,8 +6,13 @@ extends Node2D
 ##        ├── TileMapLayer / decor
 ##        └── HubLocation nodes (gate, tavern, forge...) anywhere below it
 ##
-## Adding a place = adding a HubLocation, filling its name and menu_scene.
+## Adding a place = adding a HubLocation at its FIXED position, filling its id, name
+## and menu_scene, and adding the matching BuildingData to the building catalog.
 ## The Hub finds every HubLocation below it by itself, nothing to register.
+##
+## A place is hidden until the player has unlocked it (new games start with the
+## buildings marked built_at_start); it appears as soon as the carpentry workshop
+## builds it. The hub is saved each time it opens.
 
 ## A place was clicked (fires even if it has no menu: handle special places here).
 signal location_activated(location: HubLocation)
@@ -31,6 +36,29 @@ func _ready() -> void:
 			var location := node as HubLocation
 			_locations.append(location)
 			location.activated.connect(_on_location_activated)
+
+	_check_scene()
+	_apply_unlocks()
+	GameState.profile.locations_changed.connect(_apply_unlocks)
+	GameState.save_game()  # autosave whenever the hub opens
+
+
+## Shows the places the player has unlocked and hides the others.
+func _apply_unlocks() -> void:
+	for location in _locations:
+		location.set_unlocked(GameState.profile.is_location_unlocked(location.location_id))
+
+
+## Authoring check: every place needs a building in the catalog and the other way round.
+func _check_scene() -> void:
+	var placed := {}
+	for location in _locations:
+		placed[location.location_id] = true
+		if not location.always_unlocked and GameState.buildings.get_building(location.location_id) == null:
+			push_warning("Hub: '%s' is not in the building catalog, it will stay hidden." % location.location_id)
+	for building in GameState.buildings.buildings:
+		if not placed.has(building.id):
+			push_warning("Hub: the building '%s' has no HubLocation in this scene." % building.id)
 
 
 func is_menu_open() -> bool:

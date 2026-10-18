@@ -2,11 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cktt1rbu6l8q1" path="res://scenes/hub/gate/menu_gate.gd" id="1_8uier"]
 [ext_resource type="PackedScene" uid="uid://cxiqr01406t78" path="res://scenes/hub/gate/hero_portrait.tscn" id="2_mxqdd"]
-[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="2_p7qf4"]
-[ext_resource type="Resource" uid="uid://dbgmk8kp5jadj" path="res://data/character/allies/knight.tres" id="3_mpjb5"]
 [ext_resource type="PackedScene" uid="uid://btbu7h62i3nnk" path="res://scenes/hub/gate/hero_slot.tscn" id="3_tdx5d"]
-[ext_resource type="Resource" uid="uid://c0j1uoil31vac" path="res://data/character/allies/thief.tres" id="4_kv8q4"]
-[ext_resource type="Resource" uid="uid://d4ajgtrfmmxm" path="res://data/character/allies/wizard.tres" id="5_51rd4"]
 
 [node name="Gate" type="Control" unique_id=2136784914 node_paths=PackedStringArray("hero_grid", "team_slots", "launch_button", "close_button")]
 layout_mode = 3
@@ -16,7 +12,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_8uier")
-heroes = Array[ExtResource("2_p7qf4")]([ExtResource("3_mpjb5"), ExtResource("4_kv8q4"), ExtResource("5_51rd4"), ExtResource("3_mpjb5")])
 hero_portrait_scene = ExtResource("2_mxqdd")
 hero_slot_scene = ExtResource("3_tdx5d")
 hero_grid = NodePath("Backdrop/Layout/LeftPanel/VBoxContainer/ScrollContainer/HeroGrid")

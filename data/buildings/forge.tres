@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BuildingData" format=3 uid="uid://0k7yjl0ilnlf"]
+
+[ext_resource type="Script" uid="uid://yuhgx35y4ya7" path="res://scripts/building/BuildingLevel.gd" id="1_efjn1"]
+[ext_resource type="Script" uid="uid://b1g4kdq8stve1" path="res://scripts/building/BuildingData.gd" id="2_bxw7h"]
+
+[sub_resource type="Resource" id="Resource_frdhs"]
+script = ExtResource("1_efjn1")
+cost = Dictionary[StringName, int]({
+&"iron": 5,
+&"stone": 10,
+&"wood": 15
+})
+description = "Craft items to take on expeditions."
+
+[resource]
+script = ExtResource("2_bxw7h")
+id = &"forge"
+display_name = "Forge"
+description = "Crafts equipment."
+requires = Dictionary[StringName, int]({
+&"carpentry": 2
+})
+levels = Array[ExtResource("1_efjn1")]([SubResource("Resource_frdhs")])

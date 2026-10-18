@@ -22,6 +22,9 @@ const DISABLED_TINT := Color(0.45, 0.45, 0.45)
 @export var display_name: String = ""
 ## The menu opened on click. Its root must extend HubMenu.
 @export var menu_scene: PackedScene
+## Always shown, even if the player hasn't unlocked it (decoration, a person to talk to...).
+## Otherwise the place stays hidden until its building is built.
+@export var always_unlocked: bool = false
 ## A disabled place is greyed out and can't be opened (locked until a story step...).
 @export var enabled: bool = true:
 	set(value):
@@ -34,11 +37,12 @@ const DISABLED_TINT := Color(0.45, 0.45, 0.45)
 
 var _hovered := false
 var _label: Label
+var _unlocked := true      # hidden and not clickable until the player unlocks it
+var _interactive := true   # turned off by the Hub while a menu is open
 
 
 func _ready() -> void:
 	add_to_group(GROUP)
-	input_pickable = true
 
 	_label = Label.new()
 	_label.text = display_name
@@ -51,13 +55,28 @@ func _ready() -> void:
 	mouse_exited.connect(_set_hovered.bind(false))
 	input_event.connect(_on_input_event)
 	_refresh_look()
+	_update_pickable()
 
 
 ## The Hub turns this off while a menu is open so the town behind can't be clicked.
 func set_interactive(interactive: bool) -> void:
-	input_pickable = interactive
+	_interactive = interactive
 	if not interactive:
 		_set_hovered(false)
+	_update_pickable()
+
+
+## The Hub shows the place once the player has unlocked it, and hides it before.
+func set_unlocked(unlocked: bool) -> void:
+	_unlocked = unlocked or always_unlocked
+	visible = _unlocked
+	if not _unlocked:
+		_set_hovered(false)
+	_update_pickable()
+
+
+func _update_pickable() -> void:
+	input_pickable = _unlocked and _interactive
 
 
 func _set_hovered(hovered: bool) -> void:

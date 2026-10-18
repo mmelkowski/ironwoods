@@ -6,6 +6,7 @@ extends RefCounted
 ## by resource.
 
 signal resources_changed
+signal locations_changed  # a place was unlocked or a building level changed
 
 var unlocked_heroes: Array[StringName] = []
 var resources: Dictionary = {}           # resource id (&"wood") -> amount (int)
@@ -58,6 +59,7 @@ func spend(cost: Dictionary) -> bool:
 func unlock_location(id: StringName) -> void:
 	if not unlocked_locations.has(id):
 		unlocked_locations.append(id)
+		locations_changed.emit()
 
 
 func is_location_unlocked(id: StringName) -> bool:
@@ -70,6 +72,7 @@ func get_upgrade_level(id: StringName) -> int:
 
 func set_upgrade_level(id: StringName, level: int) -> void:
 	upgrade_levels[id] = level
+	locations_changed.emit()
 
 
 # --- Saving ---

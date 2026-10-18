@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BuildingData" format=3 uid="uid://di8p2r76ywd5e"]
+
+[ext_resource type="Script" uid="uid://yuhgx35y4ya7" path="res://scripts/building/BuildingLevel.gd" id="1_yyqh0"]
+[ext_resource type="Script" uid="uid://b1g4kdq8stve1" path="res://scripts/building/BuildingData.gd" id="2_xkqr7"]
+
+[sub_resource type="Resource" id="Resource_wsx4i"]
+script = ExtResource("1_yyqh0")
+description = "Send a team on expeditions."
+
+[resource]
+script = ExtResource("2_xkqr7")
+id = &"gate"
+display_name = "Main gate"
+description = "Where the expeditions start."
+built_at_start = true
+levels = Array[ExtResource("1_yyqh0")]([SubResource("Resource_wsx4i")])

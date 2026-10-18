@@ -25,6 +25,9 @@ enum Type {
 @export var next_nodes: Array[StringName] = []
 ## Battle and boss nodes only.
 @export var encounter: EncounterData
+## Resources the party gathers when it finishes this node (a won battle, an event...).
+## They go into the run's loot and are kept even if the expedition fails.
+@export var loot: Dictionary[StringName, int] = {}
 ## Hint for the map layout: vertical position of the node inside its column.
 ## -1 = top, 0 = middle, 1 = bottom. Nodes of the same column should use different lanes.
 @export_range(-1.0, 1.0, 0.05) var lane: float = 0.0

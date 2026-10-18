@@ -11,9 +11,6 @@ const CAMP_HEAL_RATIO := 0.3  # share of max health recovered at a camp
 ## expedition also gives its bonus.
 enum Outcome { COMPLETED, ABANDONED, DEFEATED }
 
-## TEMPORARY, until battles give real loot: what a won battle gives.
-const STUB_BATTLE_LOOT := {&"wood": 2}
-
 @onready var map: ExpeditionMap = %Map
 @onready var map_scroll: ScrollContainer = %MapScroll
 @onready var title_label: Label = %TitleLabel
@@ -133,6 +130,11 @@ func _play_node(node: ExpeditionNode) -> void:
 
 ## The node is done: the player can pick the next one.
 func _resolve() -> void:
+	if _run.node_resolved:
+		return  # already done: the loot must not be given twice
+	var node := _expedition.get_node_by_id(_run.current_node_id)
+	for id in node.loot:
+		_run.add_loot(id, node.loot[id])
 	_run.resolve_node()
 	GameState.save_game()
 	_refresh()
@@ -158,8 +160,6 @@ func _on_battle_finished(victory: bool) -> void:
 	if not victory:
 		_finish(Outcome.DEFEATED)
 		return
-	for id in STUB_BATTLE_LOOT:
-		_run.add_loot(id, STUB_BATTLE_LOOT[id])
 	_resolve()
 
 

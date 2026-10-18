@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="BuildingCatalog" format=3 uid="uid://cafwo42xluq1e"]
+
+[ext_resource type="Script" uid="uid://b1g4kdq8stve1" path="res://scripts/building/BuildingData.gd" id="1_v7d0n"]
+[ext_resource type="Resource" uid="uid://di8p2r76ywd5e" path="res://data/buildings/gate.tres" id="2_pd2ox"]
+[ext_resource type="Resource" uid="uid://bft1xeb587wc2" path="res://data/buildings/carpentry.tres" id="3_55guo"]
+[ext_resource type="Resource" uid="uid://ij6mfgeb8dof" path="res://data/buildings/tavern.tres" id="4_jyx7q"]
+[ext_resource type="Resource" uid="uid://0k7yjl0ilnlf" path="res://data/buildings/forge.tres" id="5_e6bls"]
+[ext_resource type="Script" uid="uid://cfdfwpxbdaysw" path="res://scripts/building/BuildingCatalog.gd" id="6_w023s"]
+
+[resource]
+script = ExtResource("6_w023s")
+buildings = Array[ExtResource("1_v7d0n")]([ExtResource("2_pd2ox"), ExtResource("3_55guo"), ExtResource("4_jyx7q"), ExtResource("5_e6bls")])

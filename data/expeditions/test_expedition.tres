@@ -6,37 +6,44 @@
 [ext_resource type="Script" uid="uid://c0pdfac1nyf65" path="res://scripts/expedition/EncounterData.gd" id="4_olven"]
 [ext_resource type="Script" uid="uid://djuxvwgpk5gw6" path="res://scripts/expedition/ExpeditionData.gd" id="5_x2bst"]
 
-[sub_resource type="Resource" id="Resource_wvuf0"]
+[sub_resource type="Resource" id="Resource_euodn"]
 script = ExtResource("1_wvuf0")
 id = &"start"
 type = 0
 title = "Departure"
 next_nodes = Array[StringName]([&"fight_1"])
 
-[sub_resource type="Resource" id="Resource_nk4hx"]
+[sub_resource type="Resource" id="Resource_oqnlf"]
 script = ExtResource("4_olven")
 enemies = Array[ExtResource("2_nk4hx")]([ExtResource("3_r176i"), ExtResource("3_r176i")])
 
-[sub_resource type="Resource" id="Resource_r176i"]
+[sub_resource type="Resource" id="Resource_cl0hm"]
 script = ExtResource("1_wvuf0")
 id = &"fight_1"
 title = "Ambush on the road"
 next_nodes = Array[StringName]([&"fight_hard", &"camp"])
-encounter = SubResource("Resource_nk4hx")
+encounter = SubResource("Resource_oqnlf")
+loot = Dictionary[StringName, int]({
+&"wood": 3
+})
 
-[sub_resource type="Resource" id="Resource_olven"]
+[sub_resource type="Resource" id="Resource_io62w"]
 script = ExtResource("4_olven")
 enemies = Array[ExtResource("2_nk4hx")]([ExtResource("3_r176i"), ExtResource("3_r176i"), ExtResource("3_r176i")])
 
-[sub_resource type="Resource" id="Resource_x2bst"]
+[sub_resource type="Resource" id="Resource_6lrbh"]
 script = ExtResource("1_wvuf0")
 id = &"fight_hard"
 title = "The goblin patrol"
 next_nodes = Array[StringName]([&"fight_2"])
-encounter = SubResource("Resource_olven")
+encounter = SubResource("Resource_io62w")
+loot = Dictionary[StringName, int]({
+&"stone": 3,
+&"wood": 2
+})
 lane = -0.7
 
-[sub_resource type="Resource" id="Resource_euodn"]
+[sub_resource type="Resource" id="Resource_wa0ft"]
 script = ExtResource("1_wvuf0")
 id = &"camp"
 type = 3
@@ -44,30 +51,38 @@ title = "A quiet camp"
 next_nodes = Array[StringName]([&"fight_2"])
 lane = 0.7
 
-[sub_resource type="Resource" id="Resource_oqnlf"]
+[sub_resource type="Resource" id="Resource_6y1tc"]
 script = ExtResource("4_olven")
 enemies = Array[ExtResource("2_nk4hx")]([ExtResource("3_r176i"), ExtResource("3_r176i"), ExtResource("3_r176i")])
 
-[sub_resource type="Resource" id="Resource_cl0hm"]
+[sub_resource type="Resource" id="Resource_y4gso"]
 script = ExtResource("1_wvuf0")
 id = &"fight_2"
 title = "The bridge"
 next_nodes = Array[StringName]([&"boss"])
-encounter = SubResource("Resource_oqnlf")
+encounter = SubResource("Resource_6y1tc")
+loot = Dictionary[StringName, int]({
+&"stone": 3,
+&"wood": 2
+})
 
-[sub_resource type="Resource" id="Resource_io62w"]
+[sub_resource type="Resource" id="Resource_colel"]
 script = ExtResource("4_olven")
 enemies = Array[ExtResource("2_nk4hx")]([ExtResource("3_r176i"), ExtResource("3_r176i"), ExtResource("3_r176i"), ExtResource("3_r176i")])
 
-[sub_resource type="Resource" id="Resource_6lrbh"]
+[sub_resource type="Resource" id="Resource_yl71x"]
 script = ExtResource("1_wvuf0")
 id = &"boss"
 type = 2
 title = "The goblin chief"
 next_nodes = Array[StringName]([&"end"])
-encounter = SubResource("Resource_io62w")
+encounter = SubResource("Resource_colel")
+loot = Dictionary[StringName, int]({
+&"iron": 3,
+&"stone": 2
+})
 
-[sub_resource type="Resource" id="Resource_wa0ft"]
+[sub_resource type="Resource" id="Resource_2chf1"]
 script = ExtResource("1_wvuf0")
 id = &"end"
 type = 5
@@ -83,4 +98,4 @@ completion_bonus = Dictionary[StringName, int]({
 &"stone": 3,
 &"wood": 5
 })
-nodes = Array[ExtResource("1_wvuf0")]([SubResource("Resource_wvuf0"), SubResource("Resource_r176i"), SubResource("Resource_x2bst"), SubResource("Resource_euodn"), SubResource("Resource_cl0hm"), SubResource("Resource_6lrbh"), SubResource("Resource_wa0ft")])
+nodes = Array[ExtResource("1_wvuf0")]([SubResource("Resource_euodn"), SubResource("Resource_cl0hm"), SubResource("Resource_6lrbh"), SubResource("Resource_wa0ft"), SubResource("Resource_y4gso"), SubResource("Resource_yl71x"), SubResource("Resource_2chf1")])

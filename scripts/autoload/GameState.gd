@@ -6,9 +6,11 @@ extends Node
 
 const HERO_CATALOG_PATH := "res://data/hero_catalog.tres"
 const EXPEDITION_CATALOG_PATH := "res://data/expedition_catalog.tres"
+const BUILDING_CATALOG_PATH := "res://data/building_catalog.tres"
 
 var hero_catalog: HeroCatalog
 var expeditions: ExpeditionCatalog
+var buildings: BuildingCatalog
 var profile: PlayerProfile
 var run: RunState  # null when no expedition is in progress
 
@@ -36,6 +38,12 @@ func _ready() -> void:
 		expeditions = ExpeditionCatalog.new()
 	expeditions.validate()
 
+	buildings = load(BUILDING_CATALOG_PATH) as BuildingCatalog
+	if buildings == null:
+		push_error("GameState: no BuildingCatalog found at %s" % BUILDING_CATALOG_PATH)
+		buildings = BuildingCatalog.new()
+	buildings.validate()
+
 	# A default profile, so any scene can be run on its own while testing.
 	# It is never saved: the main menu replaces it (new game / load).
 	_create_profile()
@@ -58,6 +66,7 @@ func _create_profile() -> void:
 	for hero in hero_catalog.heroes:
 		if hero.unlocked_by_default:
 			profile.unlock_hero(hero.id)
+	_ensure_starting_buildings()
 	run = null
 
 
@@ -111,6 +120,7 @@ func load_game(slot_id: String) -> bool:
 		return false
 
 	profile = PlayerProfile.from_dict(saved_profile)
+	_ensure_starting_buildings()  # saves from before the hub buildings existed get them too
 	run = null
 	var saved_run: Variant = data.get("run")
 	if saved_run is Dictionary:
@@ -173,6 +183,53 @@ func get_run_fighters() -> Array[CharacterData]:
 		if run.is_hero_alive(hero.id):
 			result.append(hero)
 	return result
+
+
+# --- Hub buildings ---
+
+## The level of a building: 0 = not built.
+func get_building_level(building_id: StringName) -> int:
+	return profile.get_upgrade_level(building_id)
+
+
+## True when the buildings it needs are built to the required level.
+func are_requirements_met(building: BuildingData) -> bool:
+	for required_id in building.requires:
+		if get_building_level(required_id) < building.requires[required_id]:
+			return false
+	return true
+
+
+## The next level of a building (its construction if it isn't built). Null at max level.
+func get_next_building_level(building: BuildingData) -> BuildingLevel:
+	return building.get_level_data(get_building_level(building.id) + 1)
+
+
+func can_upgrade_building(building: BuildingData) -> bool:
+	var next := get_next_building_level(building)
+	return next != null and are_requirements_met(building) and profile.can_afford(next.cost)
+
+
+## Builds or upgrades a building: pays the cost, raises the level, makes it appear in the
+## hub, and saves. Returns false (and takes nothing) if it isn't possible.
+func upgrade_building(building: BuildingData) -> bool:
+	if not can_upgrade_building(building):
+		return false
+	var next := get_next_building_level(building)
+	var new_level := get_building_level(building.id) + 1
+	profile.spend(next.cost)
+	profile.set_upgrade_level(building.id, new_level)
+	profile.unlock_location(building.id)
+	save_game()
+	return true
+
+
+## The buildings every game starts with (the gate, the carpentry workshop...).
+func _ensure_starting_buildings() -> void:
+	for building in buildings.buildings:
+		if building.built_at_start and not profile.is_location_unlocked(building.id):
+			profile.unlock_location(building.id)
+			profile.set_upgrade_level(building.id, 1)
 
 
 # --- Expedition ---

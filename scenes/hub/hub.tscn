@@ -6,6 +6,10 @@
 [ext_resource type="PackedScene" uid="uid://bwqm4if4nwsb5" path="res://scenes/hub/gate/menu_gate.tscn" id="4_pf6nx"]
 [ext_resource type="Texture2D" uid="uid://dxvxybugrtete" path="res://assets/Isometric_pixel-art_room_diorama_tileset/isometricroomtileset(1).png" id="4_ursuo"]
 [ext_resource type="Texture2D" uid="uid://cdr7qnnlmdys" path="res://assets/Isometric_pixel-art_room_diorama_tileset/isometricroomtileset(15).png" id="5_pf6nx"]
+[ext_resource type="PackedScene" uid="uid://y4figng22bs0" path="res://scenes/hub/carpentry/menu_carpentry.tscn" id="6_b7f34"]
+[ext_resource type="Script" uid="uid://d31aarm6oac3y" path="res://scripts/hub/ResourceBar.gd" id="7_20fyn"]
+[ext_resource type="Texture2D" uid="uid://bu8egxg5q0gk1" path="res://assets/Isometric_pixel-art_room_diorama_tileset/isometricroomtileset(10).png" id="8_2mx8n"]
+[ext_resource type="Texture2D" uid="uid://7wpstepvtpcp" path="res://assets/Isometric_pixel-art_room_diorama_tileset/isometricroomtileset(5).png" id="9_dhidh"]
 
 [node name="Hub" type="Node2D" unique_id=1907624046]
 script = ExtResource("1_ajtfx")
@@ -24,14 +28,42 @@ menu_scene = ExtResource("4_pf6nx")
 scale = Vector2(0.5, 0.5)
 texture = ExtResource("4_ursuo")
 
-[node name="location" parent="." unique_id=808067017 instance=ExtResource("2_d1od2")]
+[node name="carpentry" parent="." unique_id=808067017 instance=ExtResource("2_d1od2")]
 position = Vector2(373, 274)
-location_id = &"carpenter"
-display_name = "Carpenter"
+location_id = &"carpentry"
+display_name = "Carpentry"
+menu_scene = ExtResource("6_b7f34")
 
-[node name="Sprite2D" parent="location" index="1" unique_id=333314467]
+[node name="Sprite2D" parent="carpentry" index="1" unique_id=333314467]
 scale = Vector2(0.5, 0.5)
 texture = ExtResource("5_pf6nx")
 
+[node name="forge" parent="." unique_id=2088521520 instance=ExtResource("2_d1od2")]
+position = Vector2(567, 346)
+location_id = &"forge"
+display_name = "Forge"
+
+[node name="Sprite2D" parent="forge" index="1" unique_id=333314467]
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("8_2mx8n")
+
+[node name="tavern" parent="." unique_id=1523579777 instance=ExtResource("2_d1od2")]
+position = Vector2(759, 278)
+location_id = &"tavern"
+display_name = "Tavern"
+
+[node name="Sprite2D" parent="tavern" index="1" unique_id=333314467]
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("9_dhidh")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=490345384]
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer" unique_id=1549575243]
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("7_20fyn")
+
 [editable path="MainGate"]
-[editable path="location"]
+[editable path="carpentry"]
+[editable path="forge"]
+[editable path="tavern"]
