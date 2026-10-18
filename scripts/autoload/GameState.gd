@@ -80,13 +80,23 @@ func start_run(expedition_id: StringName, team: Array[CharacterData]) -> void:
 	print("GameState: run started with ", run.team)  # debug, can be removed
 
 
-## Ends the expedition: the loot to keep goes into the profile.
-## Returns that loot (for the summary screen).
-func end_run(victory: bool) -> Dictionary:
+## Ends the expedition. There is no penalty for failing or abandoning: all the loot
+## gathered is kept. Completing the expedition adds its completion bonus.
+## Returns { "loot": {...}, "bonus": {...} } (for the summary screen).
+func end_run(completed: bool) -> Dictionary:
 	if run == null:
-		return {}
-	var kept := run.get_loot_to_keep(victory)
-	for id in kept:
-		profile.add_resource(id, kept[id])
+		return {"loot": {}, "bonus": {}}
+
+	var loot := run.loot.duplicate()
+	var bonus := {}
+	if completed:
+		var expedition := get_run_expedition()
+		if expedition != null:
+			bonus = expedition.completion_bonus.duplicate()
+
+	for id in loot:
+		profile.add_resource(id, loot[id])
+	for id in bonus:
+		profile.add_resource(id, bonus[id])
 	run = null
-	return kept
+	return {"loot": loot, "bonus": bonus}

@@ -7,6 +7,10 @@ extends Control
 
 const CAMP_HEAL_RATIO := 0.3  # share of max health recovered at a camp
 
+## How the expedition ended. The loot is kept in every case, only a completed
+## expedition also gives its bonus.
+enum Outcome { COMPLETED, ABANDONED, DEFEATED }
+
 ## TEMPORARY, until battles give real loot: what a won battle gives.
 const STUB_BATTLE_LOOT := {&"wood": 2}
 
@@ -15,6 +19,8 @@ const STUB_BATTLE_LOOT := {&"wood": 2}
 @onready var title_label: Label = %TitleLabel
 @onready var goal_label: Label = %GoalLabel
 @onready var team_panel: Container = %TeamPanel
+## Optional: add a Button named AbandonButton ("Access as Unique Name") to get the abandon feature.
+@onready var abandon_button: Button = get_node_or_null("%AbandonButton")
 @onready var dialog_layer: Control = %DialogLayer
 @onready var dialog_title: Label = %DialogTitle
 @onready var dialog_body: Label = %DialogBody
@@ -37,6 +43,10 @@ func _ready() -> void:
 	dialog_layer.hide()
 	map.build(_expedition)
 	map.node_chosen.connect(_on_node_chosen)
+	if abandon_button != null:
+		abandon_button.pressed.connect(_on_abandon_pressed)
+	else:
+		push_warning("Expedition: no AbandonButton in the scene, the player can't abandon.")
 
 	if _run.current_node_id == &"":
 		# A new run starts on the START node, which needs no resolution
@@ -103,7 +113,7 @@ func _play_node(node: ExpeditionNode) -> void:
 		ExpeditionNode.Type.EVENT:
 			_play_event(node)
 		ExpeditionNode.Type.END:
-			_finish(true)
+			_finish(Outcome.COMPLETED)
 		_:
 			_resolve()
 
@@ -125,7 +135,7 @@ func _start_battle(node: ExpeditionNode) -> void:
 
 func _on_battle_finished(victory: bool) -> void:
 	if not victory:
-		_finish(false)
+		_finish(Outcome.DEFEATED)
 		return
 	for id in STUB_BATTLE_LOOT:
 		_run.add_loot(id, STUB_BATTLE_LOOT[id])
@@ -149,20 +159,44 @@ func _play_event(node: ExpeditionNode) -> void:
 		[{"text": "Continue", "action": _resolve}])
 
 
-## Ends the expedition: loot goes into the profile (half of it after a defeat).
-func _finish(victory: bool) -> void:
-	var kept := GameState.end_run(victory)
-	var report := "Loot kept:\n"
-	if kept.is_empty():
-		report += "nothing"
-	for id in kept:
-		report += "%s x%d\n" % [id, kept[id]]
-	if not victory:
-		report = "The party was defeated and only recovered part of its loot.\n\n" + report
+func _on_abandon_pressed() -> void:
+	_show_dialog("Abandon the expedition?",
+		"The party goes back to the hub and keeps the loot gathered so far,\nbut not the bonus for completing the expedition.", [
+		{"text": "Abandon", "action": _finish.bind(Outcome.ABANDONED)},
+		{"text": "Keep going", "action": Callable()},
+	])
 
-	_show_dialog("Expedition complete" if victory else "Expedition failed", report.strip_edges(),
-		[{"text": "Return to the hub", "action": SceneManager.go_to.bind(&"hub")}])
+
+## Ends the expedition and shows what the party brings back.
+func _finish(outcome: Outcome) -> void:
+	var result := GameState.end_run(outcome == Outcome.COMPLETED)
+
+	var report := ""
+	match outcome:
+		Outcome.DEFEATED:
+			report = "The party was defeated, but keeps what it gathered.\n\n"
+		Outcome.ABANDONED:
+			report = "The party comes back early.\n\n"
+	report += "Loot:\n" + _describe_resources(result["loot"])
+	if outcome == Outcome.COMPLETED:
+		report += "\n\nCompletion bonus:\n" + _describe_resources(result["bonus"])
+
+	var title := "Expedition complete"
+	if outcome == Outcome.ABANDONED:
+		title = "Expedition abandoned"
+	elif outcome == Outcome.DEFEATED:
+		title = "Expedition failed"
+	_show_dialog(title, report, [{"text": "Return to the hub", "action": SceneManager.go_to.bind(&"hub")}])
 	_refresh_team()
+
+
+func _describe_resources(resources: Dictionary) -> String:
+	if resources.is_empty():
+		return "nothing"
+	var lines: PackedStringArray = []
+	for id in resources:
+		lines.append("%s x%d" % [id, resources[id]])
+	return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
@@ -186,4 +220,5 @@ func _show_dialog(title: String, body: String, options: Array[Dictionary]) -> vo
 
 func _on_dialog_option(action: Callable) -> void:
 	dialog_layer.hide()
-	action.call()
+	if action.is_valid():
+		action.call()

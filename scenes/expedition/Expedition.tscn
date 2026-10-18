@@ -27,7 +27,6 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_bottom = -277.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -57,8 +56,16 @@ script = ExtResource("2_y7w4j")
 unique_name_in_owner = true
 layout_mode = 2
 
+[node name="AbandonButton" type="Button" parent="Layout" unique_id=1502968869]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+text = "Abandon"
+
 [node name="DialogLayer" type="Control" parent="." unique_id=2070871883]
 unique_name_in_owner = true
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="ExpeditionData" format=3 uid="uid://drsuciagschsy"]
 
-[ext_resource type="Script" uid="uid://djuxvwgpk5gw6" path="res://scripts/expedition/ExpeditionData.gd" id="1_7dhtj"]
 [ext_resource type="Script" uid="uid://dsg3xmy0citai" path="res://scripts/expedition/ExpeditionNode.gd" id="1_wvuf0"]
 [ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="2_nk4hx"]
 [ext_resource type="Resource" uid="uid://dxhflavq7koc8" path="res://data/character/enemies/goblin.tres" id="3_r176i"]
 [ext_resource type="Script" uid="uid://c0pdfac1nyf65" path="res://scripts/expedition/EncounterData.gd" id="4_olven"]
+[ext_resource type="Script" uid="uid://djuxvwgpk5gw6" path="res://scripts/expedition/ExpeditionData.gd" id="5_x2bst"]
 
 [sub_resource type="Resource" id="Resource_wvuf0"]
 script = ExtResource("1_wvuf0")
@@ -74,9 +74,13 @@ type = 5
 title = "The end of the road"
 
 [resource]
-script = ExtResource("1_7dhtj")
+script = ExtResource("5_x2bst")
 id = &"first_expedition"
 display_name = "The Old Road"
 description = "A test expedition."
 goal = "Reach the end of the road."
+completion_bonus = Dictionary[StringName, int]({
+&"stone": 3,
+&"wood": 5
+})
 nodes = Array[ExtResource("1_wvuf0")]([SubResource("Resource_wvuf0"), SubResource("Resource_r176i"), SubResource("Resource_x2bst"), SubResource("Resource_euodn"), SubResource("Resource_cl0hm"), SubResource("Resource_6lrbh"), SubResource("Resource_wa0ft")])

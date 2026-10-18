@@ -5,9 +5,6 @@ extends RefCounted
 ## expedition ends. Plain data only (ids, numbers, lists) so a run can be saved
 ## in the middle and resumed.
 
-## On defeat the player goes back to the hub with this share of the loot.
-const DEFEAT_LOOT_RATIO := 0.5
-
 var expedition_id: StringName
 var team: Array[StringName] = []           # hero ids, in team order
 var hero_health: Dictionary = {}           # hero id -> current health (carries over between battles)
@@ -17,7 +14,7 @@ var current_node_id: StringName = &""      # empty until the first node is enter
 ## resumes the unfinished node.
 var node_resolved: bool = true
 var visited_nodes: Array[StringName] = []
-var loot: Dictionary = {}                  # resource id -> amount
+var loot: Dictionary = {}                  # resource id -> amount (always kept, even if the run fails)
 
 
 ## Starts a run: the heroes begin at full health.
@@ -52,13 +49,3 @@ func set_health(hero_id: StringName, value: int) -> void:
 
 func add_loot(resource_id: StringName, amount: int) -> void:
 	loot[resource_id] = loot.get(resource_id, 0) + amount
-
-
-## What the player keeps: everything after a victory, a share of it after a defeat.
-func get_loot_to_keep(victory: bool) -> Dictionary:
-	if victory:
-		return loot.duplicate()
-	var kept := {}
-	for id in loot:
-		kept[id] = floori(loot[id] * DEFEAT_LOOT_RATIO)
-	return kept

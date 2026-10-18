@@ -11,6 +11,9 @@ extends Resource
 @export_multiline var description: String = ""
 ## What the player is trying to achieve (shown in the gate menu).
 @export_multiline var goal: String = ""
+## Extra resources given when the expedition is completed (an END node reached).
+## Failing or abandoning keeps the loot gathered on the way but not this bonus.
+@export var completion_bonus: Dictionary[StringName, int] = {}
 @export var nodes: Array[ExpeditionNode] = []
 
 @export_tool_button("Validate graph") var validate_button = _print_validation

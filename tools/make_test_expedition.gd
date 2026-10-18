@@ -23,6 +23,8 @@ func _run() -> void:
 	expedition.display_name = "The Old Road"
 	expedition.description = "A test expedition."
 	expedition.goal = "Reach the end of the road."
+	expedition.completion_bonus[&"wood"] = 5
+	expedition.completion_bonus[&"stone"] = 3
 
 	_add(expedition, &"start", ExpeditionNode.Type.START, "Departure", 0.0, [&"fight_1"])
 	_add(expedition, &"fight_1", ExpeditionNode.Type.BATTLE, "Ambush on the road", 0.0,
