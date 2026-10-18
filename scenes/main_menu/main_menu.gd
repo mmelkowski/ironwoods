@@ -4,6 +4,7 @@ extends Control
 ##   Continue  loads the most recently saved game.
 ##   Load      shows every saved game (name and date of its last save) as a row;
 ##             choosing one loads it. From then on, all saves go into that file.
+##             Each row also has a Delete button, which asks for confirmation.
 ## A save made in the middle of an expedition resumes on the expedition map,
 ## otherwise the game opens in the hub.
 ##
@@ -22,6 +23,9 @@ extends Control
 
 var _name_dialog: ConfirmationDialog
 var _name_edit: LineEdit
+var _delete_dialog: AcceptDialog
+var _delete_name_label: Label
+var _slot_to_delete := ""
 
 
 func _ready() -> void:
@@ -30,10 +34,10 @@ func _ready() -> void:
 	load_button.pressed.connect(_on_load_pressed)
 	quit_button.pressed.connect(get_tree().quit)
 	_build_name_dialog()
+	_build_delete_dialog()
 
 	var has_save := GameState.has_save()
-	continue_button.disabled = not has_save
-	load_button.disabled = GameState.list_saves().is_empty()
+	_refresh_buttons()
 	quit_button.visible = not OS.has_feature("web")  # a web page can't quit
 	save_panel.hide()
 	if message_label != null:
@@ -120,8 +124,10 @@ func _fill_save_list() -> void:
 	for entry in saves:
 		var row := HBoxContainer.new()
 
+		var display_name: String = entry["name"] if entry["ok"] else "Damaged save (%s)" % entry["id"]
+
 		var name_button := Button.new()
-		name_button.text = entry["name"] if entry["ok"] else "Damaged save (%s)" % entry["id"]
+		name_button.text = display_name
 		name_button.disabled = not entry["ok"]
 		name_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		name_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -132,10 +138,10 @@ func _fill_save_list() -> void:
 		date_label.text = _format_date(entry["saved_at"])
 		row.add_child(date_label)
 
-		var del_save_button := Button.new()
-		del_save_button.text = "Delete file"
-		del_save_button.pressed.connect(_del_savefile.bind(entry["id"]))
-		row.add_child(del_save_button)
+		var delete_button := Button.new()
+		delete_button.text = "Delete file"
+		delete_button.pressed.connect(_ask_delete.bind(entry["id"], display_name))
+		row.add_child(delete_button)
 
 		save_list.add_child(row)
 
@@ -148,12 +154,6 @@ func _load_slot(slot_id: String) -> void:
 		message_label.text = "The save could not be loaded: %s." % GameState.load_error
 
 
-func _del_savefile(slot_id: String) -> void:
-	SaveManager.delete(slot_id)
-	# refresh save file list
-	_fill_save_list()
-
-
 ## "2025-10-18 14:32", in the player's local time.
 func _format_date(unix_time: float) -> String:
 	if unix_time <= 0.0:
@@ -161,3 +161,62 @@ func _format_date(unix_time: float) -> String:
 	var bias_minutes := int(Time.get_time_zone_from_system()["bias"])
 	var local_time := int(unix_time) + bias_minutes * 60
 	return Time.get_datetime_string_from_unix_time(local_time, true).left(16)
+
+
+## Continue and Load are only usable while there is something to load.
+func _refresh_buttons() -> void:
+	continue_button.disabled = not GameState.has_save()
+	load_button.disabled = GameState.list_saves().is_empty()
+
+
+# ---------------------------------------------------------------------------
+# Deleting a saved game
+# ---------------------------------------------------------------------------
+
+## The confirmation window: the question, then "No" and "Yes I'm sure" side by side.
+func _build_delete_dialog() -> void:
+	_delete_dialog = AcceptDialog.new()
+	_delete_dialog.title = "Delete saved game"
+	_delete_dialog.get_ok_button().hide()  # replaced by the two buttons below
+
+	var box := VBoxContainer.new()
+	var question := Label.new()
+	question.text = "Are you sure you want to delete this savefile ?"
+	question.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(question)
+
+	_delete_name_label = Label.new()  # which save is about to be deleted
+	_delete_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(_delete_name_label)
+
+	var buttons := HBoxContainer.new()
+	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	var no_button := Button.new()
+	no_button.text = "No"
+	no_button.pressed.connect(_delete_dialog.hide)
+	buttons.add_child(no_button)
+	var yes_button := Button.new()
+	yes_button.text = "Yes I'm sure"
+	yes_button.pressed.connect(_on_delete_confirmed)
+	buttons.add_child(yes_button)
+	box.add_child(buttons)
+
+	_delete_dialog.add_child(box)
+	add_child(_delete_dialog)
+
+
+func _ask_delete(slot_id: String, display_name: String) -> void:
+	_slot_to_delete = slot_id
+	_delete_name_label.text = "\"%s\"" % display_name
+	_delete_dialog.popup_centered(Vector2i(420, 130))
+
+
+func _on_delete_confirmed() -> void:
+	_delete_dialog.hide()
+	SaveManager.delete(_slot_to_delete)
+	if GameState.save_slot == _slot_to_delete:  # the file being played no longer exists
+		GameState.save_slot = ""
+		GameState.can_save = false
+	_slot_to_delete = ""
+	_fill_save_list()
+	_refresh_buttons()

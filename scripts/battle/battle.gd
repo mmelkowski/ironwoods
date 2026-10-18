@@ -161,7 +161,6 @@ func _starting_health(data: CharacterData) -> int:
 
 
 func _spawn_roster(characters: Array[CharacterData]) -> void:
-	print("battle.gd::_spawn_roster:: in fct")
 	for data in characters:
 		var is_ally := data.team == CharacterData.Team.ALLY
 		var team := allies if is_ally else enemies

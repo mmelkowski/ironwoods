@@ -10,5 +10,5 @@ id = &"goblin"
 display_name = "goblin"
 tileset = ExtResource("2_dk6at")
 tile_coords = Vector2i(2, 0)
-max_health = 20
+max_health = 30
 metadata/_custom_type_script = "uid://y7hn1ijwr8yv"
