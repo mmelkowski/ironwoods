@@ -6,6 +6,7 @@ extends Node
 
 const HERO_CATALOG_PATH := "res://data/hero_catalog.tres"
 const EXPEDITION_CATALOG_PATH := "res://data/expedition_catalog.tres"
+const SAVE_PATH := "user://save.json"  # written by the save system (phase 6)
 
 var hero_catalog: HeroCatalog
 var expeditions: ExpeditionCatalog
@@ -38,6 +39,18 @@ func new_game() -> void:
 			profile.unlock_hero(hero.id)
 	run = null
 
+# --- Saves ---
+
+func has_save() -> bool:
+	return FileAccess.file_exists(SAVE_PATH)
+
+
+## TODO (phase 6): load the profile, and the run if the player saved in the middle
+## of an expedition. Returns true when a save was loaded.
+func load_game() -> bool:
+	push_warning("GameState: loading is not implemented yet (phase 6).")
+	return false
+
 
 # --- Heroes ---
 
@@ -58,6 +71,15 @@ func get_run_team() -> Array[CharacterData]:
 	for id in run.team:
 		var hero := hero_catalog.get_hero(id)
 		if hero != null:
+			result.append(hero)
+	return result
+
+
+## The heroes of the run who can fight now (the ones that are not down).
+func get_run_fighters() -> Array[CharacterData]:
+	var result: Array[CharacterData] = []
+	for hero in get_run_team():
+		if run.is_hero_alive(hero.id):
 			result.append(hero)
 	return result
 

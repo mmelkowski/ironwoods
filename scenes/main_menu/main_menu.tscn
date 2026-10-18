@@ -14,7 +14,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_ysd44")
 
-[node name="TextureRect" type="TextureRect" parent="." unique_id=1617727702]
+[node name="Background" type="TextureRect" parent="." unique_id=1617727702]
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
@@ -32,7 +32,7 @@ grow_horizontal = 2
 text = "IronWoods"
 label_settings = SubResource("LabelSettings_xrivr")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1345694794]
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=1263952560]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -46,22 +46,30 @@ offset_bottom = 85.5
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="new_game" type="Button" parent="VBoxContainer" unique_id=11994316]
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer" unique_id=1345694794]
+layout_mode = 2
+
+[node name="NewGameButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=11994316]
+unique_name_in_owner = true
 layout_mode = 2
 text = "New Game"
 
-[node name="continue" type="Button" parent="VBoxContainer" unique_id=1917591837]
+[node name="ContinueButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1917591837]
+unique_name_in_owner = true
 layout_mode = 2
 text = "Continue"
 
-[node name="load_game" type="Button" parent="VBoxContainer" unique_id=538002406]
+[node name="LoadButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=538002406]
+unique_name_in_owner = true
 layout_mode = 2
 text = "Load Game"
 
-[node name="options" type="Button" parent="VBoxContainer" unique_id=1617073570]
+[node name="OptionsButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1617073570]
+unique_name_in_owner = true
 layout_mode = 2
 text = "Options"
 
-[node name="quit" type="Button" parent="VBoxContainer" unique_id=215457673]
+[node name="QuitButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=215457673]
+unique_name_in_owner = true
 layout_mode = 2
 text = "Quit"

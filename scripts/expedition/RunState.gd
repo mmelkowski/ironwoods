@@ -9,6 +9,9 @@ var expedition_id: StringName
 var team: Array[StringName] = []           # hero ids, in team order
 var hero_health: Dictionary = {}           # hero id -> current health (carries over between battles)
 var current_node_id: StringName = &""      # empty until the first node is entered
+## Written by the battle when it ends; read by the expedition screen when the party comes back.
+enum BattleResult { NONE, VICTORY, DEFEAT }
+var battle_result: BattleResult = BattleResult.NONE
 ## False while the content of the current node (battle, camp, event) is not finished.
 ## The player can only pick the next node once it is resolved, and a saved run
 ## resumes the unfinished node.
@@ -32,6 +35,7 @@ func enter_node(node_id: StringName) -> void:
 	current_node_id = node_id
 	visited_nodes.append(node_id)
 	node_resolved = false
+	battle_result = BattleResult.NONE
 
 
 ## The content of the current node is done: the player may pick the next node.
@@ -41,6 +45,11 @@ func resolve_node() -> void:
 
 func get_health(hero_id: StringName) -> int:
 	return hero_health.get(hero_id, 0)
+
+
+## A hero at 0 health is down: he sits out the battles until a camp heals him.
+func is_hero_alive(hero_id: StringName) -> bool:
+	return get_health(hero_id) > 0
 
 
 func set_health(hero_id: StringName, value: int) -> void:

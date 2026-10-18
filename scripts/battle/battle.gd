@@ -41,7 +41,7 @@ const PLACEMENT_STEPS := 24              # 24 x 15 degrees = a full turn
 const PLACEMENT_RINGS := 4               # how many times the distance grows by one body radius
 const PLACEMENT_TOLERANCE := 0.5         # px: bodies that merely touch don't overlap
 
-@export var character_scene: PackedScene = preload("res://scenes/character/character.tscn")
+@onready var character_scene: PackedScene = preload("res://scenes/character/character.tscn")
 ## Everyone to spawn. Each CharacterData's `team` decides which side it joins.
 ## If filled in, the battle starts automatically (handy for testing).
 @export var roster: Array[CharacterData] = [
@@ -68,17 +68,65 @@ var allies: Array[Character] = []
 var enemies: Array[Character] = []
 var deck := CardDeck.new()
 
+## Set when the battle comes from an expedition node.
+var encounter: EncounterData
+## Only STANDARD exists for now (see EncounterData.SpawnPattern); _get_spawn_position will use it.
+var spawn_pattern: EncounterData.SpawnPattern = EncounterData.SpawnPattern.STANDARD
+
 var phase: Phase = Phase.SETUP
 var turn := 0
 var actions_left := 0
 var mana := 0  # shared by the whole team
 
+var _in_expedition := false  # true when the heroes and enemies come from a run
 var _dead: Array[Character] = []  # hidden, freed once the current action ends
 
 
 func _ready() -> void:
+	# Inside an expedition the fight comes from the current node. Otherwise
+	# (battle scene tested alone) the `roster` set in the inspector is used.
+	if _start_from_run():
+		return
 	if not roster.is_empty():
 		start_battle(roster)
+
+
+## Starts the battle of the current expedition node: the heroes who can fight
+## (with the health they have left) against the enemies of the encounter.
+## Returns false when there is no run or the node has no encounter.
+func _start_from_run() -> bool:
+	if not GameState.has_run():
+		return false
+	var expedition := GameState.get_run_expedition()
+	if expedition == null:
+		return false
+	var node := expedition.get_node_by_id(GameState.run.current_node_id)
+	if node == null or node.encounter == null:
+		return false
+
+	_in_expedition = true
+	encounter = node.encounter
+	spawn_pattern = encounter.spawn_pattern
+	if encounter.objective_scene != null:  # otherwise the default: defeat all enemies
+		objective = encounter.objective_scene.instantiate() as BattleObjective
+		add_child(objective)
+
+	var characters: Array[CharacterData] = []
+	characters.append_array(GameState.get_run_fighters())
+	characters.append_array(encounter.enemies)
+	start_battle(characters)
+	return true
+
+
+## "Continue" after the battle: back to the expedition map, or a restart when the
+## battle scene is tested alone.
+func leave_battle() -> void:
+	if phase != Phase.ENDED:
+		return
+	if _in_expedition:
+		SceneManager.go_to(&"expedition")
+	else:
+		get_tree().reload_current_scene()
 
 
 # ---------------------------------------------------------------------------
@@ -105,6 +153,13 @@ func _start_objective() -> void:
 	objective_updated.emit()
 
 
+## Heroes of an expedition start with the health they have left (-1 = full health).
+func _starting_health(data: CharacterData) -> int:
+	if _in_expedition and data.team == CharacterData.Team.ALLY:
+		return GameState.run.get_health(data.id)
+	return -1
+
+
 func _spawn_roster(characters: Array[CharacterData]) -> void:
 	print("battle.gd::_spawn_roster:: in fct")
 	for data in characters:
@@ -112,7 +167,7 @@ func _spawn_roster(characters: Array[CharacterData]) -> void:
 		var team := allies if is_ally else enemies
 
 		var character: Character = character_scene.instantiate()
-		character.setup(data)
+		character.setup(data, _starting_health(data))
 		(allies_root if is_ally else enemies_root).add_child(character)
 		character.global_position = _get_spawn_position(is_ally, team.size())
 		character.died.connect(_on_character_died)
@@ -464,6 +519,8 @@ func _on_character_died(character: Character) -> void:
 	_dead.append(character)  # freed later, awaiting code may still hold a reference
 
 	if character.is_ally():
+		if _in_expedition:
+			GameState.run.set_health(character.data.id, 0)  # down until a camp heals him
 		deck.remove_cards_of(character)
 		for enemy in enemies:
 			if enemy.intent_target == character:
@@ -492,7 +549,20 @@ func _check_battle_end() -> bool:
 
 func _end_battle(victory: bool) -> void:
 	_set_phase(Phase.ENDED)
+	_record_result(victory)
 	battle_ended.emit(victory)
+
+
+## Hands the outcome to the run: the heroes keep the health they have left, and the
+## result is stored so the expedition screen can continue from it. Written right
+## away (not on "Continue") so it survives closing the game on the victory screen.
+func _record_result(victory: bool) -> void:
+	if not _in_expedition:
+		return
+	var run := GameState.run
+	for ally in allies:
+		run.set_health(ally.data.id, ally.health.current_health)
+	run.battle_result = RunState.BattleResult.VICTORY if victory else RunState.BattleResult.DEFEAT
 
 
 # ---------------------------------------------------------------------------

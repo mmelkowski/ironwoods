@@ -16,6 +16,8 @@ const INTENT_CUTOUT_SIZE := Vector2(16, 16)
 
 @export var data: CharacterData
 
+var _start_health := -1
+
 ## Enemies only: the ally this enemy will attack on its next turn.
 ## Setting it updates the cutout above the enemy's head.
 var intent_target: Character:
@@ -53,8 +55,11 @@ func _ready() -> void:
 ##   var c = character_scene.instantiate()
 ##   c.setup(preload("res://data/characters/wolf.tres"))
 ##   add_child(c)
-func setup(new_data: CharacterData) -> void:
+## start_health: health at the start (-1 = full), for heroes who keep their health
+## from one battle of an expedition to the next.
+func setup(new_data: CharacterData, start_health: int = -1) -> void:
 	data = new_data
+	_start_health = start_health
 	if is_node_ready():
 		_apply_data()
 
@@ -130,7 +135,7 @@ func _apply_data() -> void:
 	shape.radius = atlas.region.size.x / 2.0
 
 	# Stats
-	health.initialize(data.max_health)
+	health.initialize(data.max_health, _start_health)
 	health.add_armor(data.starting_armor)
 	health.add_evasion(data.starting_evasion)
 

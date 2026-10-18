@@ -28,10 +28,11 @@ func _ready() -> void:
 	health_changed.emit(current_health, max_health)
 
 
-## Sets max health and fills it. Call this when spawning from data.
-func initialize(max_hp: int) -> void:
+## Sets max health and the starting health (-1 = full). Call this when spawning from data.
+## A hero coming back from a previous battle of an expedition starts with what he has left.
+func initialize(max_hp: int, current_hp: int = -1) -> void:
 	max_health = max_hp
-	current_health = max_health
+	current_health = max_health if current_hp < 0 else mini(current_hp, max_health)
 	health_changed.emit(current_health, max_health)
 
 

@@ -16,6 +16,10 @@ extends Control
 ## Optional: panels shown when the battle ends. Hidden at the start.
 @export var victory_panel: Control
 @export var defeat_panel: Control
+## Optional: the "Continue" buttons of the two panels. They leave the battle
+## (back to the expedition map, or restart when the battle is tested alone).
+@export var victory_continue: Button
+@export var defeat_continue: Button
 
 
 func _ready() -> void:
@@ -29,6 +33,9 @@ func _ready() -> void:
 	battle.battle_ended.connect(_on_battle_ended)
 
 	end_turn_button.pressed.connect(battle.end_player_turn)
+	for button in [victory_continue, defeat_continue]:
+		if button != null:
+			button.pressed.connect(battle.leave_battle)
 	# A focused button would also react to Enter / Space, which the targeting
 	# controller uses to confirm a card.
 	end_turn_button.focus_mode = Control.FOCUS_NONE

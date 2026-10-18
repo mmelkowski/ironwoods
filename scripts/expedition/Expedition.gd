@@ -54,9 +54,9 @@ func _ready() -> void:
 		_run.resolve_node()
 	_refresh()
 
-	# A run loaded in the middle of a node resumes it
+	# Coming back from a battle, or a run loaded in the middle of a node
 	if not _run.node_resolved:
-		_play_node(_expedition.get_node_by_id(_run.current_node_id))
+		_resume_node(_expedition.get_node_by_id(_run.current_node_id))
 
 
 ## Lets the scene run on its own (F6) with a test run.
@@ -104,6 +104,17 @@ func _on_node_chosen(node: ExpeditionNode) -> void:
 	_play_node(node)
 
 
+## A node was left unfinished. If it is a battle that just ended, its result is
+## waiting in the run. Otherwise the node simply starts again.
+func _resume_node(node: ExpeditionNode) -> void:
+	if node.has_encounter() and _run.battle_result != RunState.BattleResult.NONE:
+		var victory := _run.battle_result == RunState.BattleResult.VICTORY
+		_run.battle_result = RunState.BattleResult.NONE
+		_on_battle_finished(victory)
+	else:
+		_play_node(node)
+
+
 func _play_node(node: ExpeditionNode) -> void:
 	match node.type:
 		ExpeditionNode.Type.BATTLE, ExpeditionNode.Type.BOSS:
@@ -124,9 +135,16 @@ func _resolve() -> void:
 	_refresh()
 
 
-## STUB: the real battle comes with phase 4 (change to the battle scene with the
-## encounter of the node, and come back here with the result).
+## Goes to the battle scene, which reads the encounter of the current node and
+## writes its result in the run. The player comes back here when it ends.
+## Without a battle scene (testing the map alone) a stub dialog stands in.
 func _start_battle(node: ExpeditionNode) -> void:
+	if await SceneManager.go_to(&"battle"):
+		return
+	_show_battle_stub(node)
+
+
+func _show_battle_stub(node: ExpeditionNode) -> void:
 	_show_dialog(node.title, "Battle (not implemented yet).\nChoose the result:", [
 		{"text": "Victory", "action": _on_battle_finished.bind(true)},
 		{"text": "Defeat", "action": _on_battle_finished.bind(false)},
