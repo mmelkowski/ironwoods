@@ -58,3 +58,32 @@ func set_health(hero_id: StringName, value: int) -> void:
 
 func add_loot(resource_id: StringName, amount: int) -> void:
 	loot[resource_id] = loot.get(resource_id, 0) + amount
+
+
+# --- Saving ---
+
+func to_dict() -> Dictionary:
+	return {
+		"expedition_id": String(expedition_id),
+		"team": SaveUtils.to_strings(team),
+		"hero_health": SaveUtils.dict_to_json(hero_health),
+		"current_node_id": String(current_node_id),
+		"visited_nodes": SaveUtils.to_strings(visited_nodes),
+		"node_resolved": node_resolved,
+		"battle_result": int(battle_result),
+		"loot": SaveUtils.dict_to_json(loot),
+	}
+
+
+static func from_dict(data: Dictionary) -> RunState:
+	var run := RunState.new()
+	run.expedition_id = StringName(data.get("expedition_id", ""))
+	run.team = SaveUtils.to_names(data.get("team"))
+	run.hero_health = SaveUtils.int_dict_from_json(data.get("hero_health"))
+	run.current_node_id = StringName(data.get("current_node_id", ""))
+	run.visited_nodes = SaveUtils.to_names(data.get("visited_nodes"))
+	run.node_resolved = bool(data.get("node_resolved", true))
+	var result := int(data.get("battle_result", 0))
+	run.battle_result = clampi(result, 0, 2) as BattleResult
+	run.loot = SaveUtils.int_dict_from_json(data.get("loot"))
+	return run

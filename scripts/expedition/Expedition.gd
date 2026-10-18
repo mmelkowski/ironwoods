@@ -52,6 +52,7 @@ func _ready() -> void:
 		# A new run starts on the START node, which needs no resolution
 		_run.enter_node(_expedition.get_start().id)
 		_run.resolve_node()
+		GameState.save_game()  # the expedition is saved as soon as it starts
 	_refresh()
 
 	# Coming back from a battle, or a run loaded in the middle of a node
@@ -100,6 +101,7 @@ func _refresh_team() -> void:
 
 func _on_node_chosen(node: ExpeditionNode) -> void:
 	_run.enter_node(node.id)
+	# No save here: the game only saves on the map, between nodes (see _resolve)
 	_refresh()
 	_play_node(node)
 
@@ -132,6 +134,7 @@ func _play_node(node: ExpeditionNode) -> void:
 ## The node is done: the player can pick the next one.
 func _resolve() -> void:
 	_run.resolve_node()
+	GameState.save_game()
 	_refresh()
 
 

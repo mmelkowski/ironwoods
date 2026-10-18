@@ -1,17 +1,26 @@
 extends Node
 ## AUTOLOAD (Project Settings > Globals > Autoload, name: GameState).
-## Holds the player's profile and the expedition in progress, and does the
-## lookups between ids and heroes. Don't give this script a class_name: it
-## would clash with the autoload name.
+## Holds the player's profile and the expedition in progress, does the lookups
+## between ids and heroes, and saves / loads the game. Don't give this script a
+## class_name: it would clash with the autoload name.
 
 const HERO_CATALOG_PATH := "res://data/hero_catalog.tres"
 const EXPEDITION_CATALOG_PATH := "res://data/expedition_catalog.tres"
-const SAVE_PATH := "user://save.json"  # written by the save system (phase 6)
 
 var hero_catalog: HeroCatalog
 var expeditions: ExpeditionCatalog
 var profile: PlayerProfile
 var run: RunState  # null when no expedition is in progress
+
+## Saving only happens once a game was started from the main menu (new game or
+## loaded). Without this, running the hub scene on its own (F6) with its test
+## profile would never touch the real saves.
+var can_save := false
+## The saved game being played: every save goes into this file.
+var save_slot := ""
+var save_name := ""
+## Why the last load_game() failed (the main menu shows it).
+var load_error := ""
 
 
 func _ready() -> void:
@@ -28,28 +37,110 @@ func _ready() -> void:
 	expeditions.validate()
 
 	# A default profile, so any scene can be run on its own while testing.
-	# The main menu replaces it (new game / load).
-	new_game()
+	# It is never saved: the main menu replaces it (new game / load).
+	_create_profile()
 
 
-func new_game() -> void:
+## Starts a fresh game in a new save file: the starting heroes, no resources, no
+## expedition. The file is created right away so it shows up in the list of saves.
+func new_game(game_name: String = "") -> void:
+	_create_profile()
+	save_name = game_name.strip_edges()
+	if save_name == "":
+		save_name = "New game"
+	save_slot = SaveManager.new_slot_id()
+	can_save = true
+	save_game()
+
+
+func _create_profile() -> void:
 	profile = PlayerProfile.new()
 	for hero in hero_catalog.heroes:
 		if hero.unlocked_by_default:
 			profile.unlock_hero(hero.id)
 	run = null
 
-# --- Saves ---
+
+# --- Saving ---
+
+## Every saved game, the most recent first (see SaveManager.list_saves).
+func list_saves() -> Array[Dictionary]:
+	return SaveManager.list_saves()
+
+
+## The most recently saved game that can be loaded ("" if none).
+func latest_save_slot() -> String:
+	return SaveManager.latest_slot()
+
 
 func has_save() -> bool:
-	return FileAccess.file_exists(SAVE_PATH)
+	return latest_save_slot() != ""
 
 
-## TODO (phase 6): load the profile, and the run if the player saved in the middle
-## of an expedition. Returns true when a save was loaded.
-func load_game() -> bool:
-	push_warning("GameState: loading is not implemented yet (phase 6).")
-	return false
+## Writes the profile and, if there is one, the expedition in progress into the
+## current save file. Called at the safe moments: entering the hub, the start of an
+## expedition, each time the party is back on the map after a node, the end of an
+## expedition. Never in the middle of a battle.
+func save_game() -> bool:
+	if not can_save or profile == null or save_slot == "":
+		return false
+	var run_data = null
+	if run != null:
+		run_data = run.to_dict()
+	return SaveManager.write(save_slot, {
+		"name": save_name,
+		"profile": profile.to_dict(),
+		"run": run_data,
+	})
+
+
+## Loads a saved game. From now on, saves go into that file.
+## Returns false if it can't be loaded; `load_error` then says why.
+func load_game(slot_id: String) -> bool:
+	load_error = ""
+	var result := SaveManager.read(slot_id)
+	if not result["ok"]:
+		load_error = result["error"]
+		push_warning("GameState: couldn't load '%s' (%s)." % [slot_id, load_error])
+		return false
+
+	var data: Dictionary = result["data"]
+	var saved_profile: Variant = data.get("profile")
+	if not saved_profile is Dictionary:
+		load_error = "the save has no player data"
+		return false
+
+	profile = PlayerProfile.from_dict(saved_profile)
+	run = null
+	var saved_run: Variant = data.get("run")
+	if saved_run is Dictionary:
+		var loaded_run := RunState.from_dict(saved_run)
+		if _is_run_valid(loaded_run):
+			run = loaded_run
+	save_slot = slot_id
+	save_name = str(data.get("name", "Old save"))
+	can_save = true
+	return true
+
+
+## A saved run is only resumed if everything it refers to still exists in the game
+## data. The warning says what is missing.
+func _is_run_valid(candidate: RunState) -> bool:
+	var expedition := expeditions.get_expedition(candidate.expedition_id)
+	if expedition == null:
+		push_warning("GameState: the saved expedition '%s' doesn't exist, the run was dropped." % candidate.expedition_id)
+		return false
+	if candidate.team.is_empty():
+		push_warning("GameState: the saved run has no team, it was dropped.")
+		return false
+	for hero_id in candidate.team:
+		if hero_catalog.get_hero(hero_id) == null:
+			push_warning("GameState: the saved run uses an unknown hero '%s', it was dropped." % hero_id)
+			return false
+	if candidate.current_node_id != &"" and expedition.get_node_by_id(candidate.current_node_id) == null:
+		push_warning("GameState: the saved node '%s' doesn't exist, the run was dropped." % candidate.current_node_id)
+		return false
+	return true
 
 
 # --- Heroes ---
@@ -99,12 +190,11 @@ func get_run_expedition() -> ExpeditionData:
 
 func start_run(expedition_id: StringName, team: Array[CharacterData]) -> void:
 	run = RunState.start(expedition_id, team)
-	print("GameState: run started with ", run.team)  # debug, can be removed
 
 
 ## Ends the expedition. There is no penalty for failing or abandoning: all the loot
 ## gathered is kept. Completing the expedition adds its completion bonus.
-## Returns { "loot": {...}, "bonus": {...} } (for the summary screen).
+## The result is saved. Returns { "loot": {...}, "bonus": {...} } (for the summary screen).
 func end_run(completed: bool) -> Dictionary:
 	if run == null:
 		return {"loot": {}, "bonus": {}}
@@ -121,4 +211,5 @@ func end_run(completed: bool) -> Dictionary:
 	for id in bonus:
 		profile.add_resource(id, bonus[id])
 	run = null
+	save_game()
 	return {"loot": loot, "bonus": bonus}

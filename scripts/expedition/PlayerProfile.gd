@@ -70,3 +70,24 @@ func get_upgrade_level(id: StringName) -> int:
 
 func set_upgrade_level(id: StringName, level: int) -> void:
 	upgrade_levels[id] = level
+
+
+# --- Saving ---
+
+func to_dict() -> Dictionary:
+	return {
+		"unlocked_heroes": SaveUtils.to_strings(unlocked_heroes),
+		"resources": SaveUtils.dict_to_json(resources),
+		"unlocked_locations": SaveUtils.to_strings(unlocked_locations),
+		"upgrade_levels": SaveUtils.dict_to_json(upgrade_levels),
+	}
+
+
+## Missing entries (a save from an older version) simply stay empty.
+static func from_dict(data: Dictionary) -> PlayerProfile:
+	var profile := PlayerProfile.new()
+	profile.unlocked_heroes = SaveUtils.to_names(data.get("unlocked_heroes"))
+	profile.resources = SaveUtils.int_dict_from_json(data.get("resources"))
+	profile.unlocked_locations = SaveUtils.to_names(data.get("unlocked_locations"))
+	profile.upgrade_levels = SaveUtils.int_dict_from_json(data.get("upgrade_levels"))
+	return profile
