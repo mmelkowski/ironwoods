@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://5ibfh6xrbysw"]
 
 [ext_resource type="Script" uid="uid://bl2opxlpovem0" path="res://scenes/main_menu/main_menu.gd" id="1_ysd44"]
+[ext_resource type="Texture2D" uid="uid://bdffxsida6n8q" path="res://assets/main_menu_background.png" id="2_0ebjn"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_xrivr"]
 font_size = 64
@@ -16,8 +17,12 @@ script = ExtResource("1_ysd44")
 
 [node name="Background" type="TextureRect" parent="." unique_id=1617727702]
 layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+offset_left = -86.00001
+offset_top = -32.000004
+offset_right = 1787.0
+offset_bottom = 1022.0
+scale = Vector2(0.6715531, 0.6715531)
+texture = ExtResource("2_0ebjn")
 
 [node name="GameName" type="Label" parent="." unique_id=855841900]
 layout_mode = 1

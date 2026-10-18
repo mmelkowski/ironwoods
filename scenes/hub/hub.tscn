@@ -21,7 +21,7 @@ tile_set = ExtResource("1_qssp3")
 [node name="MainGate" parent="." unique_id=854752293 instance=ExtResource("2_d1od2")]
 position = Vector2(574, 154)
 location_id = &"gate"
-display_name = "Gate"
+display_name = "Gate to go gather resources"
 menu_scene = ExtResource("4_pf6nx")
 
 [node name="Sprite2D" parent="MainGate" index="1" unique_id=333314467]
@@ -31,7 +31,7 @@ texture = ExtResource("4_ursuo")
 [node name="carpentry" parent="." unique_id=808067017 instance=ExtResource("2_d1od2")]
 position = Vector2(373, 274)
 location_id = &"carpentry"
-display_name = "Carpentry"
+display_name = "Carpentry to create building"
 menu_scene = ExtResource("6_b7f34")
 
 [node name="Sprite2D" parent="carpentry" index="1" unique_id=333314467]
