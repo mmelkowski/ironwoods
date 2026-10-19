@@ -50,6 +50,10 @@ func go_to(route: StringName) -> bool:
 	_busy = false
 	return true
 
+## True while a scene change is in progress (the pause menu doesn't open then).
+func is_changing() -> bool:
+	return _busy
+
 
 func _fade_to(alpha: float) -> void:
 	var tween := create_tween()

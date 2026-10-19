@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://by5hdfkpeabu4"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_xy11b"]
+[ext_resource type="Resource" uid="uid://iuvko5ec3jox" path="res://data/status_application/evasion_on_target.tres" id="2_oar2q"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_xjori"]
+
+[resource]
+script = ExtResource("2_xjori")
+id = &"wizard_support_2"
+display_name = "wizard_support_2"
+description = "Add evasion to an Ally"
+card_type = 1
+mana_generation = 2
+target_team = 1
+effects = Array[ExtResource("1_xy11b")]([ExtResource("2_oar2q")])
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

@@ -142,3 +142,21 @@ Later: resuming mid-expedition, which means saving the run state.
 Phase 7: Hub integration
 Hub state: unlocked places and upgrade levels come from the profile, and a resource display shows the stock.
 Rewards: expedition loot flows into the profile, which the forge and tavern menus will spend later.
+
+
+
+## Cards
+
+faires des cartes
+
+## ecran choix de l'expedition
+
+need un ecran pour choisir vers quel expedition on part
+
+## Expedition node
+
+faire des event
+
+## Allies / Enemies
+
+faire plus

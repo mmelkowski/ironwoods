@@ -83,9 +83,7 @@ func close() -> void:
 ## Not in the main menu, not while changing scene, not if something else paused the game.
 func _can_open() -> bool:
 	var scene := get_tree().current_scene
-	if scene.name == "MainMenu":
-		return false
-	elif scene == null or get_tree().paused:  #  or SceneManager.is_changing()
+	if scene == null or get_tree().paused or SceneManager.is_changing() or scene.name == "MainMenu":
 		return false
 	return scene.scene_file_path != SceneManager.ROUTES[&"main_menu"]
 

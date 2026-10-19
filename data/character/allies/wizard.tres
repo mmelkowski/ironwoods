@@ -7,6 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://lo8hamvapv4i" path="res://assets/32rogues/rogues.png" id="3_tn4jk"]
 [ext_resource type="Resource" uid="uid://cbnlyfankyide" path="res://data/cards/wizard/wizard_support_1.tres" id="4_huqdh"]
 [ext_resource type="Resource" uid="uid://cgoy7e1dbg8uc" path="res://data/cards/wizard/wizard_mana_1.tres" id="5_vh3e5"]
+[ext_resource type="Resource" uid="uid://by5hdfkpeabu4" path="res://data/cards/wizard/wizard_support_2.tres" id="6_0sgq4"]
 
 [resource]
 script = ExtResource("2_tn4jk")
@@ -15,5 +16,5 @@ display_name = "Wizard"
 team = 0
 tileset = ExtResource("3_tn4jk")
 tile_coords = Vector2i(1, 4)
-deck = Array[ExtResource("1_n7en7")]([ExtResource("2_mhe82"), ExtResource("3_0sgq4"), ExtResource("4_huqdh"), ExtResource("5_vh3e5")])
+deck = Array[ExtResource("1_n7en7")]([ExtResource("2_mhe82"), ExtResource("3_0sgq4"), ExtResource("4_huqdh"), ExtResource("5_vh3e5"), ExtResource("6_0sgq4")])
 metadata/_custom_type_script = "uid://y7hn1ijwr8yv"

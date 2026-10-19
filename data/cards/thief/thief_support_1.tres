@@ -8,7 +8,7 @@
 script = ExtResource("2_iyte2")
 id = &"thief_support_1"
 display_name = "thief_support_1"
-description = "Add evasion"
+description = "Add evasion 1"
 card_type = 1
 mana_generation = 2
 target_team = 2
