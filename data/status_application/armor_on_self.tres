@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="StatusApplication" format=3 uid="uid://n6lc651dn4es"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_ouhfm"]
+[ext_resource type="Resource" uid="uid://bsog3s5byuql2" path="res://data/status_data/armor.tres" id="2_7513a"]
+
+[resource]
+script = ExtResource("1_ouhfm")
+recipient = 1
+status = ExtResource("2_7513a")
+stacks = 20
+metadata/_custom_type_script = "uid://1s4n8vmvkar7"

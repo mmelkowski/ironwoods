@@ -25,14 +25,21 @@ var intent_target: Character:
 		intent_target = value
 		_update_intent_icon()
 
-## Active statuses: StatusData -> stacks (Evasion is handled by HealthComponent).
-var statuses: Dictionary = {}
+## Persistent statuses (Bleeding, Stun...), created in _ready(). Armor, heal and evasion
+## are not stored here: they go straight to the HealthComponent (see apply_status).
+var status_component: StatusComponent
+
+## StatusData -> stacks (read-only view of status_component).
+var statuses: Dictionary:
+	get: return status_component.stacks if status_component != null else {}
 
 @onready var health: HealthComponent = %HealthComponent
 @onready var sprite: Sprite2D = %Sprite
 @onready var health_bar: ProgressBar = %UI/HealthBar
 @onready var armor_bar: ProgressBar = %UI/%ArmorBar
 @onready var evasion_label: Label = %UI/%EvasionLabel
+## Optional: a Label in character_ui.tscn (unique name %StatusLabel). Without it statuses work but are not shown.
+@onready var status_label: Label = get_node_or_null("%UI/%StatusLabel")
 @onready var intent_icon: Sprite2D = %IntentIcon
 @onready var click_area: Area2D = %ClickArea
 @onready var click_shape: CollisionShape2D = %ClickShape
@@ -44,6 +51,11 @@ func _ready() -> void:
 	health.armor_changed.connect(_on_armor_changed)
 	health.evasion_changed.connect(_on_evasion_changed)
 	health.died.connect(func(): died.emit(self))
+	status_component = StatusComponent.new(health)
+	status_component.name = "StatusComponent"
+	add_child(status_component)
+	status_component.changed.connect(_on_statuses_changed)
+	_on_statuses_changed()
 	click_area.input_event.connect(_on_click_area_input_event)
 	_update_intent_icon()  # hidden until an intent target is assigned
 
@@ -77,14 +89,26 @@ func set_highlighted(on: bool) -> void:
 	sprite.modulate = Color(1.0, 0.9, 0.4) if on else Color.WHITE
 
 
-## Gives stacks of a status. Placeholder: only Evasion has an effect so far.
-## TODO: tick TURNS statuses each turn, consume USES statuses, apply Stun/Bleeding.
+## Gives `stacks` of a status. What a stack means depends on StatusData.effect:
+## ARMOR / HEAL: that many points, applied at once. EVASION: that many dodged hits.
+## Anything else (Bleeding, Stun...) is stored in the StatusComponent and ticked by Battle.
 func apply_status(status: StatusData, stacks: int) -> void:
-	if status.id == &"evasion":
-		health.add_evasion(stacks)
+	if status == null or stacks <= 0 or is_dead():
 		return
-	statuses[status] = statuses.get(status, 0) + stacks
-	statuses_changed.emit()
+	match status.get_effect():
+		StatusData.Effect.ARMOR:
+			health.add_armor(stacks)
+		StatusData.Effect.HEAL:
+			health.heal(stacks)
+		StatusData.Effect.EVASION:
+			health.add_evasion(stacks)
+		_:
+			status_component.add(status, stacks)
+
+
+## A stunned character cannot act (heroes: their cards can't be played; enemies skip their attack).
+func is_stunned() -> bool:
+	return status_component.is_stunned()
 
 
 ## Makes the character look at a world position by flipping the sprite.
@@ -142,6 +166,14 @@ func _apply_data() -> void:
 	# Make sure the bars start in the right state (hidden when armor/evasion is 0)
 	_on_armor_changed(health.armor)
 	_on_evasion_changed(health.evasion)
+
+
+func _on_statuses_changed() -> void:
+	if status_label != null:
+		var text := status_component.get_summary()
+		status_label.text = text
+		status_label.visible = text != ""
+	statuses_changed.emit()
 
 
 func _on_health_changed(current: int, maximum: int) -> void:

@@ -1,12 +1,14 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://0hkd6dd7jo7g"]
 
 [ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_fxqyd"]
+[ext_resource type="Resource" uid="uid://dmp0brjll17s8" path="res://data/status_application/stun.tres" id="2_1jst1"]
 [ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_awplt"]
 
 [resource]
 script = ExtResource("2_awplt")
 id = &"wizard_attack_1"
-display_name = "wizard_attack_1"
-description = "wizard_attack_1"
+display_name = "wizard_attack_1 Stun"
+description = "Stun for 1 turn"
 damage = 15
+effects = Array[ExtResource("1_fxqyd")]([ExtResource("2_1jst1")])
 metadata/_custom_type_script = "uid://j0prpwx7b06d"

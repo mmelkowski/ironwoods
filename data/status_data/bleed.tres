@@ -4,7 +4,8 @@
 
 [resource]
 script = ExtResource("1_3ir8e")
-id = &"bleed"
-display_name = "Bleed"
-description = "Bleed"
+id = &"bleeding"
+display_name = "Bleeding"
+description = "Bleeding"
+effect = 4
 metadata/_custom_type_script = "uid://cf8nrmcbw5y70"

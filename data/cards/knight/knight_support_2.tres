@@ -1,15 +1,16 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://ce7qqfcx0ibkc"]
 
 [ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_gg6ki"]
+[ext_resource type="Resource" uid="uid://n6lc651dn4es" path="res://data/status_application/armor_on_self.tres" id="2_02xla"]
 [ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_l7dhn"]
 
 [resource]
 script = ExtResource("2_l7dhn")
 id = &"knight_support_2"
 display_name = "knight_support_2 "
-description = "Add 20 defense"
+description = "Add 20 defense to yourself"
 card_type = 1
 mana_generation = 2
 target_team = 2
-effects = Array[ExtResource("1_gg6ki")]([null])
+effects = Array[ExtResource("1_gg6ki")]([ExtResource("2_02xla")])
 metadata/_custom_type_script = "uid://j0prpwx7b06d"

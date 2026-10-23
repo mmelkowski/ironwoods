@@ -187,6 +187,9 @@ func _get_spawn_position(is_ally: bool, index: int) -> Vector2:
 
 func _start_player_turn() -> void:
 	turn += 1
+	_start_of_turn_statuses(allies)  # Bleeding may kill a hero
+	if _check_battle_end():
+		return
 	_set_phase(Phase.PLAYER_TURN)
 	_set_actions(ACTIONS_PER_TURN)
 	deck.draw_to_full()
@@ -197,6 +200,7 @@ func _start_player_turn() -> void:
 func end_player_turn() -> void:
 	if phase != Phase.PLAYER_TURN:
 		return
+	_end_of_turn_statuses(allies)
 	await _run_enemy_turn()
 
 
@@ -206,6 +210,7 @@ func can_play_card(card: CardInstance) -> bool:
 		and actions_left > 0
 		and deck.hand.has(card)
 		and allies.has(card.caster)
+		and not card.caster.is_stunned()
 		and (card.data.card_type != CardData.Type.MANA or mana >= card.mana_cost)
 	)
 
@@ -468,18 +473,24 @@ func _apply_effects(card: CardInstance, targets: Array[Character], killed: Array
 
 func _run_enemy_turn() -> void:
 	_set_phase(Phase.ENEMY_TURN)
+	_start_of_turn_statuses(enemies)  # Bleeding may kill enemies
+	if _check_battle_end():
+		return
 	for enemy in enemies.duplicate():
 		if not enemies.has(enemy):
 			continue
 		await _enemy_attack(enemy)
 		if _check_battle_end():
 			return
-		await get_tree().create_timer(ENEMY_ACTION_DELAY).timeout
+		await get_tree().create_timer(ENEMY_ACTION_DELAY, false).timeout  # false: frozen by the pause menu
+	_end_of_turn_statuses(enemies)
 	_start_player_turn()
 
 
 ## Placeholder attack: walk to the planned target and hit for the default damage.
 func _enemy_attack(enemy: Character) -> void:
+	if enemy.is_stunned():
+		return  # turn skipped, the stun loses a stack at the end of the enemy phase
 	if not allies.has(enemy.intent_target):
 		_assign_target(enemy)
 	var target := enemy.intent_target
@@ -505,6 +516,24 @@ func _assign_target(enemy: Character) -> void:
 	if enemy.intent_target != null:
 		enemy.face_towards(enemy.intent_target.global_position)
 	intents_changed.emit()
+
+
+# ---------------------------------------------------------------------------
+# Statuses (Bleeding, Stun...)
+# ---------------------------------------------------------------------------
+
+## Start of a side's turn: damage over time. Deaths are handled as usual.
+func _start_of_turn_statuses(team: Array[Character]) -> void:
+	for character in team.duplicate():
+		character.status_component.start_of_turn()
+	_free_dead()
+	_update_facings()
+
+
+## End of a side's turn: TURNS statuses lose their stacks.
+func _end_of_turn_statuses(team: Array[Character]) -> void:
+	for character in team:
+		character.status_component.end_of_turn()
 
 
 # ---------------------------------------------------------------------------

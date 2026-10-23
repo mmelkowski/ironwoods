@@ -1,12 +1,14 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://b7wnb5hxdohfy"]
 
 [ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_wqdl8"]
+[ext_resource type="Resource" uid="uid://brsts4j1di2wl" path="res://data/status_application/bleed.tres" id="2_f7phj"]
 [ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_ml7f3"]
 
 [resource]
 script = ExtResource("2_ml7f3")
 id = &"thief_attack_1"
-display_name = "thief_attack_1"
-description = "thief_attack_1"
+display_name = "thief_attack_1 Bleed"
+description = "Add 1 stack of Bleeding"
 damage = 10
+effects = Array[ExtResource("1_wqdl8")]([ExtResource("2_f7phj")])
 metadata/_custom_type_script = "uid://j0prpwx7b06d"
