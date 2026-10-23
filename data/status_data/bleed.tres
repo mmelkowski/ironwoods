@@ -8,4 +8,5 @@ id = &"bleeding"
 display_name = "Bleeding"
 description = "Bleeding"
 effect = 4
+debuff = true
 metadata/_custom_type_script = "uid://cf8nrmcbw5y70"

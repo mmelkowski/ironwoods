@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="StatusApplication" format=3 uid="uid://6pphk8jvxnro"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_rc1n6"]
+[ext_resource type="Resource" uid="uid://bjhvlslfcd4ji" path="res://data/status_data/cleanse.tres" id="2_k25is"]
+
+[resource]
+script = ExtResource("1_rc1n6")
+status = ExtResource("2_k25is")
+metadata/_custom_type_script = "uid://1s4n8vmvkar7"

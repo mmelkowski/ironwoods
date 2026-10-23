@@ -44,6 +44,18 @@ func is_stunned() -> bool:
 	return has_effect(StatusData.Effect.STUN)
 
 
+## Removes every debuff (Bleeding, Stun...). Returns true if something was removed.
+func remove_debuffs() -> bool:
+	var removed := false
+	for status: StatusData in stacks.keys():
+		if status.is_debuff():
+			stacks.erase(status)
+			removed = true
+	if removed:
+		changed.emit()
+	return removed
+
+
 ## For USES statuses: removes `amount` stacks (e.g. when the effect triggers).
 func consume(status: StatusData, amount: int = 1) -> void:
 	if not stacks.has(status):

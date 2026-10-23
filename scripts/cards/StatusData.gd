@@ -10,10 +10,11 @@ extends Resource
 ##   EVASION : number of hits that will be dodged (kept by HealthComponent).
 ##   BLEED   : damage dealt at the start of the owner's turn, then loses `decay_per_turn` stacks.
 ##   STUN    : number of turns skipped, loses 1 stack at the end of each turn.
+##   CLEANSE : removes every debuff from the target at once (`stacks` is ignored, use 1). Instant.
 ##   NONE    : a plain marker, stored on the character (for future effects/relics).
 
 enum DurationType { TURNS, USES }
-enum Effect { NONE, ARMOR, HEAL, EVASION, BLEED, STUN }
+enum Effect { NONE, ARMOR, HEAL, EVASION, BLEED, STUN, CLEANSE }
 
 @export var id: StringName
 @export var display_name := ""
@@ -24,6 +25,10 @@ enum Effect { NONE, ARMOR, HEAL, EVASION, BLEED, STUN }
 	set(value):
 		effect = value
 		notify_property_list_changed()
+
+## Marks a negative status, so CLEANSE removes it. BLEED and STUN are always debuffs;
+## tick this for any other negative status you create.
+@export var debuff := false
 
 ## TURNS: stacks go down at the end of the owner's turn. USES: stacks only go down when
 ## something consumes them (StatusComponent.consume). Hidden for instant effects.
@@ -41,13 +46,18 @@ func get_effect() -> Effect:
 	return effect
 
 
+## True for negative statuses (the ones a CLEANSE card removes).
+func is_debuff() -> bool:
+	return debuff or effect == Effect.BLEED or effect == Effect.STUN
+
+
 ## Instant value effects: applied at once, nothing is stored on the character.
 func is_value_effect() -> bool:
 	return get_effect() == Effect.ARMOR or get_effect() == Effect.HEAL
 
 
 func _validate_property(property: Dictionary) -> void:
-	var instant := is_value_effect() or get_effect() == Effect.EVASION
+	var instant := is_value_effect() or get_effect() in [Effect.EVASION, Effect.CLEANSE]
 	if instant and property.name in ["duration_type", "decay_per_turn"]:
 		property.usage = PROPERTY_USAGE_NO_EDITOR
 	if effect != Effect.BLEED and property.name == "bypass_armor":

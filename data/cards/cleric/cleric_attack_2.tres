@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dpxlfoqvne36q"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_bclwo"]
+[ext_resource type="Resource" uid="uid://dmp0brjll17s8" path="res://data/status_application/stun.tres" id="2_qs6s7"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_tidh0"]
+
+[resource]
+script = ExtResource("2_tidh0")
+id = &"cleric_attack_2"
+display_name = "cleric_attack_2 Stun"
+description = "Stun 1 turncleric_attack_2"
+damage = 10
+effects = Array[ExtResource("1_bclwo")]([ExtResource("2_qs6s7")])
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

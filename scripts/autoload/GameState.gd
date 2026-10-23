@@ -63,9 +63,7 @@ func new_game(game_name: String = "") -> void:
 
 func _create_profile() -> void:
 	profile = PlayerProfile.new()
-	for hero in hero_catalog.heroes:
-		if hero.unlocked_by_default:
-			profile.unlock_hero(hero.id)
+	_ensure_starting_heroes()
 	_ensure_starting_buildings()
 	run = null
 
@@ -120,6 +118,7 @@ func load_game(slot_id: String) -> bool:
 		return false
 
 	profile = PlayerProfile.from_dict(saved_profile)
+	_ensure_starting_heroes()  # heroes added to the game after the save was made
 	_ensure_starting_buildings()  # saves from before the hub buildings existed get them too
 	run = null
 	var saved_run: Variant = data.get("run")
@@ -222,6 +221,14 @@ func upgrade_building(building: BuildingData) -> bool:
 	profile.unlock_location(building.id)
 	save_game()
 	return true
+
+
+## The heroes every game starts with (CharacterData.unlocked_by_default). Also run when a save
+## is loaded, so a hero added to the catalog later shows up in old saves too.
+func _ensure_starting_heroes() -> void:
+	for hero in hero_catalog.heroes:
+		if hero.unlocked_by_default and not profile.is_hero_unlocked(hero.id):
+			profile.unlock_hero(hero.id)
 
 
 ## The buildings every game starts with (the gate, the carpentry workshop...).

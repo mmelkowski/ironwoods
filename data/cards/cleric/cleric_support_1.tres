@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://bitgss3jqsiir"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_t3nel"]
+[ext_resource type="Resource" uid="uid://cy6nv0mxvvede" path="res://data/status_application/heal_on_target.tres" id="2_frsq4"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_w3i0r"]
+
+[resource]
+script = ExtResource("2_w3i0r")
+id = &"cleric_support_1"
+display_name = "cleric_support_1 Heal"
+description = "Heal 20 healthpoint"
+card_type = 1
+target_team = 1
+effects = Array[ExtResource("1_t3nel")]([ExtResource("2_frsq4")])
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

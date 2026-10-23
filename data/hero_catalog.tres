@@ -5,8 +5,9 @@
 [ext_resource type="Script" uid="uid://bsxrpsa1o2t44" path="res://scripts/hero_catalog/HeroCatalog.gd" id="2_dkwb6"]
 [ext_resource type="Resource" uid="uid://c0j1uoil31vac" path="res://data/character/allies/thief.tres" id="3_lyh8g"]
 [ext_resource type="Resource" uid="uid://d4ajgtrfmmxm" path="res://data/character/allies/wizard.tres" id="4_rjnm5"]
+[ext_resource type="Resource" uid="uid://bnxm0lhgn8cau" path="res://data/character/allies/cleric.tres" id="5_lyh8g"]
 
 [resource]
 script = ExtResource("2_dkwb6")
-heroes = Array[ExtResource("1_rikdf")]([ExtResource("2_cckat"), ExtResource("3_lyh8g"), ExtResource("4_rjnm5")])
+heroes = Array[ExtResource("1_rikdf")]([ExtResource("2_cckat"), ExtResource("3_lyh8g"), ExtResource("4_rjnm5"), ExtResource("5_lyh8g")])
 metadata/_custom_type_script = "uid://bsxrpsa1o2t44"

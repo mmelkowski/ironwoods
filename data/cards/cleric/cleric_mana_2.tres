@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://bycc42eulqnbl"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_m380o"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_fas1q"]
+[ext_resource type="Resource" uid="uid://cy6nv0mxvvede" path="res://data/status_application/heal_on_target.tres" id="2_nyon1"]
+
+[resource]
+script = ExtResource("2_fas1q")
+id = &"cleric_mana_2"
+display_name = "cleric_mana_2"
+description = "cleric_mana_2"
+card_type = 2
+mana_cost = 4
+target_team = 1
+effects = Array[ExtResource("1_m380o")]([ExtResource("2_nyon1")])
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

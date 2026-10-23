@@ -102,6 +102,8 @@ func apply_status(status: StatusData, stacks: int) -> void:
 			health.heal(stacks)
 		StatusData.Effect.EVASION:
 			health.add_evasion(stacks)
+		StatusData.Effect.CLEANSE:
+			status_component.remove_debuffs()
 		_:
 			status_component.add(status, stacks)
 

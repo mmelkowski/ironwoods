@@ -8,4 +8,5 @@ id = &"stun"
 display_name = "Stun"
 description = "Stun"
 effect = 5
+debuff = true
 metadata/_custom_type_script = "uid://cf8nrmcbw5y70"

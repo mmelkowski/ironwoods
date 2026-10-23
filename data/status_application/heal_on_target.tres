@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="StatusApplication" format=3 uid="uid://cy6nv0mxvvede"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_ipg17"]
+[ext_resource type="Resource" uid="uid://cwidxj2whoemg" path="res://data/status_data/heal.tres" id="2_afyns"]
+
+[resource]
+script = ExtResource("1_ipg17")
+status = ExtResource("2_afyns")
+stacks = 50
+metadata/_custom_type_script = "uid://1s4n8vmvkar7"
