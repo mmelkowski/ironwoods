@@ -25,23 +25,26 @@ Language: **GDScript**. The project also uses a CRT shader addon (`addons/crt`),
 
 * Communicates in **English** (French locale). Wants **concise, practical** answers.
 * **Do NOT start a headless Godot / run Godot in the sandbox.** Explicit request: *"Give me the code and I will do the testing."*
-  (Earlier in the project headless tests were used; the developer then asked to stop.) Review code statically and carefully instead.
-* The developer **edits their own copies** of the files, so **never assume your version is the current one**.
+  Review code statically and carefully instead.
+* The developer **edits their own copies** of the files, so **never assume your version is the current one**. Files arrive in `/mnt/user-data/uploads`
+  (sometimes with a suffix such as `character_1.gd`, `character_6377fa.gd`: the newest upload is the current one). **Check that an uploaded file really contains what its name says**
+  (an `Expedition.tscn` once turned out to contain the Character scene: it had been overwritten by a "Save Scene As" mistake, and a rebuilt scene was delivered).
   Known customizations on the developer's side:
-  * `battle.gd`: `character_scene` was switched from `@export` to `@onready` (the spawn crashed otherwise); the `roster` export is
-	pre-filled for debugging (3 heroes + 4 goblins).
-  * `character.gd`: uses a `CircleShape2D` click shape (`shape` variable, radius set from the sprite), scene uses `%UI/HealthBar`, `%UI/%ArmorBar`, `%UI/%EvasionLabel`
-	(the UI is an instanced sub-scene `character_ui.tscn`); the name label was removed.
-  * `CardInstance.gd` and `card_view.gd` were customized (card type shown as text with a debug color per type,
-	attack/critical damage display). **Always ask for the current versions before editing these.**
-  * `main_menu.gd`: the developer added a "Delete file" button per save row (merged afterwards with a confirmation popup).
-  * Prefer giving **snippets + a list of what changed** when a file might have been modified by the developer;
-	**ask them to upload the current file** before large changes.
-* The developer wants to be told **what goes in code and what must be built with nodes** in the editor
-  (scene trees, "Access as Unique Name" nodes, exports to assign, Project Settings to change).
-* Values **simplicity and reusability**. Data is authored as **Godot `.tres` Resources**, not YAML (this was explained and accepted).
-* They validate each step before moving on ("Go for phase N"). Unverified work should be flagged as such.
-* Scripts are delivered as files (the previous agent wrote them to `/mnt/user-data/outputs`) and listed with a short summary of what changed.
+  * `battle.gd`: `character_scene` is `@onready` instead of `@export`; `roster` export pre-filled for debugging (3 heroes + 4 goblins). Status-system changes were delivered as a full file based on their copy (`take_hit`, status ticks, stun, `create_timer(..., false)`).
+  * `character.gd` (**heavily customized**, latest upload `character_6377fa.gd`): `%UI/%HealthBar`, `%UI/%ArmorBar`, `%UI/%HealthValue`, `%UI/%ArmorValue`, `%UI/%IntentIcon` (intent icon now lives inside the UI sub-scene),
+    optional `%UI/%StatusIcons`. The UI is built for **1920x1080** and the `UI` node is **scaled down (about 0.27)**, so the constants are large (`STATUS_ICON_SIZE = 80`, `STATUS_FONT_SIZE = 40`, `UI_HEIGHT_ABOVE_HEAD = 20`).
+    The health value label shows **only the current health** (no maximum, the bar tells the rest). Click circle: they replaced the delivered formula by `shape.radius = size.x * CLICK_RADIUS_FACTOR + 5`.
+  * `CardInstance.gd` and `card_view.gd` were customized (card type shown as text with a debug color per type, attack/critical damage display). **Always ask for the current versions before editing these.**
+  * `main_menu.gd`: "Delete file" button per save row with confirmation popup.
+  * `HeroSlot.gd`: fixed for `starting_statuses` (they removed `CharacterData.starting_evasion`); a status list is now shown in the stats text.
+  * `CharacterData.gd`: `starting_evasion` was **removed** and replaced by `starting_statuses: Dictionary[StatusData, int]`.
+  * Prefer giving **snippets + a list of what changed** when a file might have been modified by the developer; **ask them to upload the current file** before large changes.
+    When the current version is available, edit **that** version and deliver the full file (this worked well for `battle.gd`, `character.gd`, `GameState.gd`, `menu_gate.gd`).
+* The developer wants to be told **what goes in code and what must be built with nodes** in the editor (scene trees, "Access as Unique Name" nodes, exports to assign, Project Settings to change).
+* Values **simplicity and reusability**, and wants the **same code path for every status** (no special cases such as the old evasion handling).
+* Data is authored as **Godot `.tres` Resources**, not YAML.
+* They validate each step before moving on. Unverified work should be flagged as such ([U] in the technical doc).
+* Scripts are delivered as files in `/mnt/user-data/outputs` (call `present_files`), listed with a short summary of what changed, what to build in the editor and a short test checklist.
 * Godot gotcha lists and recurring pitfalls are in section 7.
 
 ---
@@ -66,13 +69,21 @@ Language: **GDScript**. The project also uses a CRT shader addon (`addons/crt`),
 * Card types: `ATTACK`, `SUPPORT`, `MANA`. Target teams: `ENEMY`, `ALLY`, `SELF`.
   Target types: `SINGLE`, `MULTIPLE` (free pick within `select_radius` of the caster), `CHAINED` (each next pick within `chain_radius`
   of the previous one, the same character can be picked several times), `AOE` (everyone of the team within `aoe_radius` of the picked target).
-* Damage order per hit: **evasion** (each stack dodges one hit) → **armor** (secondary health bar, only shown if > 0) → **health**.
+* Damage order per hit: **evasion** (a status, see below) → **armor** (secondary health bar, only shown if > 0) → **health**. All hits go through `Character.take_hit()`.
   A critical hit multiplies damage by 1.5 (`Battle.CRIT_MULTIPLIER`). Knockback: none / standard (48 px) / forceful (96 px).
 * **Movement**: a card that targets enemies makes the caster *walk* to the closest position allowing the attack (`approach_distance`).
   `approach_angle` (optional) forces a spot around the target **relative to the direction the caster comes from** (180 = behind the target, backstab).
   If the spot overlaps another character, a search around the target finds a free one (rotate, then grow the distance by the caster radius, rotate again).
   A chain walks hop by hop through its targets.
 * **Facing**: characters never rotate. Sprites are flipped horizontally. Allies face their closest enemy, enemies face their `intent_target`.
+* **Statuses** (all go through `Character.apply_status`, same code path as much as possible, driven by `StatusData.effect`):
+  * *Value effects* are **instant** and never stored: `ARMOR` (+N armor points, 1 point = 1 hp), `HEAL` (+N health), `CLEANSE` (removes every debuff, stacks ignored).
+  * *Stored statuses* (in the character's `StatusComponent`): `BLEED` (N damage at the start of the owner's turn, ignores armor/evasion, then loses 1 stack: 3 → 3, 2, 1 damage),
+    `STUN` (N turns skipped, loses 1 per turn), `EVASION` (duration `USES`: each stack dodges one hit and is consumed; duration `TURNS`: dodges every hit while it lasts), `NONE` (marker for future use).
+  * `duration_type`: `TURNS` stacks decay by `decay_per_turn` at the end of the owner's side phase; `USES` stacks only go down when consumed.
+  * A status is a **debuff** if `BLEED`/`STUN` or if its `debuff` box is ticked (this is what `CLEANSE` removes).
+  * Timing: start of a side's phase = damage over time; during the phase a stunned hero can't play cards and a stunned enemy skips its attack; end of phase = decay.
+  * Each status icon on the character shows the **turns left** (or hits left for USES) in its bottom-right corner.
 * **Enemies**: each enemy has an `intent_target` (an ally chosen at random, shown by a small cutout of that ally's head above the enemy).
   On its turn the enemy walks to it and hits with a placeholder default attack (`attack_damage`, `attack_range`), then picks the next target.
 * **Objective** (`BattleObjective`): default "defeat all enemies". Checked after every action. Designed for others (boss, destroy an object,
@@ -94,41 +105,44 @@ Language: **GDScript**. The project also uses a CRT shader addon (`addons/crt`),
 
 ---
 
-## 4. Current status (end of the previous conversation)
+## 4. Current status
 
 Roadmap that was followed:
 
 | Phase | Content | State |
 |---|---|---|
 | 0 | Decisions (health carry-over, defeat rule, hand-authored graphs, mid-expedition saves) | Done |
-| 1 | SceneManager, PlayerProfile, RunState, GameState, HeroCatalog | Done, confirmed by developer |
+| 1 | SceneManager, PlayerProfile, RunState, GameState, HeroCatalog | Done, confirmed |
 | 2 | Expedition data (Node/Data/Encounter/Catalog), DAG validation, test expedition generator | Done, confirmed |
 | 3 | Expedition scene (map, node states, dialogs, camp, abandon, summary) | Done, confirmed |
-| 4 | Battle integration (roster from run, encounter, health carry-over, result back to the map) | Done, confirmed ("everything is working") |
+| 4 | Battle integration (roster from run, encounter, health carry-over, result back to the map) | Done, confirmed |
 | 5 | Main menu | Done |
-| 6 | Save system, then multiple save files with names, load list and delete | Delivered; the developer is using the list and added the delete button |
-| 7 | Hub integration: buildings (data + catalog), fixed-position locations hidden until unlocked, carpentry menu, resource bar, loot per node | Done |
-| - | **Pause menu** | **Delivered (`pause_menu.gd`) but the explanation message of the integration steps was cut off: see `TECHNICAL_DOCUMENTATION.md` section 12. Untested.** |
+| 6 | Save system, multiple named save files, load list, delete | Done, in use |
+| 7 | Hub integration: buildings, fixed-position locations, carpentry menu, resource bar, loot per node | **Done, confirmed** (building and crafting buildings works) |
+| - | Pause menu | **Done, confirmed** (integration finished, including the `create_timer(..., false)` fix) |
+| 8 | **Status system**: `StatusComponent`, Bleeding, Stun, Evasion unified as a normal status, armor / heal / cleanse value effects, icons with turns left, `starting_statuses` | Delivered. **Confirmed by the developer:** status icon row (with Evasion), number placement, bar value labels, UI placed above the head by the bottom of the health bar, `HeroSlot` fix. **Not confirmed yet [U]:** Bleeding ticks, Stun behaviour, Cleanse, armor/heal cards, `create_timer` pause behaviour in the enemy phase |
+| - | Gate menu polish: portraits fill the left panel (`portrait_aspect`), unlocked-by-default heroes are added to old saves (`_ensure_starting_heroes`) | Delivered, unconfirmed |
+| - | Expedition scene rebuilt (`Expedition.tscn` had been overwritten by the Character scene) | Delivered, **[U] the developer has not said whether the expedition screen works again** |
+
+**Opened loose ends:** `HealthComponent` still contains its old evasion code (`evasion`, `add_evasion`, `evasion_changed`, `dodged`), now unused: the file has not been seen by the agent, ask for it to remove it (and keep any "Dodged" feedback working by emitting from `Character.take_hit`).
 
 ---
 
 ## 5. Backlog / next steps (suggested order)
 
-1. **Finish the pause menu** integration (autoload scene, `create_timer(..., false)` fix in battle, see technical doc section 12) and have it tested.
-2. **Tavern**: menu to choose a temporary expedition buff before launching (data model to design: buff resources, applied at `RunState` start).
+1. **Verify the unconfirmed items** of phase 8 and the Expedition scene (see technical doc section 16), and send `health_component.gd` to remove the dead evasion code.
+2. **Status follow-ups**: hover tooltip (name + description) on status icons (needs a hover test that does not block clicks), `USES` hooks (e.g. a vulnerability consumed on hit, call `StatusComponent.consume()` from the damage code),
+   `DISPEL` (remove buffs, mirror of Cleanse), partial cleanse ("remove 1 debuff"), more statuses (Poison, Weakness, Strength...), card descriptions generated from effects.
+3. **Real enemy actions**: attack patterns (melee, ranged, AOE) instead of the placeholder default attack, including enemies that apply Bleeding/Stun to heroes (this will make the "status applied during its own side's phase decays immediately" limitation matter).
+4. **Tavern**: menu to choose a temporary expedition buff before launching (data model to design: buff resources, applied at `RunState` start; can reuse `StatusData` through `starting_statuses`-like data).
    Possibly also move team selection there (the gate menu currently does it).
-3. **Forge**: permanent upgrades / craftable items (equipment taken on expeditions). Needs a data model for items and how they modify heroes.
-4. **Status system**: `Character.apply_status()` is a stub (only Evasion works). Needs a `StatusComponent` (tick TURNS statuses each turn,
-   consume USES statuses, Bleeding damage, Stun skipping a turn), plus status icons UI.
-5. **More card effects**: `CardData` has no armor-gain or heal effect yet (support cards only give mana and statuses).
-   Extend `StatusApplication` or add a sibling effect resource.
-6. **Real enemy actions**: replace the placeholder default attack by attack patterns (melee, ranged, AOE) using the unused `action_pattern` slot idea.
-7. **Spawn patterns** AMBUSH / AMBUSHED (`EncounterData.SpawnPattern`) in `Battle._get_spawn_position()`, and map-bounds clamping of movement/knockback using the TileMapLayer.
-8. **More objectives** (boss, destroy object, rescue hostage, survive waves; waves need a public spawn function on `Battle`).
-9. **Expedition content**: real events (currently stub dialog), destination selection in the gate menu (currently fixed `first_expedition`),
-	node icons/art, more expeditions, possibly procedural generation.
-10. Hero health upgrades from the forge (`RunState.start()` has a TODO), hero deck editing, rewards choices.
-11. Polish: themes/fonts (default font is blurry with pixel art), animations, audio, settings menu, localization, export testing (saves use `user://saves`).
+5. **Forge**: permanent upgrades / craftable items (equipment taken on expeditions). Needs a data model for items and how they modify heroes.
+6. **Spawn patterns** AMBUSH / AMBUSHED (`EncounterData.SpawnPattern`) in `Battle._get_spawn_position()`, and map-bounds clamping of movement/knockback using the TileMapLayer.
+7. **More objectives** (boss, destroy object, rescue hostage, survive waves; waves need a public spawn function on `Battle`).
+8. **Expedition content**: real events (currently stub dialog), destination selection in the gate menu (currently fixed `first_expedition`), node icons/art, more expeditions, possibly procedural generation.
+9. Hero health upgrades from the forge (`RunState.start()` has a TODO), hero deck editing, rewards choices.
+10. **Visual health system** (chunks every 10 points on the health/armor bars, the developer mentioned it for later).
+11. Polish: themes/fonts (default font is blurry with pixel art), animations, audio, settings menu, localization, export testing (saves use `user://saves`), a consistent UI scaling strategy for 1920x1080.
 
 ---
 
@@ -145,6 +159,13 @@ Roadmap that was followed:
 * **Unresolved node + `battle_result`** in `RunState`: coming back from the battle scene, the expedition screen reads the result and resolves the node.
 * **Saves never touch the real files in test sessions**: `GameState.can_save` is false until a game was started from the main menu (so F6 on the hub does not overwrite a save).
 * **Pause menu is an autoload scene** active in every scene except the main menu.
+* **One status pipeline.** Everything goes through `Character.apply_status(status, stacks)`; `StatusData.effect` decides the behaviour. Only instant value effects (armor, heal, cleanse) act on the character at once;
+  every other status (Bleeding, Stun, Evasion, markers) is stored in the character's `StatusComponent`. Evasion used to live in `HealthComponent`: it was moved so that no status needs special code.
+  Hits go through `Character.take_hit()`, the single hook that asks the status component whether the hit is dodged.
+* **Stacks mean one number per status** (like Slay the Spire's Poison): Bleeding stacks = damage and remaining turns at the same time (decay 1), Stun stacks = turns, Evasion stacks = dodged hits. Armor 50 means 50 points, **never** "50 turns".
+  The icon shows `get_display_number()`: turns left for expiring TURNS statuses, otherwise the stacks.
+* **`StatusComponent` is a Node created by code** in `Character._ready()` (no scene work needed).
+* **Character UI is anchored by the bottom of its health bar**, `UI_HEIGHT_ABOVE_HEAD` pixels above `CharacterData.head_position`; the code measures real transforms so the UI scene can be scaled/rearranged freely and the intent icon/status icons stack above.
 * Hub buildings are **placed by hand in the scene** (fixed positions, Heroes of Might and Magic style) and hidden until unlocked.
 
 ---
@@ -165,13 +186,20 @@ Roadmap that was followed:
 * `Dictionary[StringName, int]` exports require Godot 4.4+.
 * A function that mixes `await` and plain returns is fine, but a coroutine's early return value is only visible when awaited.
 * `Label` minimum width follows its text: use `text_overrun_behavior` to get equal-width columns.
+* A scene saved under the wrong name destroys the original (`Expedition.tscn` was overwritten by the Character scene): check the editor tab before Ctrl+S and use version control.
+* `%UI` can be a Control or a Node2D: keep it untyped (`@onready var ui = %UI`) when only `position`/`scale`/transform are needed.
+* Generated `Control`s inside a character (status icons, labels) must use `mouse_filter = IGNORE` or they block clicks on the `Area2D`.
+* Container sizes are only final a couple of frames after spawning: do layout-dependent placement after `await get_tree().process_frame` (twice) and re-run it on `item_rect_changed`.
+* `Label` outline/size set by code must account for a **scaled UI node** (the developer's UI is scaled to ~0.27, hence the big font/icon constants).
+* A formatted string with `%d` and a Dictionary argument fails silently (the `%d` stays in the text): format dictionaries yourself.
+* Enums that are saved in `.tres` as integers: **append** new values at the end (`Effect.CLEANSE` was added last) so existing resources keep their meaning.
 * An hidden `AcceptDialog` OK button + custom buttons is how the project forces **"No" left, "Yes" right** order (ConfirmationDialog order depends on the OS).
 
 ---
 
 ## 8. How the next agent should start
 
-1. Read this file, then `TECHNICAL_DOCUMENTATION.md`.
-2. Ask the developer which of the *Backlog* items to do, and **whether phase 7 and the pause menu were tested** (and the content of any Output warnings).
-3. Before modifying a file listed in section 2 as customized, **ask for the current version**.
+1. Read this file, then `TECHNICAL_DOCUMENTATION.md`. If only the paths of the uploaded files are listed, read them from `/mnt/user-data/uploads` (the technical doc is large).
+2. Ask the developer which of the *Backlog* items to do, and **which of the [U] items were tested** (and the content of any Output warnings).
+3. Before modifying a file listed in section 2 as customized, **ask for the current version** (and verify the upload really is that file).
 4. Deliver code, a list of changed files, what to build in the editor (scene trees with unique names), and a short test checklist. Do not run Godot.

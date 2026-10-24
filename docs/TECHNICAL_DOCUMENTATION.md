@@ -4,7 +4,8 @@ Companion of `PROJECT_CONTEXT.md` (design, decisions, collaboration rules, backl
 This file documents **the code as delivered**: architecture, scripts, APIs, signals, scene trees to build, data model, save format, workflows.
 
 > Status legend: **[T]** tested/confirmed by the developer, **[U]** delivered but not confirmed yet.
-> Phases 1 to 4 and the expedition screen are **[T]**. Save list/multi saves are in use by the developer. Phase 7 (hub buildings) and the pause menu are **[U]**.
+> **[T]**: phases 1 to 7 (hub buildings and carpentry included), the pause menu, saves, the status icon row (Evasion included) and the character UI placement/labels.
+> **[U]**: Bleeding / Stun ticking, Cleanse, armor/heal cards, the gate grid fit, the rebuilt `Expedition.tscn`.
 
 ---
 
@@ -16,6 +17,7 @@ This file documents **the code as delivered**: architecture, scripts, APIs, sign
 * Scene internals are reached with **unique names** (`%Name`, "Access as Unique Name" in the editor). Scripts for UI often use `@export` slots instead; each script header lists what it needs.
 * Rules live in `Battle`; UI scripts only read them and emit/connect signals.
 * Autoloads: `GameState`, `SceneManager`, `PauseMenu` (no `class_name` on these scripts).
+* The developer designs for **1920x1080**; the character `UI` node is scaled down (about 0.27), so pixel constants in `character.gd` are large (see 5.1).
 * The developer's project layout: `scripts/{battle,cards,components,CharacterData}`, `scenes/{UI,character,battle.tscn,...}`, `data/{cards,character,TileSet,...}`, `assets/`, `addons/crt`.
   File names in the delivered code are mixed (`battle.gd`, `CardData.gd`/`card_data.gd`...). Only the `class_name` matters.
 
@@ -62,6 +64,7 @@ Catalog paths (const): `res://data/hero_catalog.tres`, `res://data/expedition_ca
 | `save_game() -> bool` | Writes `{name, profile, run}` into `save_slot`. No-op (false) if `can_save` is false or no slot. |
 | `load_game(slot_id) -> bool` | Replaces profile/run, sets `save_slot`/`save_name`, `can_save = true`. Ensures starting buildings exist (older saves). Drops an invalid run with a warning that says why (`_is_run_valid`). On failure `load_error` is set. |
 | `get_unlocked_heroes()` | Allies unlocked in the profile (catalog order). |
+| `_ensure_starting_heroes()` (private) | Unlocks every catalog hero with `unlocked_by_default`. Run on `new_game` **and on every `load_game`**, so heroes added to the catalog later also appear in old saves. |
 | `get_run_team() / get_run_fighters()` | Heroes of the run / those with health > 0. |
 | `get_building_level(id)`, `are_requirements_met(b)`, `get_next_building_level(b)`, `can_upgrade_building(b)`, `upgrade_building(b)` | Buildings logic. `upgrade_building` pays, sets the level, unlocks the location, **saves**. |
 | `has_run()`, `get_run_expedition()`, `start_run(expedition_id, team)` | Run access. |
@@ -93,7 +96,8 @@ Methods: `static start(expedition_id, heroes)` (heroes at full `max_health`, TOD
 | `id`, `display_name`, `team` (`ALLY`/`ENEMY`) | id required for saves. |
 | `unlocked_by_default` | Hero is part of a new game's roster. |
 | `tileset`, `tile_coords` (in tiles), `size_in_tiles`, `head_position` (px, default (16, 8)) | Sprite cut from the tileset. |
-| `max_health`, `starting_armor`, `starting_evasion` | |
+| `max_health`, `starting_armor` | Armor is a health layer, not a status. |
+| `starting_statuses: Dictionary[StatusData, int]` | Statuses applied at spawn through `Character.apply_status` (e.g. Evasion 2, Bleeding 1). Replaces the removed `starting_evasion`. |
 | `deck: Array[CardData]` | Heroes: cards added to the shared pile. |
 | `attack_damage`, `attack_range` | Enemies: **placeholder** default attack. |
 Helpers: `get_sprite_texture()`, `get_head_texture(size := 16x16)` (AtlasTexture crops, clamped inside the sprite).
@@ -113,9 +117,34 @@ Helpers: `get_sprite_texture()`, `get_head_texture(size := 16x16)` (AtlasTexture
 (The developer customized their `CardInstance.gd`, e.g. extra display fields. Ask before editing.)
 
 ### 3.3 `StatusData` and `StatusApplication`
-* `StatusData`: `id`, `display_name`, `description`, `icon`, `duration_type` (`TURNS` = active X turns, `USES` = consumed X times).
-* `StatusApplication`: `trigger` (`ON_PLAY`/`ON_KILL`), `recipient` (`TARGET`/`SELF`), `status`, `stacks`. With ON_KILL only SELF makes sense.
-  Evasion is a status with id `&"evasion"`, forwarded to `HealthComponent.add_evasion`.
+`StatusData` (`@tool`, the inspector hides irrelevant fields):
+
+| Field | Notes |
+|---|---|
+| `id`, `display_name`, `description`, `icon` | The icon is shown in the character's status row. |
+| `effect: Effect` | `NONE, ARMOR, HEAL, EVASION, BLEED, STUN, CLEANSE`. **Append only** (saved as integers). Decides the behaviour (below). |
+| `debuff: bool` | Marks a negative status so `CLEANSE` removes it. `BLEED` and `STUN` are always debuffs. |
+| `duration_type: DurationType` | `TURNS` (decays at the end of the owner's side phase) or `USES` (only consumed). Hidden for instant effects. |
+| `decay_per_turn` | TURNS only, default 1 (0 = never expires). |
+| `bypass_armor` | BLEED only, default true (damage goes straight to health). |
+
+What `stacks` means per effect:
+
+| Effect | Stacks | Where it lives |
+|---|---|---|
+| `ARMOR` | armor points added (50 = +50 armor, 1 point = 1 hp), instant | `HealthComponent` |
+| `HEAL` | health restored, instant | `HealthComponent` |
+| `CLEANSE` | ignored (use 1; 0 is filtered out before the effect), removes all debuffs from the target, instant | `StatusComponent` |
+| `BLEED` | damage per tick at the start of the owner's turn, then `- decay_per_turn` | `StatusComponent` |
+| `STUN` | turns skipped, `- decay_per_turn` per turn | `StatusComponent` |
+| `EVASION` | `USES`: each stack dodges one hit (consumed); `TURNS`: dodges every hit while it lasts | `StatusComponent` |
+| `NONE` | plain marker | `StatusComponent` |
+
+Helpers: `get_effect()` (an old resource with effect `NONE` and id `&"evasion"` still counts as EVASION), `is_value_effect()` (ARMOR/HEAL), `is_debuff()`,
+`get_display_number(stacks)` (turns left = `ceil(stacks / decay_per_turn)` for expiring TURNS statuses, otherwise the stacks: the number drawn on the icon).
+
+`StatusApplication`: `trigger` (`ON_PLAY`/`ON_KILL`), `recipient` (`TARGET`/`SELF`), `status`, `stacks`. With ON_KILL only SELF makes sense. **Stacks must be >= 1.**
+Resources to author: `armor`, `heal`, `cleanse` (instant), `bleeding` (BLEED, TURNS, decay 1), `stun` (STUN, TURNS, decay 1), `evasion` (EVASION, **USES**), plus an icon each.
 
 ### 3.4 Expedition data
 * `ExpeditionNode` (`@tool`): `id`, `type` (`START, BATTLE, BOSS, CAMP, EVENT, END`), `title`, `description`, `next_nodes: Array[StringName]`, `encounter` (BATTLE/BOSS), `loot: Dictionary[StringName,int]`, `lane` (-1 top … 1 bottom, map layout hint). `has_encounter()`.
@@ -162,11 +191,11 @@ Heroes spawn with their carried-over health (`Character.setup(data, start_health
 `play_card(card, selected)` (**coroutine, `await` it**), `end_player_turn()` (coroutine), `leave_battle()`.
 Fields: `allies`, `enemies` (living only), `deck` (CardDeck), `phase`, `turn`, `actions_left`, `mana`, `encounter`, `objective`.
 
-### 4.4 `play_card` pipeline
+### 4.4b `play_card` pipeline
 1. Guard (`can_play_card` + `is_valid_selection`), phase `RESOLVING`.
 2. Pay: one action; mana for MANA cards.
 3. If target team is ENEMY: caster walks (`_approach`: face target, tween to the free approach position, face again). Chain: hop by hop (each target: walk → hit → knockback, skipping dead ones); other types: walk to the first pick, then hit all affected targets at once.
-4. `_deal_damage`: per target, crit multiplier, `HealthComponent.take_damage`; kills detected with a "was alive" check (a chain can list a target several times).
+4. `_deal_damage`: per target, crit multiplier, **`Character.take_hit(amount)`** (evasion check, then armor, then health); kills detected with a "was alive" check (a chain can list a target several times).
 5. `_knock_back` (survivors), `_apply_effects` (ON_PLAY SELF once, TARGET per living target; ON_KILL SELF once per kill).
 6. Mana gain (non-MANA cards), Quick refund if a kill, discard, `card_played`, free dead, update facings, `_check_battle_end()`; else back to `PLAYER_TURN`.
 
@@ -174,8 +203,15 @@ Fields: `allies`, `enemies` (living only), `deck` (CardDeck), `phase`, `turn`, `
 `_find_free_position(ideal, center, mover)`: starting from the ideal spot around the target, test spots every 15° alternating sides (+15, −15, +30…); if the whole circle is blocked, grow the distance by the mover's radius (`shape.radius`), up to 4 rings; fallback to the ideal spot. Obstacles = every living character except the mover (including the target). Used by cards, previews and enemy attacks.
 
 ### 4.6 Enemy turn
-For each enemy: ensure `intent_target` is alive (else re-assign), walk to a free position within `attack_range`, face the target, `take_damage(attack_damage)`, free dead, update facings, re-assign a new random target for next turn (`_assign_target`, which also turns the enemy and emits `intents_changed`), wait `ENEMY_ACTION_DELAY`, check the end of the battle.
+Order: phase `ENEMY_TURN` → `_start_of_turn_statuses(enemies)` (Bleeding, deaths freed, battle end checked) → for each enemy `_enemy_attack` → `_end_of_turn_statuses(enemies)` → `_start_player_turn()`.
+`_enemy_attack`: **a stunned enemy returns immediately (skips its turn)**; otherwise ensure `intent_target` is alive (else re-assign), walk to a free position within `attack_range`, face the target, `target.take_hit(attack_damage)`, free dead, update facings, re-assign a new random target for next turn (`_assign_target`, which also turns the enemy and emits `intents_changed`), wait `ENEMY_ACTION_DELAY` (**`create_timer(delay, false)`: frozen by the pause menu**), check the end of the battle.
 Allies who die are removed from lists, hidden, their cards removed from the deck, enemies aiming at them re-target. **Inside an expedition a dead hero's health is written as 0.**
+
+### 4.6b Status timing (player side)
+`_start_player_turn()`: `turn += 1` → `_start_of_turn_statuses(allies)` (Bleeding on heroes, may kill) → `_check_battle_end()` (returns if over) → phase `PLAYER_TURN`, actions reset, draw.
+`end_player_turn()`: `_end_of_turn_statuses(allies)` (decay) then the enemy turn. `can_play_card()` is false for a **stunned caster**.
+Helpers: `_start_of_turn_statuses(team)` (calls `StatusComponent.start_of_turn()` on each, frees dead, updates facings), `_end_of_turn_statuses(team)` (`end_of_turn()` on each).
+Known limit: a status applied to a character during **its own side's phase** also decays at the end of that same phase.
 
 ### 4.7 End of battle and expedition hand-off
 `_check_battle_end()` (after every action): emits `objective_updated`; `objective.is_complete()` → victory; `allies.is_empty()` or `objective.is_failed()` → defeat.
@@ -202,20 +238,49 @@ Anything outside the objective that reads it must check `is_started()` first (it
 ```
 Character (Node2D, character.gd)
 ├── %HealthComponent (Node, HealthComponent.gd)
-├── %Sprite (Sprite2D, centered)
-├── %UI  (instance of character_ui.tscn: HealthBar, %ArmorBar, %EvasionLabel)
-├── %IntentIcon (Sprite2D, above the head, e.g. position (0, -26))
+├── %Sprite (Sprite2D, centered, may be scaled up)
+├── %UI  (instance of character_ui.tscn, scaled down ~0.27 in the developer's project)
+│     bars (%HealthBar, %ArmorBar, each with a Label child: %HealthValue, %ArmorValue)  +  %StatusIcons (HBoxContainer next to the bars)  +  %IntentIcon (Sprite2D above the bars)
+│     (developer layout: bars in a VBox inside an HBox together with %StatusIcons). Unique names are looked up as %UI/%Name.
 └── %ClickArea (Area2D)
 	└── %ClickShape (CollisionShape2D with a CircleShape2D, "Local to Scene" enabled)
 ```
-`setup(data, start_health := -1)`; `_apply_data()` builds the AtlasTexture sprite, sets the circle radius, `health.initialize(max, start_health)`, armor/evasion, joins group `allies`/`enemies`.
-Signals: `clicked(character)`, `died(character)`, `statuses_changed`. Members: `intent_target` (setter refreshes the cutout of the target's head: `INTENT_CUTOUT_SIZE` 16x16 around `data.head_position`),
-`statuses` (dict, stub), `apply_status(status, stacks)` (**stub: only Evasion works**), `set_highlighted(on)`, `face_towards(pos)`, `is_ally()`, `is_dead()`.
+Required unique names inside the UI scene: `HealthBar`, `ArmorBar`, `HealthValue`, `ArmorValue`, `IntentIcon`. Optional: `StatusIcons` (without it statuses still work but are invisible).
+All generated or label Controls must use Mouse Filter = Ignore so the character stays clickable. Turn off the bars' *Show Percentage*.
+
+Constants: `TILE_SIZE` 32, `INTENT_CUTOUT_SIZE` 16x16, `STATUS_ICON_SIZE` and `STATUS_FONT_SIZE` (pixels **before** the UI scale; developer: 80 / 40), `UI_HEIGHT_ABOVE_HEAD` (developer: 20), `CLICK_RADIUS_FACTOR`.
+
+`setup(data, start_health := -1)`; `_apply_data()`: joins group `allies`/`enemies`, builds the AtlasTexture sprite, sets the click circle radius, `_place_ui()`, `health.initialize(max, start_health)`, `add_armor(starting_armor)`, applies every `starting_statuses` entry through `apply_status`.
+Click radius: delivered formula `size.x * |sprite.scale.x| / 2 * CLICK_RADIUS_FACTOR`; **the developer uses `size.x * CLICK_RADIUS_FACTOR + 5`** (their own tweak). `shape.radius` is also the character radius used by the placement search (4.5). The circle size comes from `CharacterData.size_in_tiles`.
+
+Signals: `clicked(character)`, `died(character)`, `statuses_changed`.
+Members: `intent_target` (setter refreshes the cutout of the target's head), `status_component: StatusComponent` (created in `_ready()`, no scene node), `statuses` (read-only view of `status_component.stacks`), `health`, `sprite`, `ui`.
+Methods: `apply_status(status, stacks)` (ARMOR → `health.add_armor`, HEAL → `health.heal`, CLEANSE → `status_component.remove_debuffs()`, everything else → `status_component.add`; ignores `stacks <= 0` and dead characters),
+`take_hit(amount) -> int` (**the one place damage enters a character**: `status_component.try_dodge()` returns 0, else `health.take_damage(amount, false)`), `is_stunned()`, `set_highlighted(on)`, `face_towards(pos)`, `is_ally()`, `is_dead()`.
+
+**UI placement** (`_place_ui`, `_update_ui_position`, `_update_ui_position_later`): the head height is `data.head_position` (texture pixels from the sprite's top-left, scaled by the sprite scale);
+the target for the **bottom of the health bar** is `head_y - UI_HEIGHT_ABOVE_HEAD`. `_update_ui_position()` measures the real transforms (health bar bottom expressed in the UI node's space) and sets `ui.position.y`, so the UI scene's own scale/layout does not matter;
+it is re-run two frames after spawn (containers are not sized yet) and on `health_bar.item_rect_changed` (armor bar appearing/disappearing). x is left as in the scene.
+
+**Status row** (`_refresh_status_icons`, `_make_status_entry`, `_style_status_label`): rebuilt whenever `status_component.changed` fires. One entry per stored status: icon (`TextureRect`, nearest filter, `STATUS_ICON_SIZE`) with a number label pinned to the icon's bottom-right corner
+(label anchored to that corner, growing left and down: its top-right corner touches the icon's bottom-right corner); the number is `status.get_display_number(stacks)`. A status without icon is shown as text "Name 3". The row hides when empty.
+**Bar values**: `_on_health_changed` writes only the current health in `%HealthValue` (the developer removed "/max"), `_on_armor_changed` writes the armor in `%ArmorValue` and hides the armor bar at 0.
 
 ### 5.2 `HealthComponent` (Node)
 Signals: `health_changed(current, max)`, `armor_changed`, `evasion_changed`, `damaged`, `healed`, `dodged`, `died`.
-`initialize(max_hp, current_hp := -1)`, `take_damage(amount, can_be_dodged := true, bypass_armor := false) -> int` (returns health actually lost; order evasion → armor → health),
-`heal`, `add_armor/remove_armor`, `add_evasion/remove_evasion`, `is_dead`, `get_health_ratio`.
+`initialize(max_hp, current_hp := -1)`, `take_damage(amount, can_be_dodged := true, bypass_armor := false) -> int` (returns health actually lost; armor then health; **`Character.take_hit` and bleeding pass `can_be_dodged = false`**),
+`heal`, `add_armor/remove_armor`, `is_dead`, `get_health_ratio`.
+**Leftover:** `evasion`, `add_evasion/remove_evasion`, `evasion_changed` and `dodged` still exist in the file but nothing uses them anymore (evasion is a `StatusComponent` status). The file has not been seen since: to be removed.
+
+### 5.3 `StatusComponent` (Node, `status_component.gd`)
+Created by `Character._ready()` with `StatusComponent.new(health)` and added as a child. Holds `stacks: Dictionary` (StatusData → stacks > 0). Signal `changed`.
+`add(status, amount)`, `get_stacks(status)`, `has_effect(effect)`, `is_stunned()`, `consume(status, amount := 1)` (for USES statuses),
+`try_dodge() -> bool` (finds an EVASION status; USES loses one stack per dodge, TURNS does not lose any),
+`remove_debuffs() -> bool` (removes every status whose `is_debuff()` is true),
+`start_of_turn()` (BLEED: `health.take_damage(stacks, false, status.bypass_armor)`; stops if the owner dies),
+`end_of_turn()` (TURNS statuses lose `decay_per_turn`, removed at 0),
+`get_summary()` (text such as "Bleeding 3  Stunned 1", currently unused by the UI).
+Instant value effects (armor, heal) never reach this component.
 
 ---
 
@@ -253,9 +318,12 @@ Hub (Node2D, Hub.gd)
 
 ### 7.3 Menus
 * **Gate** (`menu_gate.gd`, extends HubMenu): `TEAM_SIZE = 3`, `DEFAULT_EXPEDITION_ID = &"first_expedition"` (**destination selection not implemented**).
-  Exports: `hero_portrait_scene`, `hero_slot_scene`, `hero_grid` (GridContainer, 3 columns), `team_slots` (HBox, 1/3 vs 2/3 layout), `launch_button`, `close_button`.
+  Exports: `hero_portrait_scene`, `hero_slot_scene`, `hero_grid` (GridContainer, 3 columns), `team_slots` (HBox, 1/3 vs 2/3 layout), `launch_button`, `close_button`, `portrait_aspect` (portrait height / width, default 1.0).
+  Scene: `LeftPanel` (PanelContainer) > VBox > Label + ScrollContainer (horizontal scroll off) > `HeroGrid`; `RightPanel` > `TeamSlots` + Footer (`BackButton`, `LaunchButton`).
+  **Grid fit [U]**: `_setup_grid_fit()` / `_fit_grid()` size every portrait to `(scroll width - scrollbar room - gaps) / columns` so the columns fill the left panel, re-run on the scroll container's `resized`. The portrait's inner image must scale with it (TextureRect: Ignore Size + Keep Aspect Centered; Button icon: Expand Icon).
   Left: portraits of **unlocked** heroes only (`GameState.get_unlocked_heroes()`), `HeroPortrait` (Button with `%Badge` Label, toggled look = selected, number = pick order). Right: `HeroSlot` x3 (name, full sprite, stats) that share the width equally; clicking a filled slot removes the hero. Launch enabled only with 3 heroes → `GameState.start_run` + `SceneManager.go_to(&"expedition")`.
-  `HeroSlot` scene: PanelContainer > VBox > `%NameLabel`, `%SpriteRect` (TextureRect, Ignore Size + Keep Aspect Centered, expand), `%StatsLabel`.
+  `HeroSlot` scene: PanelContainer > VBox > `%NameLabel`, `%SpriteRect` (TextureRect, Ignore Size + Keep Aspect Centered, expand), `%StatsLabel`
+  (Health / Armor / **Statuses** from `starting_statuses` via `_format_statuses()`, "-" if none / Cards).
 * **Carpentry** (`menu_carpentry.gd`, extends HubMenu) [U]: scene = Control with a close button and a VBox `%BuildingList`. Lists buildings whose requirements are met: name + level, description of the next level, cost, **Build/Upgrade** button (disabled if unaffordable). Purchase = `GameState.upgrade_building()`.
 * **Tavern / Forge**: buildings exist in data (via `tools/make_test_buildings.gd`) but **their menus are not written**.
 
@@ -272,6 +340,8 @@ Expedition (Control, expedition.gd)
 	├── Dim (ColorRect)
 	└── CenterContainer > PanelContainer > VBox: %DialogTitle, %DialogBody (autowrap), %DialogButtons (HBox)
 ```
+`Expedition.tscn` was once overwritten by a copy of the Character scene; a rebuilt scene with exactly this tree (and the same uid) was delivered **[U]**. Scripts must be re-attached: `expedition.gd` on the root, `ExpeditionMap.gd` on `%Map`.
+
 ### 8.2 Behaviour
 * `_ready()`: ensures a run (creates a test run if none, for F6), builds the map, enters the START node on a new run (`resolve_node`, **save**), then `_resume_node()` if the current node is unresolved.
 * `ExpeditionMap`: columns from `get_depths()`, heights from `lane` (crowded columns are spread), buttons (`ExpeditionNodeButton`, states LOCKED/REACHABLE/CURRENT/VISITED) and link lines (taken / available / dim). Signal `node_chosen(node)`. Sizes itself to the graph (put it in a ScrollContainer).
@@ -316,7 +386,7 @@ Both overwrite their outputs when re-run.
 
 ---
 
-## 12. Pause menu (`pause_menu.gd`) [U]
+## 12. Pause menu (`pause_menu.gd`) [T]
 
 **Autoload scene** (Project Settings > Globals > Autoload, name `PauseMenu`, point it at `pause_menu.tscn`, loaded after `SceneManager` and `GameState`).
 Scene tree:
@@ -335,7 +405,7 @@ Behaviour:
 * **Esc (`ui_cancel`)** opens/closes it (`process_mode = ALWAYS`, `get_tree().paused = true` while open). Only if: a current scene exists, the scene path is not the main menu route, `SceneManager.is_changing()` is false, the tree is not already paused.
 * **Save** → `GameState.save_game()`; the button text shows "Saved!" or "Nothing to save" for 1.5 s. **Disabled in the battle scene** (detected by scene path == `ROUTES[&"battle"]`).
 * **Main menu** and **Quit** each open a Yes/No prompt (AcceptDialog, OK button hidden, "No" left, "Yes" right; message warns that progress since the last save is lost). Yes → `close()` then `SceneManager.go_to(&"main_menu")`, or `get_tree().quit()`. Quit button hidden on web.
-Integration steps still to do on the developer's side:
+Integration steps (**all done**, the developer confirmed the pause menu works):
 1. Create the scene and register the autoload.
 2. In `battle.gd`, the enemy-turn delay must not run while paused: change `await get_tree().create_timer(ENEMY_ACTION_DELAY).timeout` to `create_timer(ENEMY_ACTION_DELAY, false)`.
 3. `TargetingController._unhandled_input`: when Esc cancels a selection, call `get_viewport().set_input_as_handled()` (done in the delivered file; apply to the developer's copy). `HubMenu` already marks Esc as handled when closing.
@@ -347,6 +417,9 @@ Integration steps still to do on the developer's side:
 
 * **New hero/enemy**: `CharacterData.tres` (unique `id`, team, tileset coords, `head_position`, stats, `deck` for heroes). Add heroes to `data/hero_catalog.tres`. Enemies are referenced directly by encounters.
 * **New card**: `CardData.tres`; add it to a hero's `deck`. Hidden fields in the inspector depend on type and target type.
+  Armor card: SUPPORT, target SELF/ALLY, one `StatusApplication` with the `armor` status. Bleed attack: `StatusApplication` (TARGET) with `bleeding`. Cleanse: ALLY target, `cleanse` with stacks 1.
+* **New status**: `StatusData.tres` with an `effect`, `duration_type`, icon, and the `debuff` box if it is negative. A genuinely new behaviour needs a new `Effect` value (appended at the end) handled in `Character.apply_status` / `StatusComponent`.
+* **Starting statuses on a character**: `CharacterData.starting_statuses` (status → stacks).
 * **New expedition**: `ExpeditionData.tres` with nodes (ids, types, `next_nodes`, lanes, encounters, `loot`), press **Validate graph**, add it to `data/expedition_catalog.tres`.
 * **New building**: `BuildingData.tres` (+ `BuildingLevel`s) in `data/building_catalog.tres`, and a `HubLocation` with the **same id** placed in the hub scene (fixed position), with a `menu_scene` extending `HubMenu`. Hub warns in Output when one side is missing.
 * **New hub menu**: scene with a script `extends HubMenu`, call `super._ready()` if overriding `_ready`, call `close()` when done.
@@ -356,15 +429,16 @@ Integration steps still to do on the developer's side:
 
 ## 14. Known limitations / technical TODO
 
-* Statuses: only Evasion works; no ticking of TURNS statuses, no Bleeding/Stun, no status icons. `Character.apply_status` is a stub.
-* `CardData` has no armor/heal effects.
-* Enemy attacks are a placeholder (`attack_damage`, `attack_range`); no attack patterns.
+* Status system: Bleeding, Stun, Evasion, armor, heal, cleanse exist. Missing: hover tooltips on icons, `USES` hooks other than Evasion (e.g. a vulnerability consumed on hit), dispel of buffs, partial cleanse, more statuses, auto-generated card descriptions.
+* A status applied to a character during its **own side's phase** decays at the end of that same phase (matters once enemies stun heroes).
+* `HealthComponent` still has unused evasion code (to remove).
+* Enemy attacks are a placeholder (`attack_damage`, `attack_range`); no attack patterns, enemies cannot apply statuses yet.
 * `EncounterData.spawn_pattern` AMBUSH/AMBUSHED not implemented; spawn positions are marker nodes.
 * Movement and knockback are not clamped to the map; the TileMapLayer is decoration only.
 * Camp and event nodes are simple (camp = heal 30%; event = stub dialog). Gate has a fixed destination.
 * Tavern (buffs) and Forge menus are not written. Hero health upgrades are a TODO in `RunState.start()`.
-* Placeholder UI: text buttons for map nodes, code-built rows in lists, default font (blurry with pixel art), no audio, no settings menu.
-* Developer's local differences from the delivered files (see `PROJECT_CONTEXT.md` section 2): always ask for current files before editing `battle.gd`, `character.gd`, `CardInstance.gd`, `card_view.gd`, `main_menu.gd`.
+* Placeholder UI: text buttons for map nodes, code-built rows in lists, default font (blurry with pixel art), no audio, no settings menu. The health bar shows a number only (chunks every 10 points are planned).
+* Developer's local differences from the delivered files (see `PROJECT_CONTEXT.md` section 2): always ask for current files before editing `battle.gd`, `character.gd`, `CardInstance.gd`, `card_view.gd`, `main_menu.gd`, `HeroSlot.gd`, `CharacterData.gd`.
 
 ---
 
@@ -376,7 +450,8 @@ Integration steps still to do on the developer's side:
 | Persistent / run state | `PlayerProfile.gd`, `RunState.gd`, `SaveManager.gd`, `SaveUtils.gd` |
 | Catalogs | `HeroCatalog.gd`, `ExpeditionCatalog.gd`, `BuildingCatalog.gd` |
 | Character data & scene | `character_data.gd`, `character.gd`, `health_component.gd` |
-| Cards | `card_data.gd`, `card_instance.gd`, `card_deck.gd`, `status_data.gd`, `status_application.gd` |
+| Cards | `card_data.gd`, `card_instance.gd`, `card_deck.gd`, `status_application.gd` |
+| Statuses | `status_data.gd`, `status_component.gd` (new), `status_application.gd` |
 | Battle | `battle.gd`, `BattleObjective.gd`, `KillAllObjective.gd`, `BattleUI.gd`, `Hand.gd`, `TargetingController.gd`, `TargetingOverlay.gd` |
 | Expedition | `ExpeditionNode.gd`, `ExpeditionData.gd`, `EncounterData.gd`, `ExpeditionMap.gd`, `ExpeditionNodeButton.gd`, `expedition.gd` |
 | Hub | `Hub.gd`, `HubLocation.gd`, `HubMenu.gd`, `menu_gate.gd`, `HeroPortrait.gd`, `HeroSlot.gd`, `menu_carpentry.gd`, `ResourceBar.gd`, `BuildingData.gd`, `BuildingLevel.gd` |
@@ -387,14 +462,15 @@ Integration steps still to do on the developer's side:
 
 ## 16. Manual test checklist for what is still unverified
 
-**Phase 7 (hub buildings)**
-1. Run `make_test_buildings.gd`, re-run `make_test_expedition.gd`, place `HubLocation`s with ids `gate`, `carpentry`, `tavern`, `forge`.
-2. New game: only gate and carpentry visible; no warnings in Output.
-3. Carpentry lists the tavern (needs carpentry 1); the forge is hidden until carpentry is level 2.
-4. Do the test expedition: loot appears in the hub `ResourceBar`; build the tavern: it appears at its position; quit + Continue: still there.
-5. Load an older save: gate and carpentry are present.
+**Statuses (phase 8)**
+1. Bleeding 3 on an enemy: it takes 3 damage when the enemy phase starts (ignoring armor), the icon number goes 3, 2, 1, then disappears; a kill by Bleeding can end the battle.
+2. Stun on an enemy: it skips its next attack, then attacks normally. Stun on a hero: its cards are unplayable for one player turn, the other heroes' cards still work.
+3. Cleanse on a hero with Bleeding + Stun: both disappear, buffs (Evasion) stay; cleanse on a clean hero does nothing and does not error; an AOE cleanse hits every ally in the radius.
+4. Armor card: the armor bar jumps by exactly the stacks. Heal card: health rises, never above the maximum.
+5. Evasion x2: one hit dodged per stack, the number on the icon goes down, no damage taken; Bleeding is not dodged. An Evasion with `TURNS` dodges everything until it expires.
+6. Pausing during the enemy turn freezes the battle.
 
-**Pause menu**
-1. Esc opens/closes it in the hub, expedition and battle; not in the main menu; not while a hub menu or card selection uses Esc.
-2. Save works in hub/expedition, is disabled in battle. Main menu / Quit prompts: No cancels, Yes acts.
-3. During the enemy turn, pausing freezes the battle (needs the `create_timer(..., false)` fix).
+**Gate and expedition**
+1. Gate: three columns fill the left panel; resizing the window keeps them filling; the pick numbers and the team slots still work; heroes with `unlocked_by_default` appear even in an old save.
+2. `Expedition.tscn` rebuilt: the map, team panel and dialogs show again; the scripts are attached; a full expedition still works.
+

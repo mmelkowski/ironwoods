@@ -4,8 +4,8 @@ extends Node2D
 ## Assign `data` in the inspector, or call setup(data) when spawning from code.
 
 ## Size in pixels of one status icon above/next to the health bar, and of its stack number.
-const STATUS_ICON_SIZE := 12
-const STATUS_FONT_SIZE := 8
+const STATUS_ICON_SIZE := 80
+const STATUS_FONT_SIZE := 40
 
 signal clicked(character: Character)  # for card targeting
 signal died(character: Character)
@@ -22,6 +22,11 @@ const INTENT_CUTOUT_SIZE := Vector2(16, 16)
 # of the character (CharacterData.head_position). Everything else of the UI (armor, statuses,
 # intent icon) is stacked above that line, wherever it is in character_ui.tscn.
 const UI_HEIGHT_ABOVE_HEAD := 20.0
+
+# The clickable circle is the width of the sprite on screen (size_in_tiles * TILE_SIZE * the scale
+# of the Sprite2D) times this factor. Below 1.0 it is a bit smaller than the sprite.
+const CLICK_RADIUS_FACTOR := 1.0
+
 
 @export var data: CharacterData
 
@@ -179,7 +184,7 @@ func _apply_data() -> void:
 		Vector2(data.tile_coords * TILE_SIZE),
 		Vector2(data.size_in_tiles * TILE_SIZE))
 	sprite.texture = atlas
-	shape.radius = atlas.region.size.x / 2.0
+	shape.radius = (atlas.region.size.x * CLICK_RADIUS_FACTOR ) + 5
 	_place_ui(atlas.region.size)
 
 	# Stats
