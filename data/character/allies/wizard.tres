@@ -8,6 +8,7 @@
 [ext_resource type="Resource" uid="uid://cbnlyfankyide" path="res://data/cards/wizard/wizard_support_1.tres" id="4_huqdh"]
 [ext_resource type="Resource" uid="uid://cgoy7e1dbg8uc" path="res://data/cards/wizard/wizard_mana_1.tres" id="5_vh3e5"]
 [ext_resource type="Resource" uid="uid://by5hdfkpeabu4" path="res://data/cards/wizard/wizard_support_2.tres" id="6_0sgq4"]
+[ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="8_huqdh"]
 
 [resource]
 script = ExtResource("2_tn4jk")

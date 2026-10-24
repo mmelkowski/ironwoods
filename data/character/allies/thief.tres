@@ -8,6 +8,7 @@
 [ext_resource type="Resource" uid="uid://co86f4xmnmssf" path="res://data/cards/thief/thief_attack_3_chain.tres" id="4_opied"]
 [ext_resource type="Resource" uid="uid://do63hnbg03gwc" path="res://data/cards/thief/thief_support_1.tres" id="5_xq43b"]
 [ext_resource type="Resource" uid="uid://cc0a21jjjsj06" path="res://data/cards/thief/thief_mana_1.tres" id="6_470h6"]
+[ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="8_wrtxe"]
 
 [resource]
 script = ExtResource("2_musuj")

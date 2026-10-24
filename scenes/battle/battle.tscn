@@ -33,28 +33,28 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 
 [node name="Marker2D" type="Marker2D" parent="EnemySpawns" unique_id=1526618720]
-position = Vector2(1223, 497)
+position = Vector2(1182, 578)
 
 [node name="Marker2D2" type="Marker2D" parent="EnemySpawns" unique_id=212997311]
 position = Vector2(1223, 382)
 
 [node name="Marker2D3" type="Marker2D" parent="EnemySpawns" unique_id=2014090736]
-position = Vector2(1326, 463)
+position = Vector2(1418, 433)
 
 [node name="Marker2D4" type="Marker2D" parent="EnemySpawns" unique_id=1521035928]
-position = Vector2(1303, 560)
+position = Vector2(1374, 650)
 
 [node name="AllySpawns" type="Node2D" parent="." unique_id=1567768452]
 unique_name_in_owner = true
 
 [node name="Marker2D" type="Marker2D" parent="AllySpawns" unique_id=309930850]
-position = Vector2(639, 427)
+position = Vector2(560, 337)
 
 [node name="Marker2D2" type="Marker2D" parent="AllySpawns" unique_id=523255535]
 position = Vector2(674, 490)
 
 [node name="Marker2D3" type="Marker2D" parent="AllySpawns" unique_id=2009150849]
-position = Vector2(649, 557)
+position = Vector2(557, 621)
 
 [node name="BattleUI" type="Control" parent="." unique_id=1932553233 node_paths=PackedStringArray("battle", "action_counter", "mana_counter", "end_turn_button", "objective_label", "victory_panel", "defeat_panel", "victory_continue", "defeat_continue")]
 layout_mode = 3

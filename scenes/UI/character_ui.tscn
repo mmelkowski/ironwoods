@@ -12,6 +12,9 @@ corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 corner_detail = 6
 
+[sub_resource type="LabelSettings" id="LabelSettings_xrivr"]
+font_size = 50
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nt14h"]
 bg_color = Color(0.65882355, 0, 0.24705882, 1)
 border_width_left = 1
@@ -26,38 +29,89 @@ corner_detail = 6
 
 [node name="UI" type="Control" unique_id=1973114055]
 layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -20.0
+offset_top = -40.0
+offset_right = 20.0
+grow_horizontal = 2
+grow_vertical = 0
 mouse_filter = 2
 
-[node name="ArmorBar" type="ProgressBar" parent="." unique_id=1258146831]
+[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=831319040]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -77.0
+offset_top = -104.0
+offset_right = 77.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer" unique_id=428352058]
+layout_mode = 2
+alignment = 2
+
+[node name="Control" type="Control" parent="HBoxContainer/VBoxContainer" unique_id=339970821]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="IntentIcon" type="Sprite2D" parent="HBoxContainer/VBoxContainer/Control" unique_id=843436089]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 30)
-layout_mode = 0
-offset_right = 94.0
-offset_bottom = 27.0
+position = Vector2(20, 20)
+scale = Vector2(4, 4)
+
+[node name="ArmorBar" type="ProgressBar" parent="HBoxContainer/VBoxContainer" unique_id=1258146831]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
 mouse_filter = 2
 theme_override_styles/fill = SubResource("StyleBoxFlat_yb1mt")
 value = 50.0
 show_percentage = false
 
-[node name="HealthBar" type="ProgressBar" parent="." unique_id=205842401]
+[node name="ArmorValue" type="Label" parent="HBoxContainer/VBoxContainer/ArmorBar" unique_id=1614136873]
 unique_name_in_owner = true
-layout_mode = 0
-offset_top = 30.0
-offset_right = 200.0
-offset_bottom = 60.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+label_settings = SubResource("LabelSettings_xrivr")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HealthBar" type="ProgressBar" parent="HBoxContainer/VBoxContainer" unique_id=205842401]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
 mouse_filter = 2
 theme_override_styles/fill = SubResource("StyleBoxFlat_nt14h")
 value = 50.0
 show_percentage = false
 
-[node name="StatusIcons" type="HBoxContainer" parent="." unique_id=447439188]
+[node name="HealthValue" type="Label" parent="HBoxContainer/VBoxContainer/HealthBar" unique_id=686497637]
 unique_name_in_owner = true
-layout_mode = 0
-offset_left = 94.0
-offset_top = 10.0
-offset_right = 134.0
-offset_bottom = 50.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+label_settings = SubResource("LabelSettings_xrivr")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StatusIcons" type="HBoxContainer" parent="HBoxContainer" unique_id=447439188]
+unique_name_in_owner = true
+layout_mode = 2
 mouse_filter = 2

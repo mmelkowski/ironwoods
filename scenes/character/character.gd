@@ -4,10 +4,8 @@ extends Node2D
 ## Assign `data` in the inspector, or call setup(data) when spawning from code.
 
 ## Size in pixels of one status icon above/next to the health bar, and of its stack number.
-const STATUS_ICON_SIZE := 64
-const STATUS_FONT_SIZE := 48
-## Font size of the value written on the health and armor bars.
-const BAR_FONT_SIZE := 32
+const STATUS_ICON_SIZE := 12
+const STATUS_FONT_SIZE := 8
 
 signal clicked(character: Character)  # for card targeting
 signal died(character: Character)
@@ -20,9 +18,15 @@ const GROUP_ENEMIES := &"enemies"
 # Intent cutout: size of the square cut around the target's head (CharacterData.head_position).
 const INTENT_CUTOUT_SIZE := Vector2(16, 16)
 
+# The UI node is placed so that the BOTTOM of the health bar sits this many pixels above the head
+# of the character (CharacterData.head_position). Everything else of the UI (armor, statuses,
+# intent icon) is stacked above that line, wherever it is in character_ui.tscn.
+const UI_HEIGHT_ABOVE_HEAD := 20.0
+
 @export var data: CharacterData
 
 var _start_health := -1
+var _ui_bottom_target := 0.0  # where the bottom of the health bar must be (character space)
 
 ## Enemies only: the ally this enemy will attack on its next turn.
 ## Setting it updates the cutout above the enemy's head.
@@ -41,23 +45,22 @@ var statuses: Dictionary:
 
 @onready var health: HealthComponent = %HealthComponent
 @onready var sprite: Sprite2D = %Sprite
-@onready var health_bar: ProgressBar = %UI/HealthBar
+@onready var ui = %UI  # root of character_ui.tscn: Control or Node2D, only its position is used
+@onready var health_bar: ProgressBar = %UI/%HealthBar
 @onready var armor_bar: ProgressBar = %UI/%ArmorBar
+## Values written on the bars (Label children of the bars in character_ui.tscn).
+@onready var health_label: Label = %UI/%HealthValue
+@onready var armor_label: Label = %UI/%ArmorValue
 ## Optional: an HBoxContainer in character_ui.tscn (unique name %StatusIcons) that shows the
 ## statuses of the character. Without it statuses work but are not displayed.
 @onready var status_icons: HBoxContainer = get_node_or_null("%UI/%StatusIcons")
-@onready var intent_icon: Sprite2D = %IntentIcon
-## Values written on the bars, created in _ready().
-var health_label: Label
-var armor_label: Label
+@onready var intent_icon: Sprite2D = %UI/%IntentIcon
 @onready var click_area: Area2D = %ClickArea
 @onready var click_shape: CollisionShape2D = %ClickShape
 @onready var shape := click_shape.shape as CircleShape2D
 
 
 func _ready() -> void:
-	health_label = _make_bar_label(health_bar)
-	armor_label = _make_bar_label(armor_bar)
 	health.health_changed.connect(_on_health_changed)
 	health.armor_changed.connect(_on_armor_changed)
 	health.died.connect(func(): died.emit(self))
@@ -67,6 +70,8 @@ func _ready() -> void:
 	status_component.changed.connect(_on_statuses_changed)
 	_on_statuses_changed()
 	click_area.input_event.connect(_on_click_area_input_event)
+	# The bars move inside the UI when the armor bar appears/disappears: keep the bottom in place.
+	health_bar.item_rect_changed.connect(_update_ui_position_later)
 	_update_intent_icon()  # hidden until an intent target is assigned
 
 	if data:
@@ -175,6 +180,7 @@ func _apply_data() -> void:
 		Vector2(data.size_in_tiles * TILE_SIZE))
 	sprite.texture = atlas
 	shape.radius = atlas.region.size.x / 2.0
+	_place_ui(atlas.region.size)
 
 	# Stats
 	health.initialize(data.max_health, _start_health)
@@ -185,6 +191,37 @@ func _apply_data() -> void:
 	# Make sure the bars start in the right state (hidden when armor is 0)
 	_on_armor_changed(health.armor)
 	_refresh_status_icons()
+
+
+## Computes where the bottom of the health bar must be (y in the character's space):
+## UI_HEIGHT_ABOVE_HEAD above the head. The head is data.head_position, measured in texture
+## pixels from the top-left corner of the sprite.
+func _place_ui(sprite_size: Vector2) -> void:
+	var top := sprite.position.y + sprite.offset.y * sprite.scale.y
+	if sprite.centered:
+		top -= sprite_size.y * sprite.scale.y / 2.0
+	var head_y := top + data.head_position.y * sprite.scale.y
+	_ui_bottom_target = head_y - UI_HEIGHT_ABOVE_HEAD
+	_update_ui_position()
+	_update_ui_position_later()
+
+
+## The containers of the UI only know their final sizes after a couple of frames.
+func _update_ui_position_later() -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if is_inside_tree():
+		_update_ui_position()
+
+
+## Moves the UI node so that the bottom of the health bar sits on _ui_bottom_target.
+## Measured from the real transforms, so the scale and layout of character_ui.tscn don't matter.
+func _update_ui_position() -> void:
+	if data == null:
+		return
+	var bar_bottom: Vector2 = health_bar.get_global_transform() * Vector2(0.0, health_bar.size.y)
+	var bar_bottom_in_ui: Vector2 = ui.get_global_transform().affine_inverse() * bar_bottom
+	ui.position.y = _ui_bottom_target - bar_bottom_in_ui.y * ui.scale.y
 
 
 func _on_statuses_changed() -> void:
@@ -255,34 +292,17 @@ func _style_status_label(label: Label) -> void:
 	label.add_theme_color_override("font_outline_color", Color.BLACK)
 
 
-## A centered, click-through label on top of a bar to write its value.
-func _make_bar_label(bar: ProgressBar) -> Label:
-	bar.show_percentage = false
-	var label := Label.new()
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE  # must not block clicks on the character
-	label.add_theme_font_size_override("font_size", BAR_FONT_SIZE)
-	label.add_theme_constant_override("outline_size", 3)
-	label.add_theme_color_override("font_outline_color", Color.BLACK)
-	bar.add_child(label)
-	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	return label
-
-
 func _on_health_changed(current: int, maximum: int) -> void:
 	health_bar.max_value = maximum
 	health_bar.value = current
-	if health_label != null:
-		health_label.text = "%d" % current #"%d/%d" % [current, maximum]
+	health_label.text = "%d" % current # "%d/%d" % [current, maximum]
 	armor_bar.max_value = maximum  # armor bar is drawn relative to max health
 
 
 func _on_armor_changed(current: int) -> void:
 	armor_bar.visible = current > 0
 	armor_bar.value = current
-	if armor_label != null:
-		armor_label.text = str(current)
+	armor_label.text = str(current)
 
 
 func _on_click_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
