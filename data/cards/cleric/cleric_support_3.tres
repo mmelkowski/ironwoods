@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://bb3r36qand5bg"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_5dj4d"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_j4gfy"]
+[ext_resource type="Resource" uid="uid://6pphk8jvxnro" path="res://data/status_application/cleanse_on_target.tres" id="2_jtale"]
+
+[resource]
+script = ExtResource("2_j4gfy")
+id = &"cleric_support_3"
+display_name = "cleric_support_3 Cleansing"
+description = "Cleanse an ally of all debuff"
+card_type = 1
+mana_generation = 2
+target_team = 1
+effects = Array[ExtResource("1_5dj4d")]([ExtResource("2_jtale")])
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

@@ -10,4 +10,5 @@ display_name = "cleric_support_2"
 description = "Generate 3 Mana"
 card_type = 1
 mana_generation = 3
+target_team = 2
 metadata/_custom_type_script = "uid://j0prpwx7b06d"
