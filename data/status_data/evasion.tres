@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="StatusData" format=3 uid="uid://cbxpdh006otqk"]
 
+[ext_resource type="Texture2D" uid="uid://b8xuw5vft8s8e" path="res://assets/1-bit_pixel/Sprites_Cropped/Boardgame/Boardgames_Meeple_Small_3D.png" id="1_ij04o"]
 [ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="1_og3gn"]
 
 [resource]
@@ -7,5 +8,6 @@ script = ExtResource("1_og3gn")
 id = &"evasion"
 display_name = "Evasion"
 description = "Evasion"
+icon = ExtResource("1_ij04o")
 duration_type = 1
 metadata/_custom_type_script = "uid://cf8nrmcbw5y70"

@@ -44,9 +44,18 @@ func set_hero(hero: CharacterData) -> void:
 
 	name_label.text = hero.display_name
 	sprite_rect.texture = hero.get_sprite_texture()
-	stats_label.text = "Health: %d\nArmor: %d\nEvasion: %d\nCards: %d" % [
-		hero.max_health, hero.starting_armor, hero.starting_evasion, hero.deck.size()]
+	stats_label.text = "Health: %d\nArmor: %d\nStatuses: %s\nCards: %d" % [
+		hero.max_health, hero.starting_armor, _format_statuses(hero.starting_statuses), hero.deck.size()]
 	modulate = Color.WHITE
+
+
+## "Evasion 2, Bleeding 1", or "-" when the hero starts without any status.
+func _format_statuses(statuses: Dictionary) -> String:
+	var parts: Array[String] = []
+	for status: StatusData in statuses:
+		var title := status.display_name if status.display_name != "" else str(status.id)
+		parts.append("%s %d" % [title, statuses[status]])
+	return ", ".join(parts) if not parts.is_empty() else "-"
 
 
 func _gui_input(event: InputEvent) -> void:

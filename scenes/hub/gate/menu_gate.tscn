@@ -3,6 +3,10 @@
 [ext_resource type="Script" uid="uid://cktt1rbu6l8q1" path="res://scenes/hub/gate/menu_gate.gd" id="1_8uier"]
 [ext_resource type="PackedScene" uid="uid://cxiqr01406t78" path="res://scenes/hub/gate/hero_portrait.tscn" id="2_mxqdd"]
 [ext_resource type="PackedScene" uid="uid://btbu7h62i3nnk" path="res://scenes/hub/gate/hero_slot.tscn" id="3_tdx5d"]
+[ext_resource type="Theme" uid="uid://bukdv4vxst0l1" path="res://data/theme/button/button.tres" id="4_tdx5d"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_b7f34"]
+font_size = 32
 
 [node name="Gate" type="Control" unique_id=2136784914 node_paths=PackedStringArray("hero_grid", "team_slots", "launch_button", "close_button")]
 layout_mode = 3
@@ -26,10 +30,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -482.0
-offset_top = -248.0
-offset_right = 482.0
-offset_bottom = 248.0
+offset_left = -645.5
+offset_top = -352.5
+offset_right = 645.5
+offset_bottom = 352.5
 grow_horizontal = 2
 grow_vertical = 2
 color = Color(0, 0, 0, 0.4509804)
@@ -49,9 +53,13 @@ layout_mode = 2
 layout_mode = 2
 
 [node name="Label" type="Label" parent="Backdrop/Layout/LeftPanel/VBoxContainer" unique_id=2130078379]
+custom_minimum_size = Vector2(300, 0)
+custom_maximum_size = Vector2(-1, 300)
 layout_mode = 2
 text = "  Choose your 3 characters  
 "
+label_settings = SubResource("LabelSettings_b7f34")
+autowrap_mode = 2
 
 [node name="ScrollContainer" type="ScrollContainer" parent="Backdrop/Layout/LeftPanel/VBoxContainer" unique_id=597348606]
 layout_mode = 2
@@ -70,16 +78,25 @@ size_flags_stretch_ratio = 2.0
 layout_mode = 2
 
 [node name="Footer" type="HBoxContainer" parent="." unique_id=1962877889]
-layout_mode = 0
-offset_left = 500.0
-offset_top = 578.0
-offset_right = 705.0
-offset_bottom = 618.0
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -286.5
+offset_top = 362.5
+offset_right = 286.5
+offset_bottom = 437.5
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="CloseButton" type="Button" parent="Footer" unique_id=1691100498]
 layout_mode = 2
+theme = ExtResource("4_tdx5d")
 text = "Close"
 
 [node name="LaunchButton" type="Button" parent="Footer" unique_id=1332930243]
 layout_mode = 2
+theme = ExtResource("4_tdx5d")
 text = "Launch expedition"

@@ -6,6 +6,8 @@ extends Node2D
 ## Size in pixels of one status icon above/next to the health bar, and of its stack number.
 const STATUS_ICON_SIZE := 64
 const STATUS_FONT_SIZE := 48
+## Font size of the value written on the health and armor bars.
+const BAR_FONT_SIZE := 32
 
 signal clicked(character: Character)  # for card targeting
 signal died(character: Character)
@@ -45,12 +47,17 @@ var statuses: Dictionary:
 ## statuses of the character. Without it statuses work but are not displayed.
 @onready var status_icons: HBoxContainer = get_node_or_null("%UI/%StatusIcons")
 @onready var intent_icon: Sprite2D = %IntentIcon
+## Values written on the bars, created in _ready().
+var health_label: Label
+var armor_label: Label
 @onready var click_area: Area2D = %ClickArea
 @onready var click_shape: CollisionShape2D = %ClickShape
 @onready var shape := click_shape.shape as CircleShape2D
 
 
 func _ready() -> void:
+	health_label = _make_bar_label(health_bar)
+	armor_label = _make_bar_label(armor_bar)
 	health.health_changed.connect(_on_health_changed)
 	health.armor_changed.connect(_on_armor_changed)
 	health.died.connect(func(): died.emit(self))
@@ -248,15 +255,34 @@ func _style_status_label(label: Label) -> void:
 	label.add_theme_color_override("font_outline_color", Color.BLACK)
 
 
+## A centered, click-through label on top of a bar to write its value.
+func _make_bar_label(bar: ProgressBar) -> Label:
+	bar.show_percentage = false
+	var label := Label.new()
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE  # must not block clicks on the character
+	label.add_theme_font_size_override("font_size", BAR_FONT_SIZE)
+	label.add_theme_constant_override("outline_size", 3)
+	label.add_theme_color_override("font_outline_color", Color.BLACK)
+	bar.add_child(label)
+	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	return label
+
+
 func _on_health_changed(current: int, maximum: int) -> void:
 	health_bar.max_value = maximum
 	health_bar.value = current
+	if health_label != null:
+		health_label.text = "%d" % current #"%d/%d" % [current, maximum]
 	armor_bar.max_value = maximum  # armor bar is drawn relative to max health
 
 
 func _on_armor_changed(current: int) -> void:
 	armor_bar.visible = current > 0
 	armor_bar.value = current
+	if armor_label != null:
+		armor_label.text = str(current)
 
 
 func _on_click_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:

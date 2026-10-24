@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://cgkt0qy867ouj" path="res://scripts/hub/HubLocation.gd" id="1_hceq6"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_xrivr"]
-radius = 70.0
+radius = 140.0
 
 [node name="location" type="Area2D" unique_id=854752293 node_paths=PackedStringArray("visual")]
 script = ExtResource("1_hceq6")

@@ -6,13 +6,14 @@
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_0gch8"]
 resource_local_to_scene = true
-radius = 18.0
+radius = 40.0
 
 [node name="Character" type="Node2D" unique_id=1317330728]
 script = ExtResource("1_cuyo6")
 
 [node name="Sprite" type="Sprite2D" parent="." unique_id=112222086]
 unique_name_in_owner = true
+scale = Vector2(2.5, 2.5)
 
 [node name="HealthComponent" type="Node" parent="." unique_id=926017751]
 unique_name_in_owner = true
@@ -27,15 +28,15 @@ shape = SubResource("CircleShape2D_0gch8")
 
 [node name="UI" parent="." unique_id=1973114055 instance=ExtResource("3_mutn8")]
 unique_name_in_owner = true
-offset_left = -12.0
-offset_top = -34.000004
-offset_right = 83.0
-offset_bottom = 20.999996
+offset_left = -27.0
+offset_top = -56.000004
+offset_right = 68.0
+offset_bottom = -1.0000038
 scale = Vector2(0.26718795, 0.26718795)
 
 [node name="IntentIcon" type="Sprite2D" parent="." unique_id=59992876]
 unique_name_in_owner = true
-position = Vector2(0, -44)
+position = Vector2(0, -63.000004)
 scale = Vector2(0.7, 0.7)
 
 [editable path="UI"]

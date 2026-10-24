@@ -9,4 +9,5 @@ id = &"cleric_attack_1"
 display_name = "cleric_attack_1"
 description = "cleric_attack_1"
 damage = 20
+approach_distance = 32.0
 metadata/_custom_type_script = "uid://j0prpwx7b06d"

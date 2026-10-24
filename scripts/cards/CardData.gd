@@ -50,15 +50,15 @@ enum Knockback { NONE, STANDARD, FORCEFUL }
 ## MULTIPLE: only targets within this radius of the caster can be picked (0 = no limit).
 @export_range(0.0, 1000.0, 1.0, "or_greater", "suffix:px") var select_radius: float = 160.0
 ## CHAINED: each next target must be within this radius of the previous one.
-@export_range(0.0, 1000.0, 1.0, "or_greater", "suffix:px") var chain_radius: float = 64.0
+@export_range(0.0, 1000.0, 1.0, "or_greater", "suffix:px") var chain_radius: float = 80.0
 ## AOE: radius around the chosen target.
-@export_range(0.0, 1000.0, 1.0, "or_greater", "suffix:px") var aoe_radius: float = 64.0
+@export_range(0.0, 1000.0, 1.0, "or_greater", "suffix:px") var aoe_radius: float = 80.0
 
 @export_group("Movement")
 ## Max distance from the target at which the card can be played.
 ## The caster moves to the closest position that satisfies it (melee ~32, ranged more).
 ## If already in range, the caster doesn't move.
-@export_range(0.0, 1000.0, 1.0, "or_greater", "suffix:px") var approach_distance: float = 32.0
+@export_range(0.0, 1000.0, 1.0, "or_greater", "suffix:px") var approach_distance: float = 80.0
 @export var use_approach_angle: bool = false:
 	set(value):
 		use_approach_angle = value

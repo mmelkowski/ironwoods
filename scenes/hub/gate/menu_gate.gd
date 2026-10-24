@@ -13,6 +13,9 @@ const DEFAULT_EXPEDITION_ID := &"first_expedition"
 ## The container of the right side that holds the team spots. Filled by this script.
 @export var team_slots: Container
 @export var launch_button: Button
+## Height of a hero portrait relative to its width (1.0 = square). The portraits are
+## sized so that the grid columns exactly fill the width of the left panel.
+@export var portrait_aspect := 1.0
 
 ## The chosen heroes, in the order they were picked.
 var selected_team: Array[CharacterData] = []
@@ -25,6 +28,7 @@ func _ready() -> void:
 	super._ready()  # keeps the close button working
 
 	_build_grid()
+	_setup_grid_fit()
 	_build_slots()
 	launch_button.pressed.connect(launch)
 	_refresh_team()
@@ -50,6 +54,31 @@ func _build_grid() -> void:
 		portrait.pressed.connect(_on_portrait_pressed.bind(portrait))
 		hero_grid.add_child(portrait)
 		_portraits.append(portrait)
+
+
+## The portraits are resized to fill the width of the left panel (no horizontal scrolling,
+## the list scrolls vertically if there are many heroes). Re-done whenever the panel is resized.
+func _setup_grid_fit() -> void:
+	var scroll := hero_grid.get_parent() as ScrollContainer
+	if scroll == null:
+		return
+	hero_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.resized.connect(_fit_grid)
+	_fit_grid.call_deferred()  # the layout is not computed yet during _ready
+
+
+func _fit_grid() -> void:
+	var scroll := hero_grid.get_parent() as ScrollContainer
+	if scroll == null or hero_grid.columns <= 0:
+		return
+	var gap := hero_grid.get_theme_constant("h_separation")
+	# Keeps room for the vertical scrollbar so it never forces a horizontal one.
+	var available := scroll.size.x - scroll.get_v_scroll_bar().get_combined_minimum_size().x
+	var cell := floorf((available - gap * (hero_grid.columns - 1)) / hero_grid.columns)
+	if cell <= 0.0:
+		return
+	for portrait in _portraits:
+		portrait.custom_minimum_size = Vector2(cell, cell * portrait_aspect)
 
 
 func _build_slots() -> void:
