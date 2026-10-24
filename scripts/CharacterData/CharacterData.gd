@@ -29,7 +29,7 @@ const TILE_SIZE := 32
 @export_group("Stats")
 @export var max_health: int = 50
 @export var starting_armor: int = 0
-@export var starting_evasion: int = 0
+@export var starting_statuses: Dictionary[StatusData, int] = {}
 
 @export_group("Cards")
 ## Heroes: the cards this hero adds to the shared draw pile.

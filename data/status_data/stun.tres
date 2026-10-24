@@ -1,12 +1,14 @@
 [gd_resource type="Resource" script_class="StatusData" format=3 uid="uid://jxruiy43438r"]
 
 [ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="1_qpcat"]
+[ext_resource type="Texture2D" uid="uid://crwq0wa2n3twn" path="res://assets/1-bit_pixel/Sprites_Cropped/RPG/RPG_Debuff_Stunned_Disabled_CC_Crowd_Control.png" id="1_vdj8f"]
 
 [resource]
 script = ExtResource("1_qpcat")
 id = &"stun"
 display_name = "Stun"
 description = "Stun"
+icon = ExtResource("1_vdj8f")
 effect = 5
 debuff = true
 metadata/_custom_type_script = "uid://cf8nrmcbw5y70"

@@ -1,12 +1,14 @@
 [gd_resource type="Resource" script_class="StatusData" format=3 uid="uid://cr2gvf33lhnjk"]
 
 [ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="1_3ir8e"]
+[ext_resource type="Texture2D" uid="uid://bt21tu88ls2y3" path="res://assets/1-bit_pixel/Sprites_Cropped/Weather/Weather_Water_Droplet_Liquid_Rain_Element_Small.png" id="1_eqvh7"]
 
 [resource]
 script = ExtResource("1_3ir8e")
 id = &"bleeding"
 display_name = "Bleeding"
 description = "Bleeding"
+icon = ExtResource("1_eqvh7")
 effect = 4
 debuff = true
 metadata/_custom_type_script = "uid://cf8nrmcbw5y70"

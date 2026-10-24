@@ -2,8 +2,9 @@ class_name StatusComponent
 extends Node
 ## Holds the persistent statuses of one character (Bleeding, Stun...) and ticks them.
 ## Created by code in Character._ready(), so no scene change is needed.
-## Instant value effects (armor, heal) and evasion never reach this component:
+## Instant value effects (armor, heal) never reach this component:
 ## Character.apply_status() sends them straight to the HealthComponent.
+## Everything else is stored here, evasion included.
 ##
 ## Turn timing (Battle calls these):
 ##   start_of_turn()  -> damage over time (Bleeding)
@@ -42,6 +43,17 @@ func has_effect(effect: StatusData.Effect) -> bool:
 
 func is_stunned() -> bool:
 	return has_effect(StatusData.Effect.STUN)
+
+
+## Evasion: true if the incoming hit is dodged. USES evasion loses one stack per dodge,
+## TURNS evasion dodges every hit while it lasts.
+func try_dodge() -> bool:
+	for status: StatusData in stacks.keys():
+		if status.get_effect() == StatusData.Effect.EVASION:
+			if status.duration_type == StatusData.DurationType.USES:
+				consume(status, 1)
+			return true
+	return false
 
 
 ## Removes every debuff (Bleeding, Stun...). Returns true if something was removed.

@@ -426,7 +426,7 @@ func _approach(card: CardInstance, target: Character) -> void:
 	caster.face_towards(target.global_position)  # a backstab ends up on the other side
 
 
-## One hit on each target (dodged / absorbed by evasion and armor inside HealthComponent).
+## One hit on each target (dodged by Evasion in the StatusComponent, then armor and health).
 ## Characters that die are added to `killed`.
 func _deal_damage(card: CardInstance, targets: Array[Character], killed: Array[Character]) -> void:
 	if card.damage <= 0:
@@ -434,7 +434,7 @@ func _deal_damage(card: CardInstance, targets: Array[Character], killed: Array[C
 	var amount := roundi(card.damage * (CRIT_MULTIPLIER if card.critical else 1.0))
 	for target in targets:
 		var was_alive := not target.is_dead()
-		target.health.take_damage(amount)
+		target.take_hit(amount)
 		if was_alive and target.is_dead():
 			killed.append(target)
 
@@ -504,7 +504,7 @@ func _enemy_attack(enemy: Character) -> void:
 	await _move_characters({enemy: destination}, MOVE_TIME)
 	enemy.face_towards(target.global_position)
 
-	target.health.take_damage(enemy.data.attack_damage)
+	target.take_hit(enemy.data.attack_damage)
 	_free_dead()
 	_update_facings()
 	_assign_target(enemy)  # telegraph the target for next turn

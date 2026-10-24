@@ -32,13 +32,6 @@ offset_top = -34.000004
 offset_right = 83.0
 offset_bottom = 20.999996
 scale = Vector2(0.26718795, 0.26718795)
-mouse_filter = 2
-
-[node name="ArmorBar" parent="UI" index="0" unique_id=1258146831]
-mouse_filter = 2
-
-[node name="HealthBar" parent="UI" index="1" unique_id=205842401]
-mouse_filter = 2
 
 [node name="IntentIcon" type="Sprite2D" parent="." unique_id=59992876]
 unique_name_in_owner = true
