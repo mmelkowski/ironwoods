@@ -1,21 +1,21 @@
 [gd_resource type="Resource" script_class="ExpeditionData" format=3 uid="uid://drsuciagschsy"]
 
-[ext_resource type="Script" uid="uid://dsg3xmy0citai" path="res://scripts/expedition/ExpeditionNode.gd" id="1_wvuf0"]
-[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="2_nk4hx"]
+[ext_resource type="Script" uid="uid://dsg3xmy0citai" path="res://scripts/expedition/ExpeditionNode.gd" id="1_nk4hx"]
 [ext_resource type="Resource" uid="uid://dcj2nr54iiqd7" path="res://data/encounters/standard_fight.tres" id="2_r176i"]
-[ext_resource type="Resource" uid="uid://cqyo7amo8xapq" path="res://data/character/enemies/hobgoblin.tres" id="4_olven"]
-[ext_resource type="Script" uid="uid://c0pdfac1nyf65" path="res://scripts/expedition/encounter/EncounterData.gd" id="4_wvuf0"]
-[ext_resource type="Script" uid="uid://djuxvwgpk5gw6" path="res://scripts/expedition/ExpeditionData.gd" id="5_x2bst"]
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="3_olven"]
+[ext_resource type="Resource" uid="uid://cqyo7amo8xapq" path="res://data/character/enemies/hobgoblin.tres" id="4_x2bst"]
+[ext_resource type="Script" uid="uid://c0pdfac1nyf65" path="res://scripts/expedition/encounter/EncounterData.gd" id="5_euodn"]
+[ext_resource type="Script" uid="uid://djuxvwgpk5gw6" path="res://scripts/expedition/ExpeditionData.gd" id="6_oqnlf"]
 
-[sub_resource type="Resource" id="Resource_nk4hx"]
-script = ExtResource("1_wvuf0")
+[sub_resource type="Resource" id="Resource_cl0hm"]
+script = ExtResource("1_nk4hx")
 id = &"start"
 type = 0
 title = "Departure"
 next_nodes = Array[StringName]([&"fight_1"])
 
-[sub_resource type="Resource" id="Resource_r176i"]
-script = ExtResource("1_wvuf0")
+[sub_resource type="Resource" id="Resource_io62w"]
+script = ExtResource("1_nk4hx")
 id = &"fight_1"
 title = "Ambush on the road"
 next_nodes = Array[StringName]([&"fight_hard", &"camp"])
@@ -24,8 +24,8 @@ loot = Dictionary[StringName, int]({
 &"wood": 3
 })
 
-[sub_resource type="Resource" id="Resource_olven"]
-script = ExtResource("1_wvuf0")
+[sub_resource type="Resource" id="Resource_6lrbh"]
+script = ExtResource("1_nk4hx")
 id = &"fight_hard"
 title = "The goblin patrol"
 next_nodes = Array[StringName]([&"fight_2"])
@@ -37,60 +37,50 @@ loot = Dictionary[StringName, int]({
 })
 lane = -0.7
 
-[sub_resource type="Resource" id="Resource_x2bst"]
-script = ExtResource("1_wvuf0")
+[sub_resource type="Resource" id="Resource_wa0ft"]
+script = ExtResource("1_nk4hx")
 id = &"camp"
 type = 3
 title = "A quiet camp"
 next_nodes = Array[StringName]([&"fight_2"])
 lane = 0.7
 
-[sub_resource type="Resource" id="Resource_euodn"]
-script = ExtResource("1_wvuf0")
+[sub_resource type="Resource" id="Resource_6y1tc"]
+script = ExtResource("1_nk4hx")
 id = &"fight_2"
-type = 0
 title = "The bridge"
 next_nodes = Array[StringName]([&"boss"])
 encounter = ExtResource("2_r176i")
-difficulty_bonus = null
 loot = Dictionary[StringName, int]({
 &"stone": 3,
 &"wood": 2
 })
 
-[sub_resource type="Resource" id="Resource_oqnlf"]
-script = ExtResource("4_wvuf0")
-enemies = Array[ExtResource("2_nk4hx")]([ExtResource("4_olven")])
+[sub_resource type="Resource" id="Resource_y4gso"]
+script = ExtResource("5_euodn")
+enemies = Array[ExtResource("3_olven")]([ExtResource("4_x2bst")])
 fill_with_pool = true
 
-[sub_resource type="Resource" id="Resource_cl0hm"]
-script = ExtResource("1_wvuf0")
+[sub_resource type="Resource" id="Resource_colel"]
+script = ExtResource("1_nk4hx")
 id = &"boss"
 type = 2
 title = "The goblin chief"
 next_nodes = Array[StringName]([&"end"])
-encounter = SubResource("Resource_oqnlf")
-difficulty_bonus = null
+encounter = SubResource("Resource_y4gso")
 loot = Dictionary[StringName, int]({
 &"iron": 3,
 &"stone": 2
 })
-lane = 0.7
 
-[sub_resource type="Resource" id="Resource_io62w"]
-script = ExtResource("1_wvuf0")
+[sub_resource type="Resource" id="Resource_yl71x"]
+script = ExtResource("1_nk4hx")
 id = &"end"
 type = 5
 title = "The end of the road"
-next_nodes = Array[StringName]([&"boss"])
-encounter = ExtResource("2_r176i")
-loot = Dictionary[StringName, int]({
-&"stone": 3,
-&"wood": 2
-})
 
 [resource]
-script = ExtResource("5_x2bst")
+script = ExtResource("6_oqnlf")
 id = &"first_expedition"
 display_name = "The Old Road"
 description = "A test expedition."
@@ -100,5 +90,4 @@ completion_bonus = Dictionary[StringName, int]({
 &"wood": 5
 })
 enemy_tags = Array[StringName]([&"forest"])
-base_budget = 4
-nodes = Array[ExtResource("1_wvuf0")]([SubResource("Resource_nk4hx"), SubResource("Resource_r176i"), SubResource("Resource_olven"), SubResource("Resource_x2bst"), SubResource("Resource_euodn"), SubResource("Resource_cl0hm"), SubResource("Resource_io62w")])
+nodes = Array[ExtResource("1_nk4hx")]([SubResource("Resource_cl0hm"), SubResource("Resource_io62w"), SubResource("Resource_6lrbh"), SubResource("Resource_wa0ft"), SubResource("Resource_6y1tc"), SubResource("Resource_colel"), SubResource("Resource_yl71x")])
