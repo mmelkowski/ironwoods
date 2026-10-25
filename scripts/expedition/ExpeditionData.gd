@@ -14,6 +14,17 @@ extends Resource
 ## Extra resources given when the expedition is completed (an END node reached).
 ## Failing or abandoning keeps the loot gathered on the way but not this bonus.
 @export var completion_bonus: Dictionary[StringName, int] = {}
+
+@export_group("Enemies")
+## Tags of the enemies that live here ("forest", "catacombs"...). Generated fights (EncounterData.
+## fill_with_pool) pick enemies of the EnemyCatalog that share at least one of these tags.
+@export var enemy_tags: Array[StringName] = []
+## Threat budget of a battle at the start of the map (depth 0). A harder expedition: a higher base.
+@export_range(0, 99) var base_budget: int = 2
+## Budget added for each column the node is further from the start (see get_depths).
+@export_range(0, 99) var budget_per_depth: int = 2
+
+@export_group("Graph")
 @export var nodes: Array[ExpeditionNode] = []
 
 @export_tool_button("Validate graph") var validate_button = _print_validation
@@ -75,6 +86,24 @@ func get_depths() -> Dictionary:
 	return depths
 
 
+## Threat budget of a battle node: base + budget per column + the node's own bonus.
+## EncounterGenerator spends it on enemies.
+func get_budget(node: ExpeditionNode) -> int:
+	var depth: int = get_depths().get(node.id, 0)
+	return maxi(base_budget + budget_per_depth * depth + node.difficulty_bonus, 0)
+
+
+## The enemies of the EnemyCatalog that share a tag with `enemy_tags` (empty if there is no catalog).
+func get_enemy_pool() -> Array[CharacterData]:
+	var pool: Array[CharacterData] = []
+	if not ResourceLoader.exists(EnemyCatalog.PATH):
+		return pool
+	var catalog := load(EnemyCatalog.PATH) as EnemyCatalog
+	if catalog != null:
+		pool.append_array(catalog.get_pool(enemy_tags))
+	return pool
+
+
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
@@ -134,8 +163,11 @@ func validate() -> Array[String]:
 			_:
 				if node.next_nodes.is_empty():
 					problems.append("'%s' is a dead end (it must lead somewhere)." % node.id)
-		if node.has_encounter() and (node.encounter == null or node.encounter.enemies.is_empty()):
-			problems.append("the battle '%s' has no encounter or no enemies." % node.id)
+		if node.has_encounter():
+			if node.encounter == null:
+				problems.append("the battle '%s' has no encounter." % node.id)
+			elif node.encounter.enemies.is_empty() and not node.encounter.fill_with_pool:
+				problems.append("the battle '%s' has no enemies (add some, or tick fill_with_pool)." % node.id)
 
 	# Cycles
 	if _topological_order().size() < nodes.size():
@@ -155,6 +187,38 @@ func validate() -> Array[String]:
 			if not reached.has(node.id):
 				problems.append("'%s' can't be reached from the start." % node.id)
 
+	if problems.is_empty():
+		problems.append_array(_validate_generated_fights())
+	return problems
+
+
+## Checks the battles that use fill_with_pool: there must be enemies for the tags, and a
+## fight without fixed enemies must have a budget that pays for at least the cheapest one.
+func _validate_generated_fights() -> Array[String]:
+	var problems: Array[String] = []
+	var generated: Array[ExpeditionNode] = []
+	for node in nodes:
+		if node.has_encounter() and node.encounter != null and node.encounter.fill_with_pool:
+			generated.append(node)
+	if generated.is_empty():
+		return problems
+
+	if not ResourceLoader.exists(EnemyCatalog.PATH):
+		problems.append("fill_with_pool is used but there is no enemy catalog at %s (run tools/make_enemy_catalog.gd)." % EnemyCatalog.PATH)
+		return problems
+	var pool := get_enemy_pool()
+	if pool.is_empty():
+		problems.append("fill_with_pool is used but no enemy of the catalog has any of the enemy_tags %s." % [enemy_tags])
+		return problems
+
+	var cheapest: int = pool[0].threat
+	for enemy in pool:
+		cheapest = mini(cheapest, enemy.threat)
+	for node in generated:
+		var budget := get_budget(node)
+		if node.encounter.enemies.is_empty() and budget < cheapest:
+			problems.append("the budget of '%s' (%d) can't pay the cheapest enemy (%d): it will be a single enemy." % [
+				node.id, budget, cheapest])
 	return problems
 
 

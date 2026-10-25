@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="EnemyCatalog" format=3 uid="uid://un5ihol1hlfw"]
+
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="1_acw4m"]
+[ext_resource type="Resource" uid="uid://dxhflavq7koc8" path="res://data/character/enemies/goblin.tres" id="2_je61c"]
+[ext_resource type="Resource" uid="uid://bed42hc22xbg7" path="res://data/character/enemies/goblin_archer.tres" id="3_38gqm"]
+[ext_resource type="Resource" uid="uid://cqyo7amo8xapq" path="res://data/character/enemies/hobgoblin.tres" id="4_o7iwl"]
+[ext_resource type="Script" uid="uid://dr2aw41v3dbm3" path="res://scripts/expedition/encounter/EnemyCatalog.gd" id="5_qbtbk"]
+
+[resource]
+script = ExtResource("5_qbtbk")
+enemies = Array[ExtResource("1_acw4m")]([ExtResource("2_je61c"), ExtResource("3_38gqm"), ExtResource("4_o7iwl")])

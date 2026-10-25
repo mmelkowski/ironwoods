@@ -44,6 +44,8 @@ func _ready() -> void:
 		buildings = BuildingCatalog.new()
 	buildings.validate()
 
+	EncounterGenerator.load_catalog().validate()  # enemy catalog: warnings in Output
+
 	# A default profile, so any scene can be run on its own while testing.
 	# It is never saved: the main menu replaces it (new game / load).
 	_create_profile()

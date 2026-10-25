@@ -14,10 +14,12 @@ script = ExtResource("3_pxlj1")
 id = &"hobgoblin"
 display_name = "Hobgoblin"
 tileset = ExtResource("5_5dk5r")
-tile_coords = Vector2i(5, 0)
+tile_coords = Vector2i(4, 0)
 actions = Dictionary[ExtResource("1_owikx"), int]({
 ExtResource("2_mrrtl"): 1,
 ExtResource("3_2mcbx"): 1,
 ExtResource("4_xbmjt"): 1
 })
+tags = Array[StringName]([&"forest", &"goblinoid"])
+threat = 6
 metadata/_custom_type_script = "uid://y7hn1ijwr8yv"

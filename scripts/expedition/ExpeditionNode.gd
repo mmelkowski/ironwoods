@@ -25,6 +25,9 @@ enum Type {
 @export var next_nodes: Array[StringName] = []
 ## Battle and boss nodes only.
 @export var encounter: EncounterData
+## Battle and boss nodes only: extra threat budget for this node (a harder branch: +3).
+## Negative values make the fight easier. See ExpeditionData.get_budget.
+@export var difficulty_bonus: int = 0
 ## Resources the party gathers when it finishes this node (a won battle, an event...).
 ## They go into the run's loot and are kept even if the expedition fails.
 @export var loot: Dictionary[StringName, int] = {}
@@ -38,5 +41,5 @@ func has_encounter() -> bool:
 
 
 func _validate_property(property: Dictionary) -> void:
-	if property.name == "encounter" and not has_encounter():
+	if property.name in ["encounter", "difficulty_bonus"] and not has_encounter():
 		property.usage = PROPERTY_USAGE_NO_EDITOR

@@ -42,6 +42,14 @@ const TILE_SIZE := 32
 ## An enemy without any action falls back to a basic melee attack (with a warning).
 @export var actions: Dictionary[EnemyAction, int] = {}
 
+@export_group("Encounters (enemies)")
+## Where this enemy lives ("forest", "catacombs", "goblinoid"...). An expedition lists the tags it
+## wants (ExpeditionData.enemy_tags): the enemy can be picked there if it shares at least one.
+@export var tags: Array[StringName] = []
+## Cost of this enemy in the threat budget of a battle (goblin 2, hobgoblin 6...).
+## It is also what keeps strong enemies for later: one never appears while the budget is lower.
+@export_range(1, 99) var threat: int = 1
+
 
 ## The whole sprite, cut from the tileset.
 func get_sprite_texture() -> AtlasTexture:

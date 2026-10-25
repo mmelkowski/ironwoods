@@ -126,7 +126,10 @@ func _start_from_run() -> bool:
 
 	var characters: Array[CharacterData] = []
 	characters.append_array(GameState.get_run_fighters())
-	characters.append_array(encounter.enemies)
+	# Hand-made enemies and/or enemies generated from the expedition's pool and the node's budget.
+	# The battle can place as many enemies as there are %EnemySpawns markers.
+	characters.append_array(EncounterGenerator.build_enemies(
+		expedition, node, GameState.run.rng_seed, enemy_spawns.get_child_count()))
 	start_battle(characters)
 	return true
 

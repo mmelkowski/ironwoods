@@ -18,12 +18,16 @@ var battle_result: BattleResult = BattleResult.NONE
 var node_resolved: bool = true
 var visited_nodes: Array[StringName] = []
 var loot: Dictionary = {}                  # resource id -> amount (always kept, even if the run fails)
+## Chosen when the run starts. The enemies of each node come from it (see EncounterGenerator), so
+## they are different in every run but never change within one, even after saving and loading.
+var rng_seed: int = 0
 
 
 ## Starts a run: the heroes begin at full health.
 static func start(expedition: StringName, heroes: Array[CharacterData]) -> RunState:
 	var run := RunState.new()
 	run.expedition_id = expedition
+	run.rng_seed = randi()
 	for hero in heroes:
 		run.team.append(hero.id)
 		run.hero_health[hero.id] = hero.max_health  # TODO: add the forge's health upgrades
@@ -72,6 +76,7 @@ func to_dict() -> Dictionary:
 		"node_resolved": node_resolved,
 		"battle_result": int(battle_result),
 		"loot": SaveUtils.dict_to_json(loot),
+		"rng_seed": rng_seed,
 	}
 
 
@@ -86,4 +91,6 @@ static func from_dict(data: Dictionary) -> RunState:
 	var result := int(data.get("battle_result", 0))
 	run.battle_result = clampi(result, 0, 2) as BattleResult
 	run.loot = SaveUtils.int_dict_from_json(data.get("loot"))
+	# Runs saved before the seed existed get one now (saved with the next save)
+	run.rng_seed = int(data["rng_seed"]) if data.has("rng_seed") else randi()
 	return run

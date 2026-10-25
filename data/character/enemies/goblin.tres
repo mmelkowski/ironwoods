@@ -18,4 +18,6 @@ max_health = 30
 actions = Dictionary[ExtResource("1_yvo7i"), int]({
 ExtResource("2_aqwh3"): 1
 })
+tags = Array[StringName]([&"forest", &"goblinoid"])
+threat = 2
 metadata/_custom_type_script = "uid://y7hn1ijwr8yv"
