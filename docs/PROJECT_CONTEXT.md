@@ -32,14 +32,14 @@ Language: **GDScript**. The project also uses a CRT shader addon (`addons/crt`),
   Known customizations on the developer's side:
   * `battle.gd`: `character_scene` is `@onready` instead of `@export`; `roster` export pre-filled for debugging (3 heroes + 4 goblins). Status-system changes were delivered as a full file based on their copy (`take_hit`, status ticks, stun, `create_timer(..., false)`).
   * `character.gd` (**heavily customized**, latest upload `character_6377fa.gd`): `%UI/%HealthBar`, `%UI/%ArmorBar`, `%UI/%HealthValue`, `%UI/%ArmorValue`, `%UI/%IntentIcon` (intent icon now lives inside the UI sub-scene),
-    optional `%UI/%StatusIcons`. The UI is built for **1920x1080** and the `UI` node is **scaled down (about 0.27)**, so the constants are large (`STATUS_ICON_SIZE = 80`, `STATUS_FONT_SIZE = 40`, `UI_HEIGHT_ABOVE_HEAD = 20`).
-    The health value label shows **only the current health** (no maximum, the bar tells the rest). Click circle: they replaced the delivered formula by `shape.radius = size.x * CLICK_RADIUS_FACTOR + 5`.
+	optional `%UI/%StatusIcons`. The UI is built for **1920x1080** and the `UI` node is **scaled down (about 0.27)**, so the constants are large (`STATUS_ICON_SIZE = 80`, `STATUS_FONT_SIZE = 40`, `UI_HEIGHT_ABOVE_HEAD = 20`).
+	The health value label shows **only the current health** (no maximum, the bar tells the rest). Click circle: they replaced the delivered formula by `shape.radius = size.x * CLICK_RADIUS_FACTOR + 5`.
   * `CardInstance.gd` and `card_view.gd` were customized (card type shown as text with a debug color per type, attack/critical damage display). **Always ask for the current versions before editing these.**
   * `main_menu.gd`: "Delete file" button per save row with confirmation popup.
   * `HeroSlot.gd`: fixed for `starting_statuses` (they removed `CharacterData.starting_evasion`); a status list is now shown in the stats text.
   * `CharacterData.gd`: `starting_evasion` was **removed** and replaced by `starting_statuses: Dictionary[StatusData, int]`.
   * Prefer giving **snippets + a list of what changed** when a file might have been modified by the developer; **ask them to upload the current file** before large changes.
-    When the current version is available, edit **that** version and deliver the full file (this worked well for `battle.gd`, `character.gd`, `GameState.gd`, `menu_gate.gd`).
+	When the current version is available, edit **that** version and deliver the full file (this worked well for `battle.gd`, `character.gd`, `GameState.gd`, `menu_gate.gd`).
 * The developer wants to be told **what goes in code and what must be built with nodes** in the editor (scene trees, "Access as Unique Name" nodes, exports to assign, Project Settings to change).
 * Values **simplicity and reusability**, and wants the **same code path for every status** (no special cases such as the old evasion handling).
 * Data is authored as **Godot `.tres` Resources**, not YAML.
@@ -79,7 +79,7 @@ Language: **GDScript**. The project also uses a CRT shader addon (`addons/crt`),
 * **Statuses** (all go through `Character.apply_status`, same code path as much as possible, driven by `StatusData.effect`):
   * *Value effects* are **instant** and never stored: `ARMOR` (+N armor points, 1 point = 1 hp), `HEAL` (+N health), `CLEANSE` (removes every debuff, stacks ignored).
   * *Stored statuses* (in the character's `StatusComponent`): `BLEED` (N damage at the start of the owner's turn, ignores armor/evasion, then loses 1 stack: 3 → 3, 2, 1 damage),
-    `STUN` (N turns skipped, loses 1 per turn), `EVASION` (duration `USES`: each stack dodges one hit and is consumed; duration `TURNS`: dodges every hit while it lasts), `NONE` (marker for future use).
+	`STUN` (N turns skipped, loses 1 per turn), `EVASION` (duration `USES`: each stack dodges one hit and is consumed; duration `TURNS`: dodges every hit while it lasts), `NONE` (marker for future use).
   * `duration_type`: `TURNS` stacks decay by `decay_per_turn` at the end of the owner's side phase; `USES` stacks only go down when consumed.
   * A status is a **debuff** if `BLEED`/`STUN` or if its `debuff` box is ticked (this is what `CLEANSE` removes).
   * Timing: start of a side's phase = damage over time; during the phase a stunned hero can't play cards and a stunned enemy skips its attack; end of phase = decay.

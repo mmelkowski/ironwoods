@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="EnemyAction" format=3 uid="uid://c0t4shbf3kyyk"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_xn6m2"]
+[ext_resource type="Script" uid="uid://cyiubihrnsefw" path="res://scripts/battle/enemy_action/EnemyAction.gd" id="2_3tpq3"]
+
+[resource]
+script = ExtResource("2_3tpq3")
+id = &"melee_10"
+display_name = "melee_10"
+damage = 10
+approach_distance = 64.0
+metadata/_custom_type_script = "uid://cyiubihrnsefw"

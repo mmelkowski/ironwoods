@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyAction" format=3 uid="uid://lvf4shmiddqx"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_nx5ek"]
+[ext_resource type="Script" uid="uid://cyiubihrnsefw" path="res://scripts/battle/enemy_action/EnemyAction.gd" id="2_u50o6"]
+
+[resource]
+script = ExtResource("2_u50o6")
+id = &"heavy_40_2"
+display_name = "heavy_40_2"
+kind = 5
+damage = 40
+approach_distance = 64.0
+windup_turns = 2
+metadata/_custom_type_script = "uid://cyiubihrnsefw"

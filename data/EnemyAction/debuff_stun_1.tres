@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyAction" format=3 uid="uid://dadlnjkgtdljq"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_wfugo"]
+[ext_resource type="Script" uid="uid://cyiubihrnsefw" path="res://scripts/battle/enemy_action/EnemyAction.gd" id="2_qggt6"]
+[ext_resource type="Resource" uid="uid://dmp0brjll17s8" path="res://data/status_application/stun.tres" id="2_tjgx2"]
+
+[resource]
+script = ExtResource("2_qggt6")
+id = &"debuff_stun_1"
+display_name = "debuff_stun_1"
+kind = 4
+damage = 0
+approach_distance = 64.0
+effects = Array[ExtResource("1_wfugo")]([ExtResource("2_tjgx2")])
+metadata/_custom_type_script = "uid://cyiubihrnsefw"

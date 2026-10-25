@@ -35,13 +35,12 @@ const TILE_SIZE := 32
 ## Heroes: the cards this hero adds to the shared draw pile.
 @export var deck: Array[CardData] = []
 
-@export_group("Default attack (enemies, placeholder)")
-## Used until enemies get real attack patterns made of cards.
-@export var attack_damage: int = 5
-@export_range(0.0, 1000.0, 1.0, "or_greater", "suffix:px") var attack_range: float = 32.0
-
-# Extension point for later:
-# @export var action_pattern: Array[CardData]  # enemies: telegraphed actions
+@export_group("Enemy actions")
+## Enemies: what the enemy can do on its turn, as EnemyAction -> weight.
+## Each turn it picks one of the usable actions at random (a higher weight = more often).
+## Example: { goblin_stab: 3, goblin_throw: 1 } = stabs 3 times out of 4.
+## An enemy without any action falls back to a basic melee attack (with a warning).
+@export var actions: Dictionary[EnemyAction, int] = {}
 
 
 ## The whole sprite, cut from the tileset.

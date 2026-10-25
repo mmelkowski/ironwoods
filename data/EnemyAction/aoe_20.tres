@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnemyAction" format=3 uid="uid://da1jauqqudfm8"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_aij2c"]
+[ext_resource type="Script" uid="uid://cyiubihrnsefw" path="res://scripts/battle/enemy_action/EnemyAction.gd" id="2_orx5n"]
+
+[resource]
+script = ExtResource("2_orx5n")
+id = &"aoe_20"
+display_name = "aoe_20"
+kind = 2
+damage = 20
+approach_distance = 64.0
+metadata/_custom_type_script = "uid://cyiubihrnsefw"

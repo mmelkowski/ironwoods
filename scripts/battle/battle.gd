@@ -80,15 +80,28 @@ var mana := 0  # shared by the whole team
 
 var _in_expedition := false  # true when the heroes and enemies come from a run
 var _dead: Array[Character] = []  # hidden, freed once the current action ends
+var _warned_no_actions := {}  # enemy ids without actions already reported (one warning each)
+var _fallback_action: EnemyAction  # basic melee used by enemies that have no action
 
 
 func _ready() -> void:
+	_create_intent_overlay()
 	# Inside an expedition the fight comes from the current node. Otherwise
 	# (battle scene tested alone) the `roster` set in the inspector is used.
 	if _start_from_run():
 		return
 	if not roster.is_empty():
 		start_battle(roster)
+
+
+## Draws the AOE circles planned by enemies. Built by code, placed right before %Allies
+## so the circles are under the characters.
+func _create_intent_overlay() -> void:
+	var overlay := IntentOverlay.new()
+	overlay.battle = self
+	var parent := allies_root.get_parent()
+	parent.add_child(overlay)
+	parent.move_child(overlay, allies_root.get_index())
 
 
 ## Starts the battle of the current expedition node: the heroes who can fight
@@ -138,7 +151,7 @@ func start_battle(characters: Array[CharacterData]) -> void:
 	_update_facings()
 	deck.build_from(allies)
 	for enemy in enemies:
-		_assign_target(enemy)
+		_plan_intent(enemy)
 	mana = 0
 	turn = 0
 	_start_objective()
@@ -358,9 +371,14 @@ func find_approach_position(card: CardInstance, from: Vector2, target: Character
 ## `ideal` is where `mover` would like to stand next to `target`. Returns `from`
 ## when no move is needed, otherwise the closest free spot to `ideal`.
 func _free_position(ideal: Vector2, from: Vector2, target: Character, mover: Character) -> Vector2:
+	return _free_position_at(ideal, from, target.global_position, mover)
+
+
+## Same as _free_position, around a point instead of a character (the spot of an AOE).
+func _free_position_at(ideal: Vector2, from: Vector2, center: Vector2, mover: Character) -> Vector2:
 	if ideal.is_equal_approx(from):
 		return from  # already in range, the mover doesn't walk
-	return _find_free_position(ideal, target.global_position, mover)
+	return _find_free_position(ideal, center, mover)
 
 
 ## Searches around `center` for a spot where `mover` doesn't overlap anyone:
@@ -479,7 +497,7 @@ func _run_enemy_turn() -> void:
 	for enemy in enemies.duplicate():
 		if not enemies.has(enemy):
 			continue
-		await _enemy_attack(enemy)
+		await _enemy_act(enemy)
 		if _check_battle_end():
 			return
 		await get_tree().create_timer(ENEMY_ACTION_DELAY, false).timeout  # false: frozen by the pause menu
@@ -487,35 +505,185 @@ func _run_enemy_turn() -> void:
 	_start_player_turn()
 
 
-## Placeholder attack: walk to the planned target and hit for the default damage.
-func _enemy_attack(enemy: Character) -> void:
+## One enemy's turn: skip if stunned, charge if the action has a windup, otherwise carry out
+## the planned action, then plan the next one (shown to the player during their turn).
+func _enemy_act(enemy: Character) -> void:
 	if enemy.is_stunned():
-		return  # turn skipped, the stun loses a stack at the end of the enemy phase
-	if not allies.has(enemy.intent_target):
-		_assign_target(enemy)
-	var target := enemy.intent_target
-	if target == null:
+		return  # turn skipped (a windup does not progress either), the stun loses a stack at the end of the enemy phase
+	if not _intent_is_valid(enemy):
+		_plan_intent(enemy)
+	var intent := enemy.intent
+	if intent == null:
 		return
 
-	var ideal := CardData.closest_in_range(
-		enemy.global_position, target.global_position, enemy.data.attack_range)
-	var destination := _free_position(ideal, enemy.global_position, target, enemy)
-	enemy.face_towards(target.global_position)
-	await _move_characters({enemy: destination}, MOVE_TIME)
-	enemy.face_towards(target.global_position)
+	if intent.windup_left > 0:  # charging: no action this turn
+		intent.windup_left -= 1
+		enemy.refresh_intent()
+		return
 
-	target.take_hit(enemy.data.attack_damage)
+	await _execute_intent(enemy, intent)
+	if enemies.has(enemy):
+		_plan_intent(enemy)  # telegraph the next action
+
+
+## Walks to the target (or to the AOE spot), hits, then applies the effects.
+## Every kind of EnemyAction uses this: only the targets and the numbers change.
+func _execute_intent(enemy: Character, intent: EnemyIntent) -> void:
+	var action := intent.action
+	var is_area := action.kind == EnemyAction.Kind.AOE
+	var focus := intent.spot if is_area else intent.target.global_position
+
+	var ideal := CardData.closest_in_range(enemy.global_position, focus, action.approach_distance)
+	var destination := _free_position_at(ideal, enemy.global_position, focus, enemy)
+	enemy.face_towards(focus)
+	await _move_characters({enemy: destination}, MOVE_TIME)
+	enemy.face_towards(focus)
+
+	var targets := _intent_targets(intent)  # a copy: deaths below change `allies`
+	var damage := action.get_damage()
+	if damage > 0:
+		for target in targets:
+			target.take_hit(damage)
+	_apply_action_effects(enemy, action, targets)
 	_free_dead()
 	_update_facings()
-	_assign_target(enemy)  # telegraph the target for next turn
 
 
-## Placeholder: random living ally.
-func _assign_target(enemy: Character) -> void:
-	enemy.intent_target = allies.pick_random() if not allies.is_empty() else null
-	if enemy.intent_target != null:
-		enemy.face_towards(enemy.intent_target.global_position)
+## Who the intent hits: everyone of the heroes inside the circle for an AOE
+## (checked now, so a hero who walked away is spared), otherwise the single target.
+func _intent_targets(intent: EnemyIntent) -> Array[Character]:
+	var result: Array[Character] = []
+	if intent.action.kind == EnemyAction.Kind.AOE:
+		for ally in allies:
+			if ally.global_position.distance_to(intent.spot) <= intent.action.aoe_radius:
+				result.append(ally)
+	elif intent.target != null and not intent.target.is_dead():
+		result.append(intent.target)
+	return result
+
+
+## Statuses of an enemy action. TARGET = the ones hit (or the buffed enemy), SELF = the caster.
+## The trigger is ignored: everything happens when the action resolves (ON_KILL is skipped).
+func _apply_action_effects(enemy: Character, action: EnemyAction, targets: Array[Character]) -> void:
+	for effect in action.effects:
+		if effect.trigger != StatusApplication.Trigger.ON_PLAY:
+			continue
+		if effect.recipient == StatusApplication.Recipient.SELF:
+			enemy.apply_status(effect.status, effect.stacks)
+		else:
+			for target in targets:
+				if not target.is_dead():
+					target.apply_status(effect.status, effect.stacks)
+
+
+# ---------------------------------------------------------------------------
+# Enemy intents (what each enemy plans to do next turn)
+# ---------------------------------------------------------------------------
+
+## Chooses the next action of an enemy and who/where it aims at. The player sees it
+## (head of the target, action name, AOE circle) and can react during their turn.
+func _plan_intent(enemy: Character) -> void:
+	if not is_instance_valid(enemy):
+		return
+	var action := _pick_action(enemy)
+	if action == null:  # nothing possible (for example no hero left)
+		enemy.intent = null
+		intents_changed.emit()
+		return
+
+	var intent := EnemyIntent.new(action)
+	if action.kind == EnemyAction.Kind.AOE:
+		intent.spot = allies.pick_random().global_position  # fixed now: heroes can leave the circle
+	else:
+		intent.target = _candidates_for(action, enemy).pick_random()
+	enemy.intent = intent
+	_face_intent(enemy)
 	intents_changed.emit()
+
+
+## Weighted random choice among the actions that have at least one possible target.
+func _pick_action(enemy: Character) -> EnemyAction:
+	var actions := _get_actions(enemy)
+	var options: Array[EnemyAction] = []
+	var total := 0
+	for action: EnemyAction in actions:
+		if action == null or _candidates_for(action, enemy).is_empty():
+			continue
+		options.append(action)
+		var weight: int = actions[action]
+		total += maxi(weight, 0)
+	if options.is_empty():
+		return null
+	if total <= 0:
+		return options.pick_random()  # every weight is 0: all equally likely
+
+	var roll := randi_range(1, total)
+	for action in options:
+		var weight: int = actions[action]
+		roll -= maxi(weight, 0)
+		if roll <= 0:
+			return action
+	return options.back()
+
+
+## The actions of an enemy, or a basic melee attack (with a warning) when none is set.
+func _get_actions(enemy: Character) -> Dictionary:
+	if not enemy.data.actions.is_empty():
+		return enemy.data.actions
+	if not _warned_no_actions.has(enemy.data.id):
+		_warned_no_actions[enemy.data.id] = true
+		push_warning("%s has no EnemyAction in CharacterData.actions: using a basic melee attack." % enemy.data.id)
+	if _fallback_action == null:
+		_fallback_action = EnemyAction.new()
+		_fallback_action.display_name = "Attack"
+	return {_fallback_action: 1}
+
+
+## Everyone this action can be aimed at: the heroes, or for a BUFF the other enemies.
+func _candidates_for(action: EnemyAction, enemy: Character) -> Array[Character]:
+	var pool: Array[Character] = []
+	if action.targets_own_side():
+		for other in enemies:
+			if other != enemy or action.can_target_self:
+				pool.append(other)
+	else:
+		pool.append_array(allies)
+	return pool
+
+
+## False when the planned target is gone (or nothing is planned).
+func _intent_is_valid(enemy: Character) -> bool:
+	var intent := enemy.intent
+	if intent == null:
+		return false
+	if intent.action.kind == EnemyAction.Kind.AOE:
+		return true
+	var target := enemy.intent_target
+	return target != null and (allies.has(target) or enemies.has(target))
+
+
+## The target of an intent died: keep the same action (and its windup) on a new target,
+## or plan something else if the action has no possible target anymore.
+func _retarget_intent(enemy: Character) -> void:
+	var intent := enemy.intent
+	var pool := _candidates_for(intent.action, enemy)
+	if pool.is_empty():
+		_plan_intent(enemy)
+		return
+	intent.target = pool.pick_random()
+	enemy.refresh_intent()
+	_face_intent(enemy)
+
+
+## The enemy looks at what it plans to hit (or at the AOE spot).
+func _face_intent(enemy: Character) -> void:
+	var intent := enemy.intent
+	if intent == null:
+		return
+	if intent.action.kind == EnemyAction.Kind.AOE:
+		enemy.face_towards(intent.spot)
+	elif enemy.intent_target != null:
+		enemy.face_towards(enemy.intent_target.global_position)
 
 
 # ---------------------------------------------------------------------------
@@ -550,9 +718,12 @@ func _on_character_died(character: Character) -> void:
 		if _in_expedition:
 			GameState.run.set_health(character.data.id, 0)  # down until a camp heals him
 		deck.remove_cards_of(character)
-		for enemy in enemies:
-			if enemy.intent_target == character:
-				_assign_target(enemy)
+
+	# Enemies that planned to act on the fallen character (hero hit, or enemy to buff) choose again
+	for enemy in enemies:
+		if enemy.intent != null and enemy.intent.target == character:
+			_retarget_intent(enemy)
+	intents_changed.emit()  # also hides the AOE circle of a dead enemy
 
 
 func _free_dead() -> void:
@@ -626,16 +797,19 @@ func _move_characters(moves: Dictionary, duration: float) -> void:
 		await tween.finished
 
 
-## Allies look at their closest enemy; enemies look at the ally they plan to attack
-## (their intent_target), or at the closest ally if they have none.
-## Called after anything that moves or removes characters (spawn, card, enemy attack).
+## Allies look at their closest enemy; enemies look at what they plan to do (their target
+## or the AOE spot), or at the closest ally if they have no valid plan.
+## Called after anything that moves or removes characters (spawn, card, enemy action).
 ## Attackers face their actual target while they strike.
 func _update_facings() -> void:
 	_face_closest(allies, enemies)
 	for enemy in enemies:
-		var focus: Character = enemy.intent_target if allies.has(enemy.intent_target) else _closest_to(enemy, allies)
-		if focus != null:
-			enemy.face_towards(focus.global_position)
+		if _intent_is_valid(enemy):
+			_face_intent(enemy)
+		else:
+			var closest := _closest_to(enemy, allies)
+			if closest != null:
+				enemy.face_towards(closest.global_position)
 
 
 func _face_closest(team: Array[Character], opponents: Array[Character]) -> void:

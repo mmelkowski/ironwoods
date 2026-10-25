@@ -33,12 +33,21 @@ const CLICK_RADIUS_FACTOR := 1.0
 var _start_health := -1
 var _ui_bottom_target := 0.0  # where the bottom of the health bar must be (character space)
 
-## Enemies only: the ally this enemy will attack on its next turn.
-## Setting it updates the cutout above the enemy's head.
-var intent_target: Character:
+## Enemies only: what this enemy will do on its next turn (see EnemyIntent).
+## Setting it updates the cutout and the label above the enemy's head.
+var intent: EnemyIntent:
 	set(value):
-		intent_target = value
-		_update_intent_icon()
+		intent = value
+		refresh_intent()
+
+## Enemies only: the character the current intent aims at (the hero to hit, or the enemy to buff).
+## Read-only, it comes from `intent`. Null for an AOE intent or when nothing is planned.
+var intent_target: Character:
+	get:
+		if intent == null or not is_instance_valid(intent.target):
+			return null
+		return intent.target
+
 
 ## Persistent statuses (Bleeding, Stun...), created in _ready(). Armor and heal are not
 ## stored here: they act on the HealthComponent at once (see apply_status).
@@ -60,6 +69,9 @@ var statuses: Dictionary:
 ## statuses of the character. Without it statuses work but are not displayed.
 @onready var status_icons: HBoxContainer = get_node_or_null("%UI/%StatusIcons")
 @onready var intent_icon: Sprite2D = %UI/%IntentIcon
+## Optional: a Label in character_ui.tscn (unique name %IntentLabel), next to the intent icon, that shows
+## the planned action ("Stab", "Heavy 1"). Without it intents work but the name is not displayed.
+@onready var intent_label: Label = get_node_or_null("%UI/%IntentLabel")
 @onready var click_area: Area2D = %ClickArea
 @onready var click_shape: CollisionShape2D = %ClickShape
 @onready var shape := click_shape.shape as CircleShape2D
@@ -77,7 +89,7 @@ func _ready() -> void:
 	click_area.input_event.connect(_on_click_area_input_event)
 	# The bars move inside the UI when the armor bar appears/disappears: keep the bottom in place.
 	health_bar.item_rect_changed.connect(_update_ui_position_later)
-	_update_intent_icon()  # hidden until an intent target is assigned
+	refresh_intent()  # hidden until an intent is assigned
 
 	if data:
 		_apply_data()
@@ -148,8 +160,28 @@ func face_towards(world_position: Vector2) -> void:
 		sprite.flip_h = dx > 0.0
 
 
+## Redraws the intent display (head cutout + action text). Battle calls it after changing
+## something inside the intent (windup turns left, new target).
+func refresh_intent() -> void:
+	_update_intent_icon()
+	_update_intent_label()
+
+
+## Writes the planned action ("Stab", "Heavy 1"...) in the %IntentLabel of the UI scene.
+## The color is a tint (self_modulate): keep the label's own font color white in the scene.
+func _update_intent_label() -> void:
+	if intent_label == null or not is_node_ready():
+		return
+	if intent == null:
+		intent_label.hide()
+		return
+	intent_label.text = intent.get_text()
+	intent_label.self_modulate = intent.action.get_color()
+	intent_label.show()
+
+
 ## Shows the head of the intent target's sprite above this character,
-## or hides the cutout when there is no target (allies never have one).
+## or hides the cutout when there is no target (allies never have one, AOE has none).
 func _update_intent_icon() -> void:
 	if not is_node_ready():
 		return

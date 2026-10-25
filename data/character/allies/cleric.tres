@@ -9,6 +9,7 @@
 [ext_resource type="Resource" uid="uid://bqsq3hgk35sbw" path="res://data/cards/cleric/cleric_support_2.tres" id="5_spacb"]
 [ext_resource type="Resource" uid="uid://cxwt1jwqxjkj4" path="res://data/cards/cleric/cleric_mana_1.tres" id="6_7sq3x"]
 [ext_resource type="Resource" uid="uid://bycc42eulqnbl" path="res://data/cards/cleric/cleric_mana_2.tres" id="7_8baa6"]
+[ext_resource type="Resource" uid="uid://bb3r36qand5bg" path="res://data/cards/cleric/cleric_support_3.tres" id="8_0m6rs"]
 [ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="9_p5km8"]
 
 [resource]
@@ -18,5 +19,5 @@ display_name = "Cleric"
 team = 0
 tileset = ExtResource("3_mfc48")
 tile_coords = Vector2i(2, 2)
-deck = Array[ExtResource("1_nbkfg")]([ExtResource("2_eet2y"), ExtResource("3_p5km8"), ExtResource("4_0m6rs"), ExtResource("5_spacb"), ExtResource("6_7sq3x"), ExtResource("7_8baa6")])
+deck = Array[ExtResource("1_nbkfg")]([ExtResource("2_eet2y"), ExtResource("3_p5km8"), ExtResource("4_0m6rs"), ExtResource("5_spacb"), ExtResource("6_7sq3x"), ExtResource("7_8baa6"), ExtResource("8_0m6rs")])
 metadata/_custom_type_script = "uid://y7hn1ijwr8yv"

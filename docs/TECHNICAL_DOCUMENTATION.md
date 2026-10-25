@@ -473,4 +473,3 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 **Gate and expedition**
 1. Gate: three columns fill the left panel; resizing the window keeps them filling; the pick numbers and the team slots still work; heroes with `unlocked_by_default` appear even in an old save.
 2. `Expedition.tscn` rebuilt: the map, team panel and dialogs show again; the scripts are attached; a full expedition still works.
-
