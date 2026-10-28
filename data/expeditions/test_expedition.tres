@@ -6,6 +6,7 @@
 [ext_resource type="Resource" uid="uid://cqyo7amo8xapq" path="res://data/character/enemies/hobgoblin.tres" id="4_x2bst"]
 [ext_resource type="Script" uid="uid://c0pdfac1nyf65" path="res://scripts/expedition/encounter/EncounterData.gd" id="5_euodn"]
 [ext_resource type="Script" uid="uid://djuxvwgpk5gw6" path="res://scripts/expedition/ExpeditionData.gd" id="6_oqnlf"]
+[ext_resource type="Script" uid="uid://dbpd0aei4mb8t" path="res://scripts/hub/world_map/UnlockCondition.gd" id="7_r176i"]
 
 [sub_resource type="Resource" id="Resource_cl0hm"]
 script = ExtResource("1_nk4hx")

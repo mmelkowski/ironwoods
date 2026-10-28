@@ -6,6 +6,8 @@ extends Resource
 ## Author it in the inspector: add nodes to `nodes`, link them with `next_nodes`, then
 ## press the "Validate graph" button to check it.
 
+enum LockedDisplay { HIDDEN, TEASED }
+
 @export var id: StringName
 @export var display_name: String = ""
 @export_multiline var description: String = ""
@@ -14,6 +16,16 @@ extends Resource
 ## Extra resources given when the expedition is completed (an END node reached).
 ## Failing or abandoning keeps the loot gathered on the way but not this bonus.
 @export var completion_bonus: Dictionary[StringName, int] = {}
+
+@export_group("Unlock")
+## What the player must have done for this expedition to be available on the world map
+## (UnlockCompletedExpedition, UnlockBuildingLevel...). All of them must be met.
+## Empty = always available.
+@export var unlock_conditions: Array[UnlockCondition] = []
+## While it is locked: HIDDEN = not on the map at all, TEASED = a black silhouette with a hint.
+@export var locked_display: LockedDisplay = LockedDisplay.TEASED
+## Text shown on a teased location. Empty = built from the unlock conditions.
+@export_multiline var unlock_hint: String = ""
 
 @export_group("Enemies")
 ## Tags of the enemies that live here ("forest", "catacombs"...). Generated fights (EncounterData.
@@ -112,6 +124,10 @@ func get_enemy_pool() -> Array[CharacterData]:
 func validate() -> Array[String]:
 	var problems: Array[String] = []
 	_by_id.clear()
+
+	for condition in unlock_conditions:
+		if condition == null:
+			problems.append("an entry of `unlock_conditions` is empty.")
 
 	# Ids
 	var seen := {}

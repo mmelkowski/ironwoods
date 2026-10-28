@@ -1,10 +1,16 @@
 extends HubMenu
-## The main gate: pick the team that goes on an expedition.
+## Team selection of an expedition: pick the heroes that go.
 ## Left third: the heroes you own. Right two thirds: the team as it is built.
+## The WorldMap opens this menu and sets `expedition_id` before adding it to the scene.
 
 const TEAM_SIZE := 3
-## TODO: the destination will be chosen in this menu. Until then, a fixed expedition.
+## Used only when the menu is opened without a destination (testing it alone).
 const DEFAULT_EXPEDITION_ID := &"first_expedition"
+
+## The expedition that starts when the team is launched (set by the WorldMap).
+var expedition_id: StringName = DEFAULT_EXPEDITION_ID
+## Optional: a Label that shows the name of the chosen expedition.
+@export var title_label: Label
 
 @export var hero_portrait_scene: PackedScene   # hero_portrait.tscn
 @export var hero_slot_scene: PackedScene       # hero_slot.tscn
@@ -33,11 +39,18 @@ func _ready() -> void:
 	launch_button.pressed.connect(launch)
 	_refresh_team()
 
+	if title_label != null:
+		var expedition := GameState.expeditions.get_expedition(expedition_id)
+		title_label.text = expedition.display_name if expedition != null else ""
+
 
 func launch() -> void:
 	if selected_team.size() < TEAM_SIZE:
 		return
-	GameState.start_run(DEFAULT_EXPEDITION_ID, selected_team)
+	if GameState.expeditions.get_expedition(expedition_id) == null:
+		push_error("menu_gate: the expedition '%s' doesn't exist." % expedition_id)
+		return
+	GameState.start_run(expedition_id, selected_team)
 	SceneManager.go_to(&"expedition")
 
 

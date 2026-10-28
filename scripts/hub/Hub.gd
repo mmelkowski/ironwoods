@@ -28,7 +28,7 @@ var _menu_location: HubLocation
 func _ready() -> void:
 	# Menus live on their own layer so they are drawn above the town
 	_menu_layer = CanvasLayer.new()
-	_menu_layer.layer = 10
+	_menu_layer.layer = 2
 	add_child(_menu_layer)
 
 	for node in get_tree().get_nodes_in_group(HubLocation.GROUP):
@@ -87,6 +87,9 @@ func _on_location_activated(location: HubLocation) -> void:
 	if _menu != null:
 		return
 	location_activated.emit(location)
+	if location.route != &"":  # a place that leads to another scene (the gate -> the world map)
+		SceneManager.go_to(location.route)
+		return
 	open_menu(location)
 
 

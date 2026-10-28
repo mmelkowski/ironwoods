@@ -12,6 +12,7 @@ var unlocked_heroes: Array[StringName] = []
 var resources: Dictionary = {}           # resource id (&"wood") -> amount (int)
 var unlocked_locations: Array[StringName] = []  # hub places (&"forge")
 var upgrade_levels: Dictionary = {}      # upgrade id -> level (int)
+var completed_expeditions: Array[StringName] = []  # expeditions finished at least once (&"first_expedition")
 
 
 # --- Heroes ---
@@ -75,6 +76,18 @@ func set_upgrade_level(id: StringName, level: int) -> void:
 	locations_changed.emit()
 
 
+# --- Expeditions ---
+
+## Remembers that an expedition was completed (it can unlock others, see UnlockCompletedExpedition).
+func complete_expedition(id: StringName) -> void:
+	if not completed_expeditions.has(id):
+		completed_expeditions.append(id)
+
+
+func is_expedition_completed(id: StringName) -> bool:
+	return completed_expeditions.has(id)
+
+
 # --- Saving ---
 
 func to_dict() -> Dictionary:
@@ -83,6 +96,7 @@ func to_dict() -> Dictionary:
 		"resources": SaveUtils.dict_to_json(resources),
 		"unlocked_locations": SaveUtils.to_strings(unlocked_locations),
 		"upgrade_levels": SaveUtils.dict_to_json(upgrade_levels),
+		"completed_expeditions": SaveUtils.to_strings(completed_expeditions),
 	}
 
 
@@ -93,4 +107,5 @@ static func from_dict(data: Dictionary) -> PlayerProfile:
 	profile.resources = SaveUtils.int_dict_from_json(data.get("resources"))
 	profile.unlocked_locations = SaveUtils.to_names(data.get("unlocked_locations"))
 	profile.upgrade_levels = SaveUtils.int_dict_from_json(data.get("upgrade_levels"))
+	profile.completed_expeditions = SaveUtils.to_names(data.get("completed_expeditions"))
 	return profile

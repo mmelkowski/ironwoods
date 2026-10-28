@@ -1,0 +1,97 @@
+[gd_scene format=3 uid="uid://blyv5ew3agiqe"]
+
+[ext_resource type="Script" uid="uid://dnascf2cyf1ro" path="res://scenes/hub/gate/map/menu_gate_map.gd" id="1_60vea"]
+[ext_resource type="PackedScene" uid="uid://bd0ccgd6tot86" path="res://scenes/world_map/expedition_site.tscn" id="1_i64je"]
+[ext_resource type="Texture2D" uid="uid://dsp2m467kt5nc" path="res://assets/1-bit_pixel/Sprites_Cropped/Map/Map_Markers_Tree_Forest_Decidous_1.png" id="3_60vea"]
+[ext_resource type="Texture2D" uid="uid://cgin1stlud5s7" path="res://assets/1-bit_pixel/Sprites_Cropped/Map/Map_Markers_Tree_Forest_Decidous_Branches.png" id="3_o1s0j"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_60vea"]
+size = Vector2(13, 16)
+
+[node name="map" type="Control" unique_id=2136784914 node_paths=PackedStringArray("close_button")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_60vea")
+close_button = NodePath("VBoxContainer/HBoxContainer/BackButton")
+
+[node name="Backdrop" type="ColorRect" parent="." unique_id=1686372180]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -645.5
+offset_top = -352.5
+offset_right = 645.5
+offset_bottom = 352.5
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0911432, 4.7733673e-05, 0.13368014, 1)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=2057013519]
+layout_mode = 0
+offset_left = 909.0
+offset_top = 744.0
+offset_right = 1070.0
+offset_bottom = 856.0
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer" unique_id=39329956]
+unique_name_in_owner = true
+layout_mode = 2
+text = "a"
+
+[node name="BodyLabel" type="Label" parent="VBoxContainer" unique_id=154323861]
+unique_name_in_owner = true
+layout_mode = 2
+text = "a"
+
+[node name="StatusLabel" type="Label" parent="VBoxContainer" unique_id=519385305]
+unique_name_in_owner = true
+layout_mode = 2
+text = "a"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=1437844295]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="VBoxContainer/HBoxContainer" unique_id=1760696195]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Back"
+
+[node name="ChooseTeamButton" type="Button" parent="VBoxContainer/HBoxContainer" unique_id=1185230189]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Choose Team"
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=303789985]
+unique_name_in_owner = true
+layer = 10
+
+[node name="ExpeditionSiteNodes" type="Node" parent="." unique_id=469189353]
+
+[node name="ExpeditionSite" parent="ExpeditionSiteNodes" unique_id=291695258 instance=ExtResource("1_i64je")]
+position = Vector2(551, 495)
+scale = Vector2(5, 5)
+expedition_id = &"first_expedition"
+texture = ExtResource("3_60vea")
+
+[node name="Visual" parent="ExpeditionSiteNodes/ExpeditionSite" index="0" unique_id=1729658679]
+texture = ExtResource("3_60vea")
+
+[node name="Collision" parent="ExpeditionSiteNodes/ExpeditionSite" index="1" unique_id=481209631]
+shape = SubResource("RectangleShape2D_60vea")
+
+[node name="ExpeditionSite2" parent="ExpeditionSiteNodes" unique_id=39824610 instance=ExtResource("1_i64je")]
+position = Vector2(751, 378)
+scale = Vector2(5, 5)
+expedition_id = &"first_expedition"
+texture = ExtResource("3_o1s0j")
+
+[editable path="ExpeditionSiteNodes/ExpeditionSite"]

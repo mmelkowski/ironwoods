@@ -22,6 +22,9 @@ const DISABLED_TINT := Color(0.45, 0.45, 0.45)
 @export var display_name: String = ""
 ## The menu opened on click. Its root must extend HubMenu.
 @export var menu_scene: PackedScene
+## Instead of a menu: the SceneManager route to go to on click (the gate uses &"world_map").
+## When set, menu_scene is ignored.
+@export var route: StringName = &""
 ## Always shown, even if the player hasn't unlocked it (decoration, a person to talk to...).
 ## Otherwise the place stays hidden until its building is built.
 @export var always_unlocked: bool = false

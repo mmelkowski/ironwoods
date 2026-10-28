@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://bd0ccgd6tot86"]
+
+[ext_resource type="Script" uid="uid://dsqy26iugs7eo" path="res://scripts/hub/world_map/ExpeditionSite.gd" id="1_badfi"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kl11w"]
+size = Vector2(64, 64)
+
+[node name="ExpeditionSite" type="Area2D" unique_id=291695258]
+script = ExtResource("1_badfi")
+
+[node name="Visual" type="Sprite2D" parent="." unique_id=1729658679]
+unique_name_in_owner = true
+
+[node name="Collision" type="CollisionShape2D" parent="." unique_id=481209631]
+unique_name_in_owner = true
+shape = SubResource("RectangleShape2D_kl11w")
+
+[node name="NameLabel" type="Label" parent="." unique_id=1524148418]
+unique_name_in_owner = true
+visible = false
+offset_left = -21.0
+offset_top = -53.0
+offset_right = 19.0
+offset_bottom = -30.0
+horizontal_alignment = 1
+vertical_alignment = 1

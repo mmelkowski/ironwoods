@@ -10,6 +10,7 @@ extends CanvasLayer
 const ROUTES := {
 	&"main_menu": "res://scenes/main_menu/main_menu.tscn",
 	&"hub": "res://scenes/hub/hub.tscn",
+	&"world_map": "res://scenes/world_map/world_map.tscn",
 	&"expedition": "res://scenes/expedition/Expedition.tscn",
 	&"battle": "res://scenes/battle/battle.tscn",
 }

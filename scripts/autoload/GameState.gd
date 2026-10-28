@@ -14,6 +14,9 @@ var buildings: BuildingCatalog
 var profile: PlayerProfile
 var run: RunState  # null when no expedition is in progress
 
+## How an expedition appears on the world map (see get_expedition_access).
+enum Access { HIDDEN, TEASED, UNLOCKED }
+
 ## Saving only happens once a game was started from the main menu (new game or
 ## loaded). Without this, running the hub scene on its own (F6) with its test
 ## profile would never touch the real saves.
@@ -241,6 +244,38 @@ func _ensure_starting_buildings() -> void:
 			profile.set_upgrade_level(building.id, 1)
 
 
+# --- Expedition unlocks (world map) ---
+
+## True when every unlock condition of the expedition is met (none = always).
+func is_expedition_unlocked(expedition: ExpeditionData) -> bool:
+	for condition in expedition.unlock_conditions:
+		if condition != null and not condition.is_met(profile):
+			return false
+	return true
+
+
+## How the world map shows the expedition: fully (UNLOCKED), as a black silhouette
+## with a hint (TEASED), or not at all (HIDDEN).
+func get_expedition_access(expedition: ExpeditionData) -> Access:
+	if is_expedition_unlocked(expedition):
+		return Access.UNLOCKED
+	if expedition.locked_display == ExpeditionData.LockedDisplay.TEASED:
+		return Access.TEASED
+	return Access.HIDDEN
+
+
+## What to tell the player about a locked expedition: its own hint if it has one,
+## otherwise the conditions that are not met yet, one per line.
+func get_expedition_unlock_text(expedition: ExpeditionData) -> String:
+	if expedition.unlock_hint != "":
+		return expedition.unlock_hint
+	var lines: Array[String] = []
+	for condition in expedition.unlock_conditions:
+		if condition != null and not condition.is_met(profile):
+			lines.append(condition.describe())
+	return "\n".join(lines)
+
+
 # --- Expedition ---
 
 func has_run() -> bool:
@@ -271,6 +306,7 @@ func end_run(completed: bool) -> Dictionary:
 		var expedition := get_run_expedition()
 		if expedition != null:
 			bonus = expedition.completion_bonus.duplicate()
+		profile.complete_expedition(run.expedition_id)  # may unlock other expeditions
 
 	for id in loot:
 		profile.add_resource(id, loot[id])
