@@ -2,11 +2,15 @@
 
 [ext_resource type="Script" uid="uid://dnascf2cyf1ro" path="res://scenes/hub/gate/map/menu_gate_map.gd" id="1_60vea"]
 [ext_resource type="PackedScene" uid="uid://bd0ccgd6tot86" path="res://scenes/world_map/expedition_site.tscn" id="1_i64je"]
+[ext_resource type="Texture2D" uid="uid://1m7nhheba5ti" path="res://assets/1-bit_pixel/Sprites_Cropped/Map/Map_Markers_Buildings_Houses_Homes_Village_Town.png" id="2_o1s0j"]
 [ext_resource type="Texture2D" uid="uid://dsp2m467kt5nc" path="res://assets/1-bit_pixel/Sprites_Cropped/Map/Map_Markers_Tree_Forest_Decidous_1.png" id="3_60vea"]
 [ext_resource type="Texture2D" uid="uid://cgin1stlud5s7" path="res://assets/1-bit_pixel/Sprites_Cropped/Map/Map_Markers_Tree_Forest_Decidous_Branches.png" id="3_o1s0j"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_60vea"]
 size = Vector2(13, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_o1s0j"]
+size = Vector2(12, 15)
 
 [node name="map" type="Control" unique_id=2136784914 node_paths=PackedStringArray("close_button")]
 layout_mode = 3
@@ -35,27 +39,47 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.0911432, 4.7733673e-05, 0.13368014, 1)
 
+[node name="Sprite2D" type="Sprite2D" parent="Backdrop" unique_id=208014946]
+position = Vector2(300.49997, 500.49997)
+scale = Vector2(5, 5)
+texture = ExtResource("2_o1s0j")
+
+[node name="Label" type="Label" parent="Backdrop" unique_id=245097602]
+layout_mode = 0
+offset_left = 257.5
+offset_top = 543.5
+offset_right = 342.5
+offset_bottom = 566.5
+text = "IronWoods"
+
 [node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=2057013519]
 layout_mode = 0
 offset_left = 909.0
-offset_top = 744.0
+offset_top = 730.0
 offset_right = 1070.0
-offset_bottom = 856.0
+offset_bottom = 869.0
+
+[node name="Label" type="Label" parent="VBoxContainer" unique_id=369444382]
+layout_mode = 2
+text = "Expedition selected:"
 
 [node name="TitleLabel" type="Label" parent="VBoxContainer" unique_id=39329956]
 unique_name_in_owner = true
 layout_mode = 2
-text = "a"
+text = "-"
+horizontal_alignment = 1
 
 [node name="BodyLabel" type="Label" parent="VBoxContainer" unique_id=154323861]
 unique_name_in_owner = true
 layout_mode = 2
-text = "a"
+text = "-"
+horizontal_alignment = 1
 
 [node name="StatusLabel" type="Label" parent="VBoxContainer" unique_id=519385305]
 unique_name_in_owner = true
 layout_mode = 2
-text = "a"
+text = "-"
+horizontal_alignment = 1
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=1437844295]
 layout_mode = 2
@@ -78,20 +102,33 @@ layer = 10
 
 [node name="ExpeditionSite" parent="ExpeditionSiteNodes" unique_id=291695258 instance=ExtResource("1_i64je")]
 position = Vector2(551, 495)
-scale = Vector2(5, 5)
 expedition_id = &"first_expedition"
 texture = ExtResource("3_60vea")
 
 [node name="Visual" parent="ExpeditionSiteNodes/ExpeditionSite" index="0" unique_id=1729658679]
+scale = Vector2(5, 5)
 texture = ExtResource("3_60vea")
 
 [node name="Collision" parent="ExpeditionSiteNodes/ExpeditionSite" index="1" unique_id=481209631]
 shape = SubResource("RectangleShape2D_60vea")
 
+[node name="NameLabel" parent="ExpeditionSiteNodes/ExpeditionSite" index="2" unique_id=1524148418]
+visible = true
+
 [node name="ExpeditionSite2" parent="ExpeditionSiteNodes" unique_id=39824610 instance=ExtResource("1_i64je")]
 position = Vector2(751, 378)
-scale = Vector2(5, 5)
 expedition_id = &"first_expedition"
 texture = ExtResource("3_o1s0j")
 
+[node name="Visual" parent="ExpeditionSiteNodes/ExpeditionSite2" index="0" unique_id=1729658679]
+scale = Vector2(5, 5)
+texture = ExtResource("3_o1s0j")
+
+[node name="Collision" parent="ExpeditionSiteNodes/ExpeditionSite2" index="1" unique_id=481209631]
+shape = SubResource("RectangleShape2D_o1s0j")
+
+[node name="NameLabel" parent="ExpeditionSiteNodes/ExpeditionSite2" index="2" unique_id=1524148418]
+visible = true
+
 [editable path="ExpeditionSiteNodes/ExpeditionSite"]
+[editable path="ExpeditionSiteNodes/ExpeditionSite2"]

@@ -6,6 +6,15 @@ This file documents **the code as delivered**: architecture, scripts, APIs, sign
 > Status legend: **[T]** tested/confirmed by the developer, **[U]** delivered but not confirmed yet.
 > **[T]**: phases 1 to 7 (hub buildings and carpentry included), the pause menu, saves, the status icon row (Evasion included) and the character UI placement/labels.
 > **[U]**: Bleeding / Stun ticking, Cleanse, armor/heal cards, the gate grid fit, the rebuilt `Expedition.tscn`.
+> **[T] added in this revision**: the gate map (expedition selection before the team selection): site picking, Choose Team, destination reaching the run, Back button, Esc closing the gate, Hub menu layer.
+> **[D]** = reported by the developer as implemented but **not described here yet** (the code was not shared with the documentation author).
+
+**Changes in this revision**
+* New **gate map** (section 7.4): the gate building now opens `menu_gate_map`, where the player picks an expedition on a map of `ExpeditionSite`s, then `menu_gate` for the team.
+* New `ExpeditionSite` (Area2D), `expedition_site.tscn` and the **unlock conditions** (`UnlockCondition` and subclasses, section 3.6). Conditions are defined but **not applied yet** by the gate map.
+* `menu_gate.gd`: the destination is now `expedition_id` (set by the opener), no longer a constant. `title_label` export added.
+* `Hub.gd`: menus are opened on a dedicated `CanvasLayer` at **layer 2** (see the layer convention in section 0).
+* **Enemy attack patterns** were implemented by the developer after the last revision **[D]**: section 4.6 and section 14 still describe the old placeholder attack, to be updated once `battle.gd` is shared.
 
 ---
 
@@ -18,6 +27,8 @@ This file documents **the code as delivered**: architecture, scripts, APIs, sign
 * Rules live in `Battle`; UI scripts only read them and emit/connect signals.
 * Autoloads: `GameState`, `SceneManager`, `PauseMenu` (no `class_name` on these scripts).
 * The developer designs for **1920x1080**; the character `UI` node is scaled down (about 0.27), so pixel constants in `character.gd` are large (see 5.1).
+* **CanvasLayer order is global.** Godot sorts every `CanvasLayer` by its `layer` number, **not** by nesting: two layers with the same number are drawn in an undefined order, whatever their place in the tree.
+  Convention in the hub: resource bar layer 1 (default), **menus opened by the Hub on layer 2** (`Hub._menu_layer`), the gate map's own `%UI` layer for the menu it opens (the team menu) on layer **10**. A deeper menu level needs a number above the previous one.
 * The developer's project layout: `scripts/{battle,cards,components,CharacterData}`, `scenes/{UI,character,battle.tscn,...}`, `data/{cards,character,TileSet,...}`, `assets/`, `addons/crt`.
   File names in the delivered code are mixed (`battle.gd`, `CardData.gd`/`card_data.gd`...). Only the `class_name` matters.
 
@@ -26,7 +37,7 @@ This file documents **the code as delivered**: architecture, scripts, APIs, sign
 ## 1. Architecture overview
 
 ```
- Main menu ──New/Load/Continue──► Hub ──Gate menu (team)──► Expedition screen ◄──► Battle scene
+ Main menu ──New/Load/Continue──► Hub ──Gate: map (expedition) ► team menu──► Expedition screen ◄──► Battle scene
     ▲                              │ carpentry/tavern/forge        │  (graph, camp, events)     (cards, enemies)
     │                              ▼                               ▼
     └──────── Pause menu ◄── (available everywhere except main menu)    end of run ─► loot into profile ─► Hub
@@ -36,7 +47,7 @@ This file documents **the code as delivered**: architecture, scripts, APIs, sign
  Data:       HeroCatalog / ExpeditionCatalog / BuildingCatalog  (.tres, validated at startup)
 ```
 
-Flow of one expedition: `menu_gate.launch()` → `GameState.start_run()` → `SceneManager.go_to(&"expedition")` →
+Flow of one expedition: gate building → `menu_gate_map` (pick a site, `expedition_id`) → `menu_gate` (pick the team) → `menu_gate.launch()` → `GameState.start_run()` → `SceneManager.go_to(&"expedition")` →
 `expedition.gd` enters the START node and saves → player clicks a node → `RunState.enter_node()` →
 battle node: `SceneManager.go_to(&"battle")` → `Battle._start_from_run()` → battle ends → `_record_result()` writes health + `battle_result` into the run →
 `leave_battle()` → expedition `_ready()` → `_resume_node()` reads the result, resolves the node (loot, save) → ... → END node or abandon or defeat →
@@ -73,7 +84,7 @@ Catalog paths (const): `res://data/hero_catalog.tres`, `res://data/expedition_ca
 ### 2.3 `PlayerProfile` (RefCounted, persistent)
 Fields: `unlocked_heroes: Array[StringName]`, `resources: Dictionary` (id → int), `unlocked_locations: Array[StringName]`, `upgrade_levels: Dictionary` (building id → level).
 Signals: `resources_changed`, `locations_changed`.
-Methods: `unlock_hero`, `is_hero_unlocked`, `get_resource`, `add_resource`, `can_afford(cost)`, `spend(cost) -> bool`, `unlock_location`, `is_location_unlocked`, `get_upgrade_level`, `set_upgrade_level`, `to_dict()`, `static from_dict(d)`.
+Methods: `unlock_hero`, `is_hero_unlocked`, `get_resource`, `add_resource`, `can_afford(cost)`, `spend(cost) -> bool`, `unlock_location`, `is_location_unlocked`, `get_upgrade_level`, `set_upgrade_level`, `is_expedition_completed(expedition_id)` **[D]** (used by `UnlockCompletedExpedition` and the gate map; its storage and how it is saved were not shared), `to_dict()`, `static from_dict(d)`.
 A building is "built" when its location is unlocked and its level is ≥ 1.
 
 ### 2.4 `RunState` (RefCounted, temporary, serializable)
@@ -159,6 +170,15 @@ Resources to author: `armor`, `heal`, `cleanse` (instant), `bleeding` (BLEED, TU
 * `BuildingData`: `id` (**must equal the `location_id` of its `HubLocation`**), `display_name`, `description`, `built_at_start`, `requires: Dictionary[StringName,int]` (building id → min level), `levels: Array[BuildingLevel]` (`levels[0]` = construction = level 1, then upgrades). `get_max_level()`, `get_level_data(level)` (1-based).
 * `BuildingCatalog`: `buildings`, `get_building(id)`, `validate()` (empty/duplicate ids, no levels, unknown requirements).
 
+### 3.6 Unlock conditions (resources) [T for definition, not applied yet]
+Requirements for an expedition location of the map to be available. Authored in the inspector ("Add element" > "New ...").
+* `UnlockCondition` (Resource, base): `is_met(profile: PlayerProfile) -> bool` (base: always true), `describe() -> String` (short text for the player, base: empty).
+* `UnlockBuildingLevel`: `building_id`, `level` (1 to 20). Met when `profile.get_upgrade_level(building_id) >= level`. `describe()`: "Build the X" / "Upgrade the X to level N" (name from `GameState.buildings`).
+* `UnlockCompletedExpedition`: `expedition_id`. Met when `profile.is_expedition_completed(expedition_id)`. `describe()`: `Complete "Name"`.
+* To add a kind of requirement (a hero unlocked, an amount of a resource...): new script extending `UnlockCondition`, override `is_met` and `describe`. It then appears in the list.
+* The `UnlockCondition` header says the list lives in an `unlock_conditions` field of `ExpeditionData` **[D]** (that file was not shared, so the field and who evaluates it are not documented here).
+**Currently the gate map shows every site as `UNLOCKED`**: conditions are not evaluated yet (see 7.4, "To do").
+
 ---
 
 ## 4. Battle (`battle.gd`, `class_name Battle`, Node2D)
@@ -203,6 +223,7 @@ Fields: `allies`, `enemies` (living only), `deck` (CardDeck), `phase`, `turn`, `
 `_find_free_position(ideal, center, mover)`: starting from the ideal spot around the target, test spots every 15° alternating sides (+15, −15, +30…); if the whole circle is blocked, grow the distance by the mover's radius (`shape.radius`), up to 4 rings; fallback to the ideal spot. Obstacles = every living character except the mover (including the target). Used by cards, previews and enemy attacks.
 
 ### 4.6 Enemy turn
+> **Outdated [D]:** the developer implemented enemy **attack patterns** after this was written (the placeholder `attack_damage` / `attack_range` attack described below is the old behaviour). `battle.gd` and the enemy data were not shared; this section has to be rewritten from the current code.
 Order: phase `ENEMY_TURN` → `_start_of_turn_statuses(enemies)` (Bleeding, deaths freed, battle end checked) → for each enemy `_enemy_attack` → `_end_of_turn_statuses(enemies)` → `_start_player_turn()`.
 `_enemy_attack`: **a stunned enemy returns immediately (skips its turn)**; otherwise ensure `intent_target` is alive (else re-assign), walk to a free position within `attack_range`, face the target, `target.take_hit(attack_damage)`, free dead, update facings, re-assign a new random target for next turn (`_assign_target`, which also turns the enemy and emits `intents_changed`), wait `ENEMY_ACTION_DELAY` (**`create_timer(delay, false)`: frozen by the pause menu**), check the end of the battle.
 Allies who die are removed from lists, hidden, their cards removed from the deck, enemies aiming at them re-target. **Inside an expedition a dead hero's health is written as 0.**
@@ -307,18 +328,20 @@ Instant value effects (armor, heal) never reach this component.
 Hub (Node2D, Hub.gd)
 ├── TileMapLayer / decor
 ├── HubLocation x N        Area2D (HubLocation.gd) + CollisionShape2D + Sprite2D (assigned to `visual`), placed at FIXED positions
-└── CanvasLayer > HBoxContainer (ResourceBar.gd)   stock display
+└── CanvasLayer (layer 1) > HBoxContainer (ResourceBar.gd)   stock display
+(the menus are NOT in the scene: Hub.gd creates their CanvasLayer by code, layer 2)
 ```
 ### 7.2 Scripts
 * **`Hub`**: collects every `HubLocation` below it (group `hub_locations`), hides/shows them from the profile (`_apply_unlocks`, re-run on `profile.locations_changed`), **autosaves on open**, warns about missing buildings/locations (`_check_scene`).
-  Opens the menu of a clicked location on a CanvasLayer (layer 10) and disables clicks on the town meanwhile. Signals: `location_activated(location)` (also for places with no menu), `menu_opened`, `menu_closed`. `open_menu(location)`, `is_menu_open()`.
+  Opens the menu of a clicked location on a CanvasLayer created in `_ready()` (`_menu_layer`, **layer 2**, so that a menu can open its own sub-menu on a higher layer, see section 0) and disables clicks on the town meanwhile. Signals: `location_activated(location)` (also for places with no menu), `menu_opened`, `menu_closed`. `open_menu(location)`, `is_menu_open()`.
 * **`HubLocation`** (Area2D): exports `location_id` (= building id), `display_name`, `menu_scene`, `enabled`, `always_unlocked`, `visual`, `label_offset`. Hover tint + name label, click emits `activated`. `set_unlocked(bool)` (hidden and not clickable until unlocked), `set_interactive(bool)`.
 * **`HubMenu`** (Control, base class of every hub menu): `signal closed`, `close()`, optional `close_button` export, closes on Esc. Subclasses calling `_ready()` must call `super._ready()`. Menu root should fill the screen with Mouse Filter = Stop.
 * **`ResourceBar`** (HBoxContainer): lists owned resources ("Wood 12"), updates on `resources_changed`. `static describe(cost) -> String`.
 
 ### 7.3 Menus
-* **Gate** (`menu_gate.gd`, extends HubMenu): `TEAM_SIZE = 3`, `DEFAULT_EXPEDITION_ID = &"first_expedition"` (**destination selection not implemented**).
-  Exports: `hero_portrait_scene`, `hero_slot_scene`, `hero_grid` (GridContainer, 3 columns), `team_slots` (HBox, 1/3 vs 2/3 layout), `launch_button`, `close_button`, `portrait_aspect` (portrait height / width, default 1.0).
+* **Gate team menu** (`menu_gate.gd`, extends HubMenu): `TEAM_SIZE = 3`. It is now the **second step** of the gate: the destination is chosen first in the gate map (7.4).
+  `var expedition_id: StringName` (default `DEFAULT_EXPEDITION_ID = &"first_expedition"`, used only when the menu is opened alone for testing): **the opener sets it before `add_child`**. `launch()` uses it (`GameState.start_run(expedition_id, selected_team)`) and refuses (error) an unknown expedition.
+  Exports: `hero_portrait_scene`, `hero_slot_scene`, `hero_grid` (GridContainer, 3 columns), `team_slots` (HBox, 1/3 vs 2/3 layout), `launch_button`, `close_button`, `portrait_aspect` (portrait height / width, default 1.0), optional `title_label` (shows the chosen expedition's `display_name`).
   Scene: `LeftPanel` (PanelContainer) > VBox > Label + ScrollContainer (horizontal scroll off) > `HeroGrid`; `RightPanel` > `TeamSlots` + Footer (`BackButton`, `LaunchButton`).
   **Grid fit [U]**: `_setup_grid_fit()` / `_fit_grid()` size every portrait to `(scroll width - scrollbar room - gaps) / columns` so the columns fill the left panel, re-run on the scroll container's `resized`. The portrait's inner image must scale with it (TextureRect: Ignore Size + Keep Aspect Centered; Button icon: Expand Icon).
   Left: portraits of **unlocked** heroes only (`GameState.get_unlocked_heroes()`), `HeroPortrait` (Button with `%Badge` Label, toggled look = selected, number = pick order). Right: `HeroSlot` x3 (name, full sprite, stats) that share the width equally; clicking a filled slot removes the hero. Launch enabled only with 3 heroes → `GameState.start_run` + `SceneManager.go_to(&"expedition")`.
@@ -326,6 +349,43 @@ Hub (Node2D, Hub.gd)
   (Health / Armor / **Statuses** from `starting_statuses` via `_format_statuses()`, "-" if none / Cards).
 * **Carpentry** (`menu_carpentry.gd`, extends HubMenu) [U]: scene = Control with a close button and a VBox `%BuildingList`. Lists buildings whose requirements are met: name + level, description of the next level, cost, **Build/Upgrade** button (disabled if unaffordable). Purchase = `GameState.upgrade_building()`.
 * **Tavern / Forge**: buildings exist in data (via `tools/make_test_buildings.gd`) but **their menus are not written**.
+
+### 7.4 Gate map: expedition selection [T]
+Flow: gate building (`HubLocation`) → **`menu_gate_map`** (pick an expedition site, **Choose Team**) → **`menu_gate`** (pick the team, **Launch**).
+Files (project paths): `scenes/hub/gate/map/menu_gate_map.{gd,tscn}`, `scenes/world_map/expedition_site.tscn`, `scripts/hub/world_map/ExpeditionSite.gd`. The gate's `HubLocation.menu_scene` points to `menu_gate_map.tscn`.
+
+**Scene tree (`menu_gate_map.tscn`)**
+```
+map (Control, full rect, Mouse Filter Ignore, menu_gate_map.gd extends HubMenu)
+├── Backdrop (ColorRect)
+├── VBoxContainer
+│   ├── %TitleLabel, %BodyLabel, %StatusLabel     (info on the selected site)
+│   └── HBoxContainer: %BackButton, %ChooseTeamButton
+├── %UI (CanvasLayer, layer 10)                     the team menu is added here
+└── ExpeditionSiteNodes (plain node holding every ExpeditionSite instance)
+```
+Sites live under a dedicated `ExpeditionSiteNodes` node on purpose: `_ready()` calls `configure()` on **every child** of it, so a Backdrop or any non-site node among them would error.
+
+**`menu_gate_map.gd`**
+* `_ready()`: `super._ready()`, then for each child of `ExpeditionSiteNodes`: looks up `GameState.expeditions.get_expedition(site.expedition_id)`, calls `site.configure(data, ExpeditionSite.State.UNLOCKED, profile.is_expedition_completed(id))` when the data exists, and connects `site.selected`. `%ChooseTeamButton` starts disabled; `%BackButton` is connected to `close` (**or** assign `close_button` in the inspector, never both).
+* `_on_expedition_site_selected(site)`: deselects the previous site, selects this one, stores `selected_expedition_id`, enables Choose Team, fills the three labels (`display_name` from `site.expedition` once configured, a capitalised id otherwise).
+* `_on_choose_team_pressed()`: instantiates `MENU_GATE_SCENE` (`preload` by uid), sets `expedition_id` **before** adding it, connects its `closed` signal, adds it to `%UI`, sets Full Rect anchors, and turns the sites non interactive. When the gate menu closes (`closed` signal → `_on_gate_closed`): it frees the instance (safe if already freed) and makes the sites interactive again.
+* Closing: **Esc** closes the team menu first, then the map (each `HubMenu` closes itself on Esc); the **Back** button closes the map.
+
+**`ExpeditionSite`** (`@tool`, `class_name ExpeditionSite`, extends Area2D; instance `expedition_site.tscn` once per expedition)
+* Scene: `Area2D` with `%Visual` (Sprite2D), `%Collision` (CollisionShape2D) and `%NameLabel` (Label, hidden by default), unique names required. The click rectangle is rebuilt from the texture size times the sprite scale (`_apply_texture`).
+* Exports: `expedition_id` (the `ExpeditionData.id` it stands for), `texture`, `label_offset` (default `(0, 60)`).
+* `enum State { HIDDEN, TEASED, UNLOCKED }`. `UNLOCKED`: normal sprite, hover tint, name label on hover or selection (label shows the expedition name, plus " (done)" if completed). `TEASED`: black silhouette, label "???". `HIDDEN`: invisible and not clickable.
+* Signal `selected(site)` (left click). Methods: `configure(expedition, state, completed)`, `set_selected(bool)` (enlarges the sprite by `SELECTED_SCALE = 1.1` and shows the label), `set_interactive(bool)` (disables picking while a menu is open on top). Joins the group `expedition_sites` at runtime.
+* Clicks use `input_event` of the Area2D, so no `Control` above the sites may keep Mouse Filter = Stop over them (the map root and Backdrop are set to Ignore).
+
+**Authoring a new site**: instance `expedition_site.tscn` under `ExpeditionSiteNodes`, set `expedition_id` (must exist in the expedition catalog) and `texture`, move it. Sites placed with a different scale (the test map uses `scale = (5, 5)`) scale their collision with them.
+
+**Known issues / to do**
+* **Unlock conditions are not applied**: every site is configured as `UNLOCKED`. Planned: evaluate the expedition's conditions (3.6) to choose `UNLOCKED` / `TEASED` (clicking shows `describe()` of the missing conditions) / `HIDDEN`.
+* The test map has two sites that both use `first_expedition` (the second is a placeholder until a second expedition exists).
+* Temporary debug code is still in `ExpeditionSite.gd` (`print` calls in `_refresh()` and `_on_mouse_entered`, an `_unhandled_input` override printing every click) and in `menu_gate_map.gd` (a `print` of the gate size after opening): to remove when the map is validated.
+* **Layer bug met during development**: the team menu was invisible (only its buttons seemed to show) because the map's `%UI` layer (10) and the Hub's menu layer (also 10) were equal. Fixed by moving the Hub menu layer to 2 (see section 0).
 
 ---
 
@@ -421,6 +481,8 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 * **New status**: `StatusData.tres` with an `effect`, `duration_type`, icon, and the `debuff` box if it is negative. A genuinely new behaviour needs a new `Effect` value (appended at the end) handled in `Character.apply_status` / `StatusComponent`.
 * **Starting statuses on a character**: `CharacterData.starting_statuses` (status → stacks).
 * **New expedition**: `ExpeditionData.tres` with nodes (ids, types, `next_nodes`, lanes, encounters, `loot`), press **Validate graph**, add it to `data/expedition_catalog.tres`.
+* **New expedition site on the gate map**: instance `expedition_site.tscn` under `ExpeditionSiteNodes` of `menu_gate_map.tscn`, set `expedition_id` and `texture` (see 7.4). The expedition must be in `data/expedition_catalog.tres`.
+* **New unlock requirement**: new script extending `UnlockCondition` (see 3.6).
 * **New building**: `BuildingData.tres` (+ `BuildingLevel`s) in `data/building_catalog.tres`, and a `HubLocation` with the **same id** placed in the hub scene (fixed position), with a `menu_scene` extending `HubMenu`. Hub warns in Output when one side is missing.
 * **New hub menu**: scene with a script `extends HubMenu`, call `super._ready()` if overriding `_ready`, call `close()` when done.
 * **New objective**: see 4.9.
@@ -432,12 +494,13 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 * Status system: Bleeding, Stun, Evasion, armor, heal, cleanse exist. Missing: hover tooltips on icons, `USES` hooks other than Evasion (e.g. a vulnerability consumed on hit), dispel of buffs, partial cleanse, more statuses, auto-generated card descriptions.
 * A status applied to a character during its **own side's phase** decays at the end of that same phase (matters once enemies stun heroes).
 * `HealthComponent` still has unused evasion code (to remove).
-* Enemy attacks are a placeholder (`attack_damage`, `attack_range`); no attack patterns, enemies cannot apply statuses yet.
+* **Enemy attack patterns**: implemented by the developer **[D]**, not documented (this line used to say "placeholder attack"). Whether enemies can apply statuses was not confirmed.
 * `EncounterData.spawn_pattern` AMBUSH/AMBUSHED not implemented; spawn positions are marker nodes.
 * Movement and knockback are not clamped to the map; the TileMapLayer is decoration only.
-* Camp and event nodes are simple (camp = heal 30%; event = stub dialog). Gate has a fixed destination.
+* Camp and event nodes are simple (camp = heal 30%; event = stub dialog). The gate destination is now chosen on the gate map (7.4); unlock conditions are not applied there yet.
 * Tavern (buffs) and Forge menus are not written. Hero health upgrades are a TODO in `RunState.start()`.
 * Placeholder UI: text buttons for map nodes, code-built rows in lists, default font (blurry with pixel art), no audio, no settings menu. The health bar shows a number only (chunks every 10 points are planned).
+* Gate map: see 7.4 (unlock conditions not evaluated, debug prints left in on purpose, second test site reuses `first_expedition`).
 * Developer's local differences from the delivered files (see `PROJECT_CONTEXT.md` section 2): always ask for current files before editing `battle.gd`, `character.gd`, `CardInstance.gd`, `card_view.gd`, `main_menu.gd`, `HeroSlot.gd`, `CharacterData.gd`.
 
 ---
@@ -454,7 +517,8 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 | Statuses | `status_data.gd`, `status_component.gd` (new), `status_application.gd` |
 | Battle | `battle.gd`, `BattleObjective.gd`, `KillAllObjective.gd`, `BattleUI.gd`, `Hand.gd`, `TargetingController.gd`, `TargetingOverlay.gd` |
 | Expedition | `ExpeditionNode.gd`, `ExpeditionData.gd`, `EncounterData.gd`, `ExpeditionMap.gd`, `ExpeditionNodeButton.gd`, `expedition.gd` |
-| Hub | `Hub.gd`, `HubLocation.gd`, `HubMenu.gd`, `menu_gate.gd`, `HeroPortrait.gd`, `HeroSlot.gd`, `menu_carpentry.gd`, `ResourceBar.gd`, `BuildingData.gd`, `BuildingLevel.gd` |
+| Hub | `Hub.gd`, `HubLocation.gd`, `HubMenu.gd`, `menu_gate_map.gd` (+ `.tscn`), `ExpeditionSite.gd` (+ `expedition_site.tscn`), `menu_gate.gd`, `HeroPortrait.gd`, `HeroSlot.gd`, `menu_carpentry.gd`, `ResourceBar.gd`, `BuildingData.gd`, `BuildingLevel.gd` |
+| Unlock conditions | `UnlockCondition.gd`, `UnlockBuildingLevel.gd`, `UnlockCompletedExpedition.gd` |
 | Menus | `main_menu.gd` |
 | Editor tools | `tools/make_test_expedition.gd`, `tools/make_test_buildings.gd` |
 
@@ -473,3 +537,12 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 **Gate and expedition**
 1. Gate: three columns fill the left panel; resizing the window keeps them filling; the pick numbers and the team slots still work; heroes with `unlocked_by_default` appear even in an old save.
 2. `Expedition.tscn` rebuilt: the map, team panel and dialogs show again; the scripts are attached; a full expedition still works.
+
+**Gate map [T]** (confirmed by the developer)
+1. The gate building opens the map; Esc and the Back button close it.
+2. Picking a site enables Choose Team and updates the labels; Choose Team opens the team menu **above** the map with the hero grid and team slots visible.
+3. Esc in the team menu closes only the team menu; the launched expedition is the one of the selected site.
+
+**Gate map, still to verify [U]**
+1. After closing the team menu, the sites are clickable again and the selection is kept.
+2. With unlock conditions applied (once implemented): locked sites are teased/hidden and show what is missing.

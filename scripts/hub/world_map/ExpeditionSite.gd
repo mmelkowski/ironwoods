@@ -89,7 +89,8 @@ func _refresh() -> void:
 	input_pickable = _interactive and state != State.HIDDEN
 	visual.scale = _base_scale * (SELECTED_SCALE if _selected else 1.0)
 	visual.modulate = HOVER_COLOR if (_hovered and state == State.UNLOCKED) else Color.WHITE
-	name_label.visible = (_hovered or _selected) and state != State.HIDDEN
+
+	name_label.visible = true if state != State.HIDDEN else false
 
 
 func _apply_texture() -> void:

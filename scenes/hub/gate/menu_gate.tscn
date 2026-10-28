@@ -36,7 +36,7 @@ offset_right = 645.5
 offset_bottom = 352.5
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.4509804)
+color = Color(0, 0, 0, 0.95686275)
 
 [node name="Layout" type="HBoxContainer" parent="Backdrop" unique_id=330361259]
 layout_mode = 1
