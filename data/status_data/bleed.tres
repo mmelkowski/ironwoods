@@ -11,4 +11,5 @@ description = "Bleeding"
 icon = ExtResource("1_eqvh7")
 effect = 4
 debuff = true
+tick_damage = 5
 metadata/_custom_type_script = "uid://cf8nrmcbw5y70"

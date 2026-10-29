@@ -139,16 +139,27 @@ func apply_status(status: StatusData, stacks: int) -> void:
 
 
 ## One incoming hit: dodged by Evasion (returns 0), otherwise armor then health.
+## A hit that is not dodged wakes a sleeper, even if the armor absorbed all of it
+## (to wake only when health is lost, test `dealt > 0` instead of `amount > 0`).
+## Damage over time (Bleeding, Poison) does not come through here, so it never wakes.
 ## Returns the health actually lost. Battle uses this instead of health.take_damage().
 func take_hit(amount: int) -> int:
 	if status_component.try_dodge():
 		return 0
-	return health.take_damage(amount, false)
+	var dealt := health.take_damage(amount, false)
+	if amount > 0:
+		status_component.wake_up()
+	return dealt
 
 
 ## A stunned character cannot act (heroes: their cards can't be played; enemies skip their attack).
 func is_stunned() -> bool:
 	return status_component.is_stunned()
+
+
+## Stunned or asleep: cannot act. This is what Battle checks (cards and enemy turns).
+func is_incapacitated() -> bool:
+	return status_component.is_incapacitated()
 
 
 ## Makes the character look at a world position by flipping the sprite.

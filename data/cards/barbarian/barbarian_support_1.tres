@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cki6w7dqi5ddq"]
+
+[ext_resource type="Texture2D" uid="uid://cwyx5jyicgsd" path="res://assets/1-bit_pixel/Sprites_Cropped/Emoji/Emoji_Face_Angry_Anger.png" id="1_nvn7b"]
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_rbtaf"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_2qbh4"]
+[ext_resource type="Resource" uid="uid://civ0cr82cxx3m" path="res://data/status_application/rage_on_self.tres" id="2_nvn7b"]
+
+[resource]
+script = ExtResource("2_2qbh4")
+id = &"barbarian_support_1"
+display_name = "barbarian_support_1"
+description = "Generate 2 mana.
+Add 2 rage stacks."
+art = ExtResource("1_nvn7b")
+card_type = 1
+mana_generation = 2
+target_team = 2
+effects = Array[ExtResource("1_rbtaf")]([ExtResource("2_nvn7b")])
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatusData" format=3 uid="uid://cmjbsu8wg1w5q"]
+
+[ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="1_8sunf"]
+[ext_resource type="Texture2D" uid="uid://gesqgfpn2bo" path="res://assets/1-bit_pixel/Sprites_Cropped/RPG/RPG_Skull_Death_Dead_Bones_Pirates.png" id="1_q36xp"]
+
+[resource]
+script = ExtResource("1_8sunf")
+id = &"poison"
+display_name = "Poison"
+icon = ExtResource("1_q36xp")
+effect = 7
+debuff = true
+tick_damage = 10
+metadata/_custom_type_script = "uid://cf8nrmcbw5y70"

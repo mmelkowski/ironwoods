@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="StatusData" format=3 uid="uid://ml0tm0kxyea5"]
+
+[ext_resource type="Texture2D" uid="uid://k4kwgnjuoweq" path="res://assets/1-bit_pixel/Sprites_Cropped/Alchemy/Alchemy_Creation.png" id="1_ec7en"]
+[ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="2_vyo7v"]
+
+[resource]
+script = ExtResource("2_vyo7v")
+id = &"arcane_charge"
+display_name = "Arcane Charge"
+description = "Arcane Charge"
+icon = ExtResource("1_ec7en")
+debuff = true
+duration_type = 1
+decay_per_turn = 0
+metadata/_custom_type_script = "uid://cf8nrmcbw5y70"

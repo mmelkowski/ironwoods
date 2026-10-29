@@ -7,7 +7,7 @@ extends Node
 ## Everything else is stored here, evasion included.
 ##
 ## Turn timing (Battle calls these):
-##   start_of_turn()  -> damage over time (Bleeding)
+##   start_of_turn()  -> damage over time (Bleeding, Poison)
 ##   ...the owner's side plays (a stunned character can't act)...
 ##   end_of_turn()    -> TURNS statuses lose their decay
 
@@ -45,6 +45,27 @@ func is_stunned() -> bool:
 	return has_effect(StatusData.Effect.STUN)
 
 
+func is_asleep() -> bool:
+	return has_effect(StatusData.Effect.SLEEP)
+
+
+## Cannot act: stunned or asleep. Battle uses this to block cards and skip enemy turns.
+func is_incapacitated() -> bool:
+	return is_stunned() or is_asleep()
+
+
+## A hit woke the owner: removes every SLEEP status. Returns true if something was removed.
+func wake_up() -> bool:
+	var woke := false
+	for status: StatusData in stacks.keys():
+		if status.get_effect() == StatusData.Effect.SLEEP:
+			stacks.erase(status)
+			woke = true
+	if woke:
+		changed.emit()
+	return woke
+
+
 ## Evasion: true if the incoming hit is dodged. USES evasion loses one stack per dodge,
 ## TURNS evasion dodges every hit while it lasts.
 func try_dodge() -> bool:
@@ -80,15 +101,26 @@ func consume(status: StatusData, amount: int = 1) -> void:
 	changed.emit()
 
 
-## Bleeding: `stacks` damage straight to health. May kill the owner (HealthComponent.died).
+## Removes every stack of a status and returns how many there were (0 if it was not there).
+## For stacks that a card spends all at once (arcane charges).
+func consume_all(status: StatusData) -> int:
+	var amount := get_stacks(status)
+	if amount > 0:
+		consume(status, amount)
+	return amount
+
+
+## Damage over time, never dodged. BLEED: tick_damage x stacks. POISON: tick_damage, whatever the
+## stacks (see StatusData.get_tick_damage). Armor is ignored unless the status says otherwise.
+## May kill the owner (HealthComponent.died).
 func start_of_turn() -> void:
 	if _health == null:
 		return
 	for status: StatusData in stacks.keys():
 		if _health.is_dead():
 			return
-		if status.get_effect() == StatusData.Effect.BLEED:
-			_health.take_damage(stacks[status], false, status.bypass_armor)
+		if status.is_tick_effect():
+			_health.take_damage(status.get_tick_damage(get_stacks(status)), false, status.bypass_armor)
 
 
 ## TURNS statuses lose `decay_per_turn` stacks and disappear at 0.

@@ -11,7 +11,7 @@ extends Resource
 ## Suggested values:
 ##   MELEE   damage 5,  approach_distance 32
 ##   RANGED  damage 4,  approach_distance 160
-##   AOE     damage 6,  approach_distance 200, aoe_radius 80   (hits every hero in the circle)
+##   AOE     damage 6,  approach_distance 200, aoe_radius 180   (hits every hero in the circle)
 ##   BUFF    damage -,  approach_distance 150, effects on TARGET (the ally enemy) or SELF
 ##   DEBUFF  damage 0,  approach_distance 160, effects on TARGET (the hero), e.g. Bleeding / Stun
 ##   HEAVY   damage 15, approach_distance 32,  windup_turns 1

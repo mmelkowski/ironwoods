@@ -6,11 +6,11 @@
 [ext_resource type="Texture2D" uid="uid://dsp2m467kt5nc" path="res://assets/1-bit_pixel/Sprites_Cropped/Map/Map_Markers_Tree_Forest_Decidous_1.png" id="3_60vea"]
 [ext_resource type="Texture2D" uid="uid://cgin1stlud5s7" path="res://assets/1-bit_pixel/Sprites_Cropped/Map/Map_Markers_Tree_Forest_Decidous_Branches.png" id="3_o1s0j"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_60vea"]
-size = Vector2(13, 16)
-
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_o1s0j"]
-size = Vector2(12, 15)
+size = Vector2(65, 80)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_7bnwr"]
+size = Vector2(60, 75)
 
 [node name="map" type="Control" unique_id=2136784914 node_paths=PackedStringArray("close_button")]
 layout_mode = 3
@@ -110,10 +110,7 @@ scale = Vector2(5, 5)
 texture = ExtResource("3_60vea")
 
 [node name="Collision" parent="ExpeditionSiteNodes/ExpeditionSite" index="1" unique_id=481209631]
-shape = SubResource("RectangleShape2D_60vea")
-
-[node name="NameLabel" parent="ExpeditionSiteNodes/ExpeditionSite" index="2" unique_id=1524148418]
-visible = true
+shape = SubResource("RectangleShape2D_o1s0j")
 
 [node name="ExpeditionSite2" parent="ExpeditionSiteNodes" unique_id=39824610 instance=ExtResource("1_i64je")]
 position = Vector2(751, 378)
@@ -125,10 +122,7 @@ scale = Vector2(5, 5)
 texture = ExtResource("3_o1s0j")
 
 [node name="Collision" parent="ExpeditionSiteNodes/ExpeditionSite2" index="1" unique_id=481209631]
-shape = SubResource("RectangleShape2D_o1s0j")
-
-[node name="NameLabel" parent="ExpeditionSiteNodes/ExpeditionSite2" index="2" unique_id=1524148418]
-visible = true
+shape = SubResource("RectangleShape2D_7bnwr")
 
 [editable path="ExpeditionSiteNodes/ExpeditionSite"]
 [editable path="ExpeditionSiteNodes/ExpeditionSite2"]

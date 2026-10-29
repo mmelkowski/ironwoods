@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="CharacterData" format=3 uid="uid://bu2h8yru1iu8d"]
+
+[ext_resource type="Script" uid="uid://cyiubihrnsefw" path="res://scripts/battle/enemy_action/EnemyAction.gd" id="1_b5k5v"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_fjq6g"]
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="3_wol5t"]
+[ext_resource type="Resource" uid="uid://c72pmbyer4tgc" path="res://data/cards/barbarian/barbarian_attack_1.tres" id="3_yiwnw"]
+[ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="4_igayj"]
+[ext_resource type="Resource" uid="uid://ry0kqoa3pyhk" path="res://data/cards/barbarian/barbarian_attack_2.tres" id="4_o6dc7"]
+[ext_resource type="Resource" uid="uid://cki6w7dqi5ddq" path="res://data/cards/barbarian/barbarian_support_1.tres" id="5_0cipd"]
+[ext_resource type="Texture2D" uid="uid://lo8hamvapv4i" path="res://assets/32rogues/rogues.png" id="5_fjq6g"]
+[ext_resource type="Resource" uid="uid://pt2h5reh5esj" path="res://data/cards/barbarian/barbarian_mana_1.tres" id="6_oltwy"]
+[ext_resource type="Resource" uid="uid://dnodcq0kists1" path="res://data/status_data/rage.tres" id="9_dnol5"]
+
+[resource]
+script = ExtResource("3_wol5t")
+id = &"barbarian"
+display_name = "Barbarian"
+team = 0
+tileset = ExtResource("5_fjq6g")
+tile_coords = Vector2i(5, 3)
+max_health = 100
+starting_statuses = Dictionary[ExtResource("4_igayj"), int]({
+ExtResource("9_dnol5"): 1
+})
+deck = Array[ExtResource("2_fjq6g")]([ExtResource("3_yiwnw"), ExtResource("4_o6dc7"), ExtResource("5_0cipd"), ExtResource("6_oltwy")])
+metadata/_custom_type_script = "uid://y7hn1ijwr8yv"

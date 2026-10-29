@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatusData" format=3 uid="uid://dnodcq0kists1"]
+
+[ext_resource type="Texture2D" uid="uid://cwyx5jyicgsd" path="res://assets/1-bit_pixel/Sprites_Cropped/Emoji/Emoji_Face_Angry_Anger.png" id="1_l23u2"]
+[ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="1_tfw7b"]
+
+[resource]
+script = ExtResource("1_tfw7b")
+id = &"rage"
+display_name = "Rage"
+description = "Rage"
+icon = ExtResource("1_l23u2")
+duration_type = 1
+decay_per_turn = 0
+metadata/_custom_type_script = "uid://cf8nrmcbw5y70"

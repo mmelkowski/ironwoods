@@ -11,6 +11,5 @@ description = "thief_attack_3"
 damage = 10
 target_type = 2
 max_targets = 3
-select_radius = null
-chain_radius = 128.0
+chain_radius = 180.0
 metadata/_custom_type_script = "uid://j0prpwx7b06d"

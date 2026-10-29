@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="StatusApplication" format=3 uid="uid://dlhm0w7bu2rc3"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_erb2v"]
+[ext_resource type="Resource" uid="uid://dppehtocn7rkx" path="res://data/status_data/sleep.tres" id="2_rb0y2"]
+
+[resource]
+script = ExtResource("1_erb2v")
+status = ExtResource("2_rb0y2")
+stacks = 2
+metadata/_custom_type_script = "uid://1s4n8vmvkar7"

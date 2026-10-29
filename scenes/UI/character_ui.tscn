@@ -88,7 +88,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 label_settings = SubResource("LabelSettings_gdyo3")
 vertical_alignment = 1
-clip_text = true
 
 [node name="ArmorBar" type="ProgressBar" parent="HBoxContainer/VBoxContainer" unique_id=1258146831]
 unique_name_in_owner = true

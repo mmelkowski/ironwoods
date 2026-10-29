@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatusData" format=3 uid="uid://dppehtocn7rkx"]
+
+[ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="1_gbijf"]
+[ext_resource type="Texture2D" uid="uid://dsp0oon82ru8m" path="res://assets/1-bit_pixel/Sprites_Cropped/RPG/RPG_Debuff_Zzz_Sleep_Status.png" id="1_iqmup"]
+
+[resource]
+script = ExtResource("1_gbijf")
+id = &"sleep"
+display_name = "Sleep"
+description = "Sleep"
+icon = ExtResource("1_iqmup")
+effect = 8
+debuff = true
+metadata/_custom_type_script = "uid://cf8nrmcbw5y70"

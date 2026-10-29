@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://ge7tk3plxgv6"]
 
 [ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_rbyoa"]
+[ext_resource type="Resource" uid="uid://b3k3dupfifcqf" path="res://data/status_application/arcane_charge.tres" id="2_1u8eo"]
 [ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_po4xa"]
 
 [resource]
@@ -10,5 +11,6 @@ display_name = "wizard_attack_2 aoe"
 description = "wizard_attack_2 aoe"
 damage = 10
 target_type = 3
-aoe_radius = 128.0
+aoe_radius = 180.0
+effects = Array[ExtResource("1_rbyoa")]([ExtResource("2_1u8eo")])
 metadata/_custom_type_script = "uid://j0prpwx7b06d"

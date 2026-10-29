@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="StatusApplication" format=3 uid="uid://b3k3dupfifcqf"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_ldmr7"]
+[ext_resource type="Resource" uid="uid://ml0tm0kxyea5" path="res://data/status_data/arcane_charge.tres" id="2_rbvyy"]
+
+[resource]
+script = ExtResource("1_ldmr7")
+status = ExtResource("2_rbvyy")
+metadata/_custom_type_script = "uid://1s4n8vmvkar7"

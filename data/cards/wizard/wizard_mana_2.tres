@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cnfw8vuh0ijxw"]
+
+[ext_resource type="Resource" uid="uid://ml0tm0kxyea5" path="res://data/status_data/arcane_charge.tres" id="1_7rq85"]
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_vxr66"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_7rq85"]
+
+[resource]
+script = ExtResource("2_7rq85")
+id = &"wizard_mana_2"
+display_name = "Consume Arcane chages"
+description = "Consume Arcane chages.
+Deal 10 damage per stack."
+card_type = 2
+mana_cost = 2
+consume_status = ExtResource("1_7rq85")
+consume_amount = null
+bonus_damage_per_stack = 10
+consume_required = null
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

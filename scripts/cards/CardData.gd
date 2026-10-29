@@ -39,6 +39,21 @@ enum Knockback { NONE, STANDARD, FORCEFUL }
 ## Quick: the action point is refunded if this card kills at least one target.
 @export var quick: bool = false
 
+@export_group("Consume")
+## A status the caster spends when it plays this card, for example arcane charges (a status with
+## duration USES that other cards give to themselves). Empty = the card spends nothing.
+@export var consume_status: StatusData:
+	set(value):
+		consume_status = value
+		notify_property_list_changed()
+## How many stacks are spent at most (0 = all the caster has).
+@export_range(0, 99) var consume_amount: int = 0
+## Extra damage per stack spent. Added to the damage of every hit, before the critical multiplier.
+@export_range(0, 999) var bonus_damage_per_stack: int = 0
+## On: the card cannot be played unless the caster holds at least `consume_amount` stacks
+## (at least 1 when consume_amount is 0).
+@export var consume_required: bool = false
+
 @export_group("Targeting")
 @export var target_team: TargetTeam = TargetTeam.ENEMY
 @export var target_type: TargetType = TargetType.SINGLE:
@@ -113,5 +128,7 @@ func _validate_property(property: Dictionary) -> void:
 			hide = target_type != TargetType.AOE
 		"approach_angle":
 			hide = not use_approach_angle
+		"consume_amount", "bonus_damage_per_stack", "consume_required":
+			hide = consume_status == null
 	if hide:
 		property.usage = PROPERTY_USAGE_NO_EDITOR

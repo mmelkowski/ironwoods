@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://ry0kqoa3pyhk"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_jvt7t"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_hdaqg"]
+[ext_resource type="Resource" uid="uid://civ0cr82cxx3m" path="res://data/status_application/rage_on_self.tres" id="2_o7bxv"]
+
+[resource]
+script = ExtResource("2_hdaqg")
+id = &"barbarian_attack_2"
+display_name = "Quick slash"
+description = "Quick attack.
+Add 1 rage stack."
+damage = 20
+quick = true
+effects = Array[ExtResource("1_jvt7t")]([ExtResource("2_o7bxv")])
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

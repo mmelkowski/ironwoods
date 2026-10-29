@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://c72pmbyer4tgc"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_cuf5s"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_cvyci"]
+[ext_resource type="Resource" uid="uid://civ0cr82cxx3m" path="res://data/status_application/rage_on_self.tres" id="2_gkea5"]
+
+[resource]
+script = ExtResource("2_cvyci")
+id = &"barbarian_attack_1"
+display_name = "barbarian_attack_1 push"
+description = "barbarian_attack_1 push.
+Generate 1 rage stack."
+damage = 20
+knockback = 1
+effects = Array[ExtResource("1_cuf5s")]([ExtResource("2_gkea5")])
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

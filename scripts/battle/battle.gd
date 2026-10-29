@@ -226,9 +226,34 @@ func can_play_card(card: CardInstance) -> bool:
 		and actions_left > 0
 		and deck.hand.has(card)
 		and allies.has(card.caster)
-		and not card.caster.is_stunned()
+		and not card.caster.is_incapacitated()
 		and (card.data.card_type != CardData.Type.MANA or mana >= card.mana_cost)
+		and _has_required_charges(card)
 	)
+
+
+## Charges (stacks of CardData.consume_status) this card would spend right now: what the caster
+## holds, at most `consume_amount` (0 = no limit). 0 if the card consumes nothing.
+## The UI can use it to preview the bonus.
+func get_charges_to_spend(card: CardInstance) -> int:
+	var data := card.data
+	if data.consume_status == null:
+		return 0
+	var held := card.caster.status_component.get_stacks(data.consume_status)
+	return held if data.consume_amount <= 0 else mini(held, data.consume_amount)
+
+
+## Extra damage per hit the card would get from its charges right now (UI preview).
+func get_charge_bonus_damage(card: CardInstance) -> int:
+	return card.data.bonus_damage_per_stack * get_charges_to_spend(card)
+
+
+## False when the card needs charges (consume_required) and the caster has too few.
+func _has_required_charges(card: CardInstance) -> bool:
+	var data := card.data
+	if data.consume_status == null or not data.consume_required:
+		return true
+	return get_charges_to_spend(card) >= maxi(data.consume_amount, 1)
 
 
 ## Everyone the card could be aimed at.
@@ -313,6 +338,13 @@ func play_card(card: CardInstance, selected: Array[Character]) -> void:
 	if data.card_type == CardData.Type.MANA:
 		_set_mana(mana - card.mana_cost)
 
+	# 1b. Spend the charges once for the whole card (a chain or an AOE gives the same bonus to each
+	# hit). Done before the statuses of step 5, so a card can spend charges and give new ones.
+	var spent := get_charges_to_spend(card)
+	if spent > 0:
+		caster.status_component.consume(data.consume_status, spent)
+	var bonus_damage := data.bonus_damage_per_stack * spent
+
 	# 2. Move, hit and knock back
 	var killed: Array[Character] = []
 	var attacks := data.target_team == CardData.TargetTeam.ENEMY
@@ -324,13 +356,13 @@ func play_card(card: CardInstance, selected: Array[Character]) -> void:
 			if attacks:
 				await _approach(card, target)
 			var hit: Array[Character] = [target]
-			_deal_damage(card, hit, killed)
+			_deal_damage(card, hit, killed, bonus_damage)
 			await _knock_back(card, hit)
 	else:
 		# Attack cards walk to the first pick, then every target is hit at once
 		if attacks:
 			await _approach(card, selected[0])
-		_deal_damage(card, targets, killed)
+		_deal_damage(card, targets, killed, bonus_damage)
 		await _knock_back(card, targets)
 
 	# 5. Statuses, then mana, Quick refund and cleanup
@@ -448,11 +480,11 @@ func _approach(card: CardInstance, target: Character) -> void:
 
 
 ## One hit on each target (dodged by Evasion in the StatusComponent, then armor and health).
-## Characters that die are added to `killed`.
-func _deal_damage(card: CardInstance, targets: Array[Character], killed: Array[Character]) -> void:
-	if card.damage <= 0:
+## Characters that die are added to `killed`. `bonus` is the extra damage from spent charges.
+func _deal_damage(card: CardInstance, targets: Array[Character], killed: Array[Character], bonus: int = 0) -> void:
+	if card.damage + bonus <= 0:
 		return
-	var amount := roundi(card.damage * (CRIT_MULTIPLIER if card.critical else 1.0))
+	var amount := roundi((card.damage + bonus) * (CRIT_MULTIPLIER if card.critical else 1.0))
 	for target in targets:
 		var was_alive := not target.is_dead()
 		target.take_hit(amount)
@@ -511,7 +543,7 @@ func _run_enemy_turn() -> void:
 ## One enemy's turn: skip if stunned, charge if the action has a windup, otherwise carry out
 ## the planned action, then plan the next one (shown to the player during their turn).
 func _enemy_act(enemy: Character) -> void:
-	if enemy.is_stunned():
+	if enemy.is_incapacitated():  # stunned or asleep
 		return  # turn skipped (a windup does not progress either), the stun loses a stack at the end of the enemy phase
 	if not _intent_is_valid(enemy):
 		_plan_intent(enemy)

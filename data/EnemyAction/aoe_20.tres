@@ -10,4 +10,5 @@ display_name = "aoe_20"
 kind = 2
 damage = 20
 approach_distance = 64.0
+aoe_radius = 160.0
 metadata/_custom_type_script = "uid://cyiubihrnsefw"

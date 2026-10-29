@@ -7,14 +7,19 @@ This file documents **the code as delivered**: architecture, scripts, APIs, sign
 > **[T]**: phases 1 to 7 (hub buildings and carpentry included), the pause menu, saves, the status icon row (Evasion included) and the character UI placement/labels.
 > **[U]**: Bleeding / Stun ticking, Cleanse, armor/heal cards, the gate grid fit, the rebuilt `Expedition.tscn`.
 > **[T] added in this revision**: the gate map (expedition selection before the team selection): site picking, Choose Team, destination reaching the run, Back button, Esc closing the gate, Hub menu layer.
-> **[D]** = reported by the developer as implemented but **not described here yet** (the code was not shared with the documentation author).
+> **[D]** = exists in the project but its file was not shared with the documentation author (now only `tools/make_enemy_catalog.gd` and `CardData.closest_in_range`, which `battle.gd` calls).
 
 **Changes in this revision**
 * New **gate map** (section 7.4): the gate building now opens `menu_gate_map`, where the player picks an expedition on a map of `ExpeditionSite`s, then `menu_gate` for the team.
-* New `ExpeditionSite` (Area2D), `expedition_site.tscn` and the **unlock conditions** (`UnlockCondition` and subclasses, section 3.6). Conditions are defined but **not applied yet** by the gate map.
+* New `ExpeditionSite` (Area2D), `expedition_site.tscn` and the **unlock conditions** (`UnlockCondition` and subclasses, section 3.6). `ExpeditionData` has the matching `unlock_conditions` / `locked_display` / `unlock_hint` (3.4) and `PlayerProfile` the `completed_expeditions` list (2.3, saved). The conditions are defined but **not applied yet** by the gate map.
+* `ExpeditionData` also has enemy tags and a threat budget for generated fights (3.4).
 * `menu_gate.gd`: the destination is now `expedition_id` (set by the opener), no longer a constant. `title_label` export added.
 * `Hub.gd`: menus are opened on a dedicated `CanvasLayer` at **layer 2** (see the layer convention in section 0).
-* **Enemy attack patterns** were implemented by the developer after the last revision **[D]**: section 4.6 and section 14 still describe the old placeholder attack, to be updated once `battle.gd` is shared.
+* **Enemy actions and intents** (3.7, 4.6): enemies pick weighted `EnemyAction`s (melee, ranged, AOE, buff, debuff, heavy with wind-up), announce them as an `EnemyIntent` (head icon + name above the enemy, AOE circle on the ground), and carry them out on their next turn. Documented from `EnemyAction`, `EnemyIntent`, `IntentOverlay`, `CharacterData`, `character.gd` and `battle.gd`.
+* **Cards that spend a status** (arcane charges, 3.2 / 3.3b / 4.4b): `CardData.consume_status`, `consume_amount`, `bonus_damage_per_stack`, `consume_required`; `Battle.get_charges_to_spend` / `get_charge_bonus_damage`.
+* **Statuses: Sleep** (3.3): like Stun, but any hit that damages the sleeper removes it (`Character.take_hit` → `StatusComponent.wake_up`). `Battle` now checks `is_incapacitated()` instead of `is_stunned()`.
+* **Statuses: scaling Bleeding and Poison** (3.3, 5.3): `StatusData.tick_damage`; Bleeding now deals `tick_damage x stacks`, a new `POISON` effect deals a flat `tick_damage`; `StatusComponent.consume_all` added for stacks spent by cards (arcane charges, planned, 3.3b).
+* **Generated encounters** (3.8): `EncounterData.fill_with_pool`, `EnemyCatalog` and `EncounterGenerator` build a fight from the expedition's enemy tags and a threat budget.
 
 ---
 
@@ -82,9 +87,10 @@ Catalog paths (const): `res://data/hero_catalog.tres`, `res://data/expedition_ca
 | `end_run(completed) -> {"loot", "bonus"}` | Moves the run loot into the profile (**always 100%**), adds `completion_bonus` only if `completed`, clears the run, **saves**. |
 
 ### 2.3 `PlayerProfile` (RefCounted, persistent)
-Fields: `unlocked_heroes: Array[StringName]`, `resources: Dictionary` (id → int), `unlocked_locations: Array[StringName]`, `upgrade_levels: Dictionary` (building id → level).
+Fields: `unlocked_heroes: Array[StringName]`, `resources: Dictionary` (id → int), `unlocked_locations: Array[StringName]`, `upgrade_levels: Dictionary` (building id → level), `completed_expeditions: Array[StringName]` (expeditions finished at least once).
 Signals: `resources_changed`, `locations_changed`.
-Methods: `unlock_hero`, `is_hero_unlocked`, `get_resource`, `add_resource`, `can_afford(cost)`, `spend(cost) -> bool`, `unlock_location`, `is_location_unlocked`, `get_upgrade_level`, `set_upgrade_level`, `is_expedition_completed(expedition_id)` **[D]** (used by `UnlockCompletedExpedition` and the gate map; its storage and how it is saved were not shared), `to_dict()`, `static from_dict(d)`.
+Methods: `unlock_hero`, `is_hero_unlocked`, `get_resource`, `add_resource`, `can_afford(cost)`, `spend(cost) -> bool`, `unlock_location`, `is_location_unlocked`, `get_upgrade_level`, `set_upgrade_level`, `complete_expedition(id)` (idempotent), `is_expedition_completed(id)` (used by `UnlockCompletedExpedition` and the gate map), `to_dict()`, `static from_dict(d)`.
+`completed_expeditions` is saved (`"completed_expeditions"`); a save from an older version simply has none. **Who calls `complete_expedition` was not shared** (expected: `GameState.end_run(true)`; to verify, see the checklist).
 A building is "built" when its location is unlocked and its level is ≥ 1.
 
 ### 2.4 `RunState` (RefCounted, temporary, serializable)
@@ -110,7 +116,9 @@ Methods: `static start(expedition_id, heroes)` (heroes at full `max_health`, TOD
 | `max_health`, `starting_armor` | Armor is a health layer, not a status. |
 | `starting_statuses: Dictionary[StatusData, int]` | Statuses applied at spawn through `Character.apply_status` (e.g. Evasion 2, Bleeding 1). Replaces the removed `starting_evasion`. |
 | `deck: Array[CardData]` | Heroes: cards added to the shared pile. |
-| `attack_damage`, `attack_range` | Enemies: **placeholder** default attack. |
+| `actions: Dictionary[EnemyAction, int]` | Enemies: what it can do on its turn, **action → weight** (higher = more often; `{goblin_stab: 3, goblin_throw: 1}` stabs 3 times out of 4). One usable action is picked at random each turn (rules in 4.6: negative weight counts as 0, all weights 0 = equal chances, a 0 next to positive weights is never picked). **No action = a basic melee attack with a warning** (replaces the removed `attack_damage` / `attack_range`). See 3.7. |
+| `tags: Array[StringName]` | Enemies: where it lives ("forest", "catacombs"). It can be picked for an expedition sharing at least one of its `enemy_tags` (3.4). |
+| `threat` (1 to 99) | Enemies: cost in the threat budget of a generated battle (goblin 2, hobgoblin 6...). A strong enemy never appears while the budget is lower. |
 Helpers: `get_sprite_texture()`, `get_head_texture(size := 16x16)` (AtlasTexture crops, clamped inside the sprite).
 
 ### 3.2 `CardData` (static card, shared) and `CardInstance` (runtime)
@@ -119,6 +127,7 @@ Helpers: `get_sprite_texture()`, `get_head_texture(size := 16x16)` (AtlasTexture
 * Type & mana: `card_type` (`ATTACK`/`SUPPORT`/`MANA`), `mana_generation` (hidden for MANA), `mana_cost` (MANA only).
 * Damage: `damage`, `knockback` (`NONE`/`STANDARD`/`FORCEFUL`), `critical`.
 * Rules: `quick`.
+* Consume (all hidden except `consume_status` while it is empty): `consume_status: StatusData` (a status the caster spends when playing the card, e.g. arcane charges), `consume_amount` (0 = all the caster has), `bonus_damage_per_stack` (added to **each hit**, before the critical multiplier), `consume_required` (the card cannot be played unless the caster holds at least `consume_amount` stacks, at least 1 when it is 0). See 3.3b.
 * Targeting: `target_team`, `target_type`, `max_targets` (MULTIPLE/CHAINED), `select_radius` (MULTIPLE, 0 = unlimited), `chain_radius` (CHAINED), `aoe_radius` (AOE). All radii in **pixels**.
 * Movement: `approach_distance` (max distance to the target, default 32), `use_approach_angle`, `approach_angle` (degrees, relative to the direction the caster comes from; 0 same side, 180 behind, ±90 flanks; positive = clockwise on screen).
 * Effects: `effects: Array[StatusApplication]`.
@@ -133,11 +142,12 @@ Helpers: `get_sprite_texture()`, `get_head_texture(size := 16x16)` (AtlasTexture
 | Field | Notes |
 |---|---|
 | `id`, `display_name`, `description`, `icon` | The icon is shown in the character's status row. |
-| `effect: Effect` | `NONE, ARMOR, HEAL, EVASION, BLEED, STUN, CLEANSE`. **Append only** (saved as integers). Decides the behaviour (below). |
-| `debuff: bool` | Marks a negative status so `CLEANSE` removes it. `BLEED` and `STUN` are always debuffs. |
+| `effect: Effect` | `NONE, ARMOR, HEAL, EVASION, BLEED, STUN, CLEANSE, POISON, SLEEP`. **Append only** (saved as integers). Decides the behaviour (below). |
+| `debuff: bool` | Marks a negative status so `CLEANSE` removes it. `BLEED`, `POISON`, `STUN` and `SLEEP` are always debuffs. |
 | `duration_type: DurationType` | `TURNS` (decays at the end of the owner's side phase) or `USES` (only consumed). Hidden for instant effects. |
 | `decay_per_turn` | TURNS only, default 1 (0 = never expires). |
-| `bypass_armor` | BLEED only, default true (damage goes straight to health). |
+| `tick_damage` (0 to 999, default 1) | BLEED / POISON: damage dealt at the start of the owner's turn (BLEED: `tick_damage x stacks`; POISON: `tick_damage`, see below). A resource saved before this field existed gets 1, so an old Bleeding keeps dealing `stacks` damage. |
+| `bypass_armor` | BLEED / POISON, default true (damage goes straight to health). |
 
 What `stacks` means per effect:
 
@@ -146,23 +156,32 @@ What `stacks` means per effect:
 | `ARMOR` | armor points added (50 = +50 armor, 1 point = 1 hp), instant | `HealthComponent` |
 | `HEAL` | health restored, instant | `HealthComponent` |
 | `CLEANSE` | ignored (use 1; 0 is filtered out before the effect), removes all debuffs from the target, instant | `StatusComponent` |
-| `BLEED` | damage per tick at the start of the owner's turn, then `- decay_per_turn` | `StatusComponent` |
+| `BLEED` | **intensity**: each start of the owner's turn it deals `tick_damage x stacks`, then loses `decay_per_turn` (stack more = hits harder, e.g. `tick_damage` 2, Bleeding 3: 6, then 4, then 2) | `StatusComponent` |
+| `POISON` | **duration only**: each start of the owner's turn it deals a flat `tick_damage` whatever the stacks, then loses `decay_per_turn` (more stacks = lasts longer, never stronger: spread it over several enemies) | `StatusComponent` |
 | `STUN` | turns skipped, `- decay_per_turn` per turn | `StatusComponent` |
+| `SLEEP` | same as STUN (cannot act, `- decay_per_turn` per turn) **but removed at once when the owner is hit**: any hit that is not dodged (even if armor absorbs it) wakes it. Bleeding / Poison ticks do not wake it. Cleanse removes it | `StatusComponent` |
 | `EVASION` | `USES`: each stack dodges one hit (consumed); `TURNS`: dodges every hit while it lasts | `StatusComponent` |
-| `NONE` | plain marker | `StatusComponent` |
+| `NONE` | plain marker; with `USES` duration it is also how a **stack that cards consume** (arcane charges) is authored: it never decays | `StatusComponent` |
 
-Helpers: `get_effect()` (an old resource with effect `NONE` and id `&"evasion"` still counts as EVASION), `is_value_effect()` (ARMOR/HEAL), `is_debuff()`,
-`get_display_number(stacks)` (turns left = `ceil(stacks / decay_per_turn)` for expiring TURNS statuses, otherwise the stacks: the number drawn on the icon).
+Helpers: `get_effect()` (an old resource with effect `NONE` and id `&"evasion"` still counts as EVASION), `is_value_effect()` (ARMOR/HEAL), `is_debuff()` (BLEED, POISON, STUN, SLEEP or the `debuff` box), `is_tick_effect()` (BLEED or POISON), `get_tick_damage(stacks)` (0 for other effects),
+`get_display_number(stacks)` (the number drawn on the icon: **the stacks for BLEED** (the intensity); otherwise the turns left = `ceil(stacks / decay_per_turn)` for expiring TURNS statuses, or the stacks).
 
 `StatusApplication`: `trigger` (`ON_PLAY`/`ON_KILL`), `recipient` (`TARGET`/`SELF`), `status`, `stacks`. With ON_KILL only SELF makes sense. **Stacks must be >= 1.**
-Resources to author: `armor`, `heal`, `cleanse` (instant), `bleeding` (BLEED, TURNS, decay 1), `stun` (STUN, TURNS, decay 1), `evasion` (EVASION, **USES**), plus an icon each.
+Resources to author: `armor`, `heal`, `cleanse` (instant), `bleeding` (BLEED, TURNS, decay 1, `tick_damage` as wanted), `poison` (POISON, TURNS, decay 1, `tick_damage` e.g. 4), `stun` (STUN, TURNS, decay 1), `sleep` (SLEEP, TURNS, decay 1), `evasion` (EVASION, **USES**), plus an icon each.
+
+### 3.3b Status roadmap: Poison and arcane charges
+* **Poison**: done at the data level (`POISON` effect, flat `tick_damage`, duration = stacks). Author `poison.tres` and give it to a card or an enemy `EnemyAction` like Bleeding. [U]
+* **Arcane charges (stack, then spend)** [U]: authored as a status with effect `NONE` and duration `USES` (never decays, shown with its stack count). Cards **give** it with a `StatusApplication` on SELF (recipient `SELF`, trigger `ON_PLAY`), and other cards **spend** it with the `CardData` "Consume" fields (3.2). At resolution (`Battle.play_card`, step 2b) the stacks are read and spent **once per card**: `spent = min(held, consume_amount)` (`consume_amount` 0 = all), removed with `status_component.consume`, and every hit gets `bonus_damage_per_stack x spent`. A chain or an AOE gives the same bonus to each of its hits. A card with 0 base damage and a bonus still hits. The spending happens **before** the card's own statuses, so a card can spend charges and give new ones. `get_charges_to_spend(card)` and `get_charge_bonus_damage(card)` are public so the card UI can preview the bonus (not done yet). Only damage uses the charges for now; other consumers (extra healing, a status consumed on hit, extra effects per charge) can reuse `get_charges_to_spend`.
 
 ### 3.4 Expedition data
 * `ExpeditionNode` (`@tool`): `id`, `type` (`START, BATTLE, BOSS, CAMP, EVENT, END`), `title`, `description`, `next_nodes: Array[StringName]`, `encounter` (BATTLE/BOSS), `loot: Dictionary[StringName,int]`, `lane` (-1 top … 1 bottom, map layout hint). `has_encounter()`.
-* `EncounterData` (`@tool`): `enemies: Array[CharacterData]`, `objective_scene: PackedScene` (root extends `BattleObjective`; empty = kill all), `spawn_pattern` (`STANDARD, AMBUSH, AMBUSHED`; only STANDARD implemented).
-* `ExpeditionData` (`@tool`): `id`, `display_name`, `description`, `goal`, `completion_bonus: Dictionary[StringName,int]`, `nodes`.
-  Helpers: `get_node_by_id`, `get_start`, `get_end_nodes`, `get_next_nodes(id)`, `get_depths()` (column per node, longest path), `validate() -> Array[String]`
-  (unique ids, exactly one START, ≥ 1 END, valid links, no cycle, no dead end, all reachable, battles have enemies). An inspector button "Validate graph" prints the result.
+* `EncounterData` (`@tool`): `enemies: Array[CharacterData]` (always present; the whole fight when `fill_with_pool` is off), `fill_with_pool: bool` (add enemies from the expedition's pool until the threat budget is spent, see 3.8), `objective_scene: PackedScene` (root extends `BattleObjective`; empty = kill all), `spawn_pattern` (`STANDARD, AMBUSH, AMBUSHED`; only STANDARD implemented).
+* `ExpeditionData` (`@tool`): `id`, `display_name`, `description`, `goal` (shown in the gate menu), `completion_bonus: Dictionary[StringName,int]`, `nodes`, plus three groups:
+  * **Unlock**: `unlock_conditions: Array[UnlockCondition]` (all must be met; empty = always available), `locked_display` (`enum LockedDisplay { HIDDEN, TEASED }`, what the map shows while locked), `unlock_hint` (text of a teased site; empty = built from the conditions' `describe()`).
+  * **Enemies**: `enemy_tags: Array[StringName]` (tags of the enemies living here), `base_budget` (threat budget of a battle at depth 0, default 2), `budget_per_depth` (added per column, default 2). Used by generated fights: `EncounterData.fill_with_pool`, `EnemyCatalog.get_pool(tags)` (matches `CharacterData.tags`) and `CharacterData.threat` (3.1). See 3.8 for `EnemyCatalog` and `EncounterGenerator`.
+  * **Graph**: `nodes`.
+  Helpers: `get_node_by_id`, `get_start`, `get_end_nodes`, `get_next_nodes(id)`, `get_depths()` (column per node, longest path), `get_budget(node)` (`base_budget + budget_per_depth * depth + node.difficulty_bonus`, never below 0), `get_enemy_pool()` (enemies of the `EnemyCatalog` sharing a tag; empty if there is no catalog), `validate() -> Array[String]`
+  (empty unlock condition entries, unique ids, exactly one START, ≥ 1 END, valid links, no cycle, no dead end, all reachable, battles have enemies or `fill_with_pool`; then, for generated fights: a catalog exists, the tags match at least one enemy, and the budget can pay the cheapest enemy). An inspector button "Validate graph" prints the result.
 * `ExpeditionCatalog`: `expeditions`, `get_expedition(id)`, `validate()`.
 
 ### 3.5 Building data (hub)
@@ -176,8 +195,45 @@ Requirements for an expedition location of the map to be available. Authored in 
 * `UnlockBuildingLevel`: `building_id`, `level` (1 to 20). Met when `profile.get_upgrade_level(building_id) >= level`. `describe()`: "Build the X" / "Upgrade the X to level N" (name from `GameState.buildings`).
 * `UnlockCompletedExpedition`: `expedition_id`. Met when `profile.is_expedition_completed(expedition_id)`. `describe()`: `Complete "Name"`.
 * To add a kind of requirement (a hero unlocked, an amount of a resource...): new script extending `UnlockCondition`, override `is_met` and `describe`. It then appears in the list.
-* The `UnlockCondition` header says the list lives in an `unlock_conditions` field of `ExpeditionData` **[D]** (that file was not shared, so the field and who evaluates it are not documented here).
-**Currently the gate map shows every site as `UNLOCKED`**: conditions are not evaluated yet (see 7.4, "To do").
+* The list lives in `ExpeditionData.unlock_conditions` (3.4), with `locked_display` and `unlock_hint` for what the map shows while it is locked. `validate()` flags empty entries.
+**Nothing evaluates the list yet**: the gate map shows every site as `UNLOCKED` (see 7.4, "To do").
+
+### 3.7 Enemy actions (`EnemyAction`, `EnemyIntent`, `IntentOverlay`) [T]
+**`EnemyAction`** (`@tool` Resource, one `.tres` per action, listed in `CharacterData.actions` with a weight). Fields:
+| Field | Notes |
+|---|---|
+| `id`, `display_name` | Name shown next to the enemy while the action is planned. Empty = the kind name. |
+| `kind: Kind` | `MELEE, RANGED, AOE, BUFF, DEBUFF, HEAVY`. **Append only if actions are stored in saved data** (they are not saved today: an intent is runtime only). Changing it refreshes the inspector (fields are hidden per kind). |
+| `damage` | Damage of each hit. Hidden for BUFF (`get_damage()` returns 0 for it). **Default 5: a DEBUFF must be set to 0 by hand.** |
+| `approach_distance` (px, default 32) | The enemy walks until it is at most this far from its target (or from the AOE spot). Already close enough: it does not move. |
+| `aoe_radius` (AOE only, default 80) | Radius of the ground circle; every hero inside is hit. |
+| `windup_turns` (HEAVY only, 0 to 10, default 1) | Enemy turns spent charging before the strike (1 = does nothing this turn, hits on the next one). `get_windup_turns()` is 0 for every other kind. |
+| `can_target_self` (BUFF only) | The buffing enemy may pick itself. |
+| `effects: Array[StatusApplication]` | Statuses applied when the action resolves. Recipient `TARGET` = who is hit (or the buffed enemy), `SELF` = the enemy. **Only effects whose trigger is `ON_PLAY` are applied** by `Battle._apply_action_effects` (any other trigger is skipped), so leave the trigger on `ON_PLAY`. |
+
+Suggested values (from the script): MELEE damage 5 / distance 32; RANGED 4 / 160; AOE 6 / 200 / radius 80; BUFF distance 150, effects on TARGET or SELF; DEBUFF damage 0 / 160, effects on TARGET (Bleeding, Stun...); HEAVY 15 / 32 / wind-up 1.
+Helpers: `get_damage()`, `get_windup_turns()`, `targets_own_side()` (true for BUFF only: everything else aims at the heroes), `get_intent_text(windup_left)` (name, plus the wind-up turns left: "Heavy 1"), `get_color()` (text color above the enemy: BUFF green, DEBUFF violet, HEAVY orange, AOE red, others white).
+
+**`EnemyIntent`** (RefCounted, runtime only, never saved): what an enemy decided for its **next** turn. Created by `Battle._plan_intent`, stored in `Character.intent`. Fields: `action`, `target: Character` (the hero to hit, or the enemy to buff; **null for AOE**), `spot: Vector2` (AOE only: circle center, **fixed when the intent is planned**, so heroes can walk out of it), `windup_left` (starts at `action.get_windup_turns()`). `get_text()`.
+
+**`IntentOverlay`** (Node2D, `class_name IntentOverlay`): draws the ground circle (`aoe_radius`, translucent red fill plus an edge) of the AOE intent of every enemy in `battle.enemies`. **Created by code in `Battle._ready()`**, inserted just before `%Allies` so the circles are drawn under the characters; `battle` is set by Battle before it enters the tree; it redraws on `battle.intents_changed`. Nothing to build in the editor.
+
+**Pipeline** (from the script comments): the enemy **plans** an action and shows it to the player (text above it, AOE circle, target) → on its **next turn** it walks within `approach_distance` of the target (or of the spot), deals `damage`, applies `effects`. A HEAVY first spends `windup_turns` turns charging. How `Battle` does all this: 4.6.
+
+### 3.8 Generated encounters (`EncounterData`, `EnemyCatalog`, `EncounterGenerator`) [U]
+**`EncounterData`** (`@tool` Resource, stored in a BATTLE/BOSS node): `enemies` (guaranteed enemies, e.g. a boss), `fill_with_pool` (add more from the pool), `objective_scene` (root extends `BattleObjective`; empty = kill all), `spawn_pattern` (`STANDARD` only; `AMBUSH` / `AMBUSHED` are placeholders for `Battle._get_spawn_position`). Leave `enemies` empty for a normal generated fight.
+
+**`EnemyCatalog`** (`@tool` Resource, one file: `res://data/enemy_catalog.tres`, constant `PATH`; built by `tools/make_enemy_catalog.gd` (not shared) or filled by hand): `enemies: Array[CharacterData]`. `get_enemy(id)`, `get_pool(tags) -> Array[CharacterData]` (ENEMY team characters sharing at least one tag), `validate()` (pushes a warning per problem: empty entry, no id, duplicated id, not on the ENEMY team, `threat < 1`). Enemies used only in hand-made encounters do not have to be listed.
+
+**`EncounterGenerator`** (RefCounted, static): `build_enemies(expedition, node, run_seed, max_enemies = DEFAULT_MAX_ENEMIES (6))`. Called by `Battle._start_from_run()` with `GameState.run.rng_seed` and the number of `%EnemySpawns` markers as `max_enemies`.
+1. No encounter on the node: empty list. Starts with `encounter.enemies`; without `fill_with_pool` that is the result.
+2. Budget = `expedition.get_budget(node)` (`base_budget + budget_per_depth * depth + node.difficulty_bonus`) minus the `threat` of the guaranteed enemies.
+3. Pool = `expedition.get_enemy_pool()`. Empty pool: a warning (no enemy matches the tags), nothing added.
+4. Otherwise `_fill`: random number generator seeded with `hash("%d:%s" % [run_seed, node.id])`, so **the same node gives the same enemies during one run** (reloading a save cannot reroll a fight) and runs differ. It tries `ATTEMPTS = 8` random compositions: each repeatedly picks a **uniformly random affordable enemy** (`threat <= remaining budget`) until the free slots (`max_enemies` minus guaranteed enemies) are full or nothing is affordable, and keeps the composition that spends the most budget (the first one on a tie). A strong enemy therefore never appears while the budget is below its `threat`.
+5. If the result is still empty (budget below the cheapest enemy and no guaranteed enemy), the cheapest enemy of the pool is used: **never an empty battle**.
+6. Debug builds print `Encounter '<node id>': budget N -> enemy ids`.
+Also `load_catalog()` (loads `EnemyCatalog.PATH`, `push_error` and an empty catalog if missing or of the wrong type); `build_enemies` itself reads the pool through `ExpeditionData.get_enemy_pool()`.
+Note: a hand-made fight with more enemies than `%EnemySpawns` markers reuses markers (`index % count` in `_get_spawn_position`), so the extra enemies stand on top of others.
 
 ---
 
@@ -196,7 +252,7 @@ Battle (Node2D, battle.gd)           exports: character_scene (developer's copy 
 Set full-screen HUD containers to Mouse Filter = Ignore (otherwise characters can't be clicked).
 
 ### 4.2 Signals
-`phase_changed(phase)`, `turn_started(turn)`, `actions_changed(n)`, `mana_changed(n)`, `character_clicked(character)`, `intents_changed`, `card_played(card)`, `objective_updated`, `battle_ended(victory)`.
+`phase_changed(phase)`, `turn_started(turn)`, `actions_changed(n)`, `mana_changed(n)`, `character_clicked(character)`, `intents_changed` (an intent was planned, re-aimed or cleared: `IntentOverlay` redraws), `card_played(card)`, `objective_updated`, `battle_ended(victory)`.
 `enum Phase { SETUP, PLAYER_TURN, RESOLVING, ENEMY_TURN, ENDED }`. Constants: `ACTIONS_PER_TURN = 3`, `CRIT_MULTIPLIER = 1.5`, `KNOCKBACK_DISTANCE` (48/96), `MOVE_TIME`, `KNOCKBACK_TIME`, `ENEMY_ACTION_DELAY = 0.4`, `PLACEMENT_*`.
 
 ### 4.3 Start-up
@@ -207,30 +263,56 @@ Heroes spawn with their carried-over health (`Character.setup(data, start_health
 
 ### 4.4 Public API (used by UI)
 `can_play_card(card)`, `get_valid_targets(card)`, `get_max_picks(card)`, `allows_repeat_picks(card)` (CHAINED), `get_pickable_targets(card, selected)`, `is_valid_selection(card, selected)`,
-`get_affected_targets(card, selected)` (AOE expansion), `find_approach_position(card, from, target)`, `get_approach_positions(card, selected)` (preview of where the caster will stand),
+`get_charges_to_spend(card)`, `get_charge_bonus_damage(card)` (charges the card would spend now / the extra damage per hit, for previews), `get_affected_targets(card, selected)` (AOE expansion), `find_approach_position(card, from, target)`, `get_approach_positions(card, selected)` (preview of where the caster will stand),
 `play_card(card, selected)` (**coroutine, `await` it**), `end_player_turn()` (coroutine), `leave_battle()`.
 Fields: `allies`, `enemies` (living only), `deck` (CardDeck), `phase`, `turn`, `actions_left`, `mana`, `encounter`, `objective`.
 
 ### 4.4b `play_card` pipeline
 1. Guard (`can_play_card` + `is_valid_selection`), phase `RESOLVING`.
-2. Pay: one action; mana for MANA cards.
+2. Pay: one action; mana for MANA cards. **2b. Spend the charges** (`consume_status`): `get_charges_to_spend`, `status_component.consume`, `bonus_damage` computed once.
 3. If target team is ENEMY: caster walks (`_approach`: face target, tween to the free approach position, face again). Chain: hop by hop (each target: walk → hit → knockback, skipping dead ones); other types: walk to the first pick, then hit all affected targets at once.
-4. `_deal_damage`: per target, crit multiplier, **`Character.take_hit(amount)`** (evasion check, then armor, then health); kills detected with a "was alive" check (a chain can list a target several times).
+4. `_deal_damage(card, targets, killed, bonus)`: per target, `(card.damage + bonus)` times the crit multiplier, **`Character.take_hit(amount)`** (evasion check, then armor, then health); kills detected with a "was alive" check (a chain can list a target several times).
 5. `_knock_back` (survivors), `_apply_effects` (ON_PLAY SELF once, TARGET per living target; ON_KILL SELF once per kill).
 6. Mana gain (non-MANA cards), Quick refund if a kill, discard, `card_played`, free dead, update facings, `_check_battle_end()`; else back to `PLAYER_TURN`.
 
 ### 4.5 Free-position search (placement)
 `_find_free_position(ideal, center, mover)`: starting from the ideal spot around the target, test spots every 15° alternating sides (+15, −15, +30…); if the whole circle is blocked, grow the distance by the mover's radius (`shape.radius`), up to 4 rings; fallback to the ideal spot. Obstacles = every living character except the mover (including the target). Used by cards, previews and enemy attacks.
 
-### 4.6 Enemy turn
-> **Outdated [D]:** the developer implemented enemy **attack patterns** after this was written (the placeholder `attack_damage` / `attack_range` attack described below is the old behaviour). `battle.gd` and the enemy data were not shared; this section has to be rewritten from the current code.
-Order: phase `ENEMY_TURN` → `_start_of_turn_statuses(enemies)` (Bleeding, deaths freed, battle end checked) → for each enemy `_enemy_attack` → `_end_of_turn_statuses(enemies)` → `_start_player_turn()`.
-`_enemy_attack`: **a stunned enemy returns immediately (skips its turn)**; otherwise ensure `intent_target` is alive (else re-assign), walk to a free position within `attack_range`, face the target, `target.take_hit(attack_damage)`, free dead, update facings, re-assign a new random target for next turn (`_assign_target`, which also turns the enemy and emits `intents_changed`), wait `ENEMY_ACTION_DELAY` (**`create_timer(delay, false)`: frozen by the pause menu**), check the end of the battle.
-Allies who die are removed from lists, hidden, their cards removed from the deck, enemies aiming at them re-target. **Inside an expedition a dead hero's health is written as 0.**
+### 4.6 Enemy turn and intents [T, reported by the developer]
+**Flow.** `end_player_turn()` → `_end_of_turn_statuses(allies)` → `await _run_enemy_turn()`: phase `ENEMY_TURN` → `_start_of_turn_statuses(enemies)` (Bleeding; deaths freed; battle end checked) → for each enemy still alive (`enemies.duplicate()`): `await _enemy_act(enemy)`, `_check_battle_end()`, wait `ENEMY_ACTION_DELAY` (0.4 s, `create_timer(delay, false)`: **frozen by the pause menu**) → `_end_of_turn_statuses(enemies)` → `_start_player_turn()`.
+
+**`_enemy_act(enemy)`**
+1. **Stunned: nothing happens.** The intent is kept, a wind-up does not progress, and the stun loses a stack at the end of the enemy phase.
+2. If the intent is not valid (`_intent_is_valid`: none, or its target is gone) it is planned again; still no intent: the enemy does nothing.
+3. **Wind-up:** `intent.windup_left > 0` → decrement, `enemy.refresh_intent()`, no action this turn. So a HEAVY with `windup_turns = 1` charges on one enemy phase and strikes on the next.
+4. Otherwise `await _execute_intent`, then, if the enemy is still alive, **`_plan_intent` again**: the next action is announced during the player's turn.
+
+**`_execute_intent(enemy, intent)`** (the same for every kind; only targets and numbers change):
+* `focus` = `intent.spot` (AOE) or the target's position. `ideal = CardData.closest_in_range(enemy position, focus, approach_distance)` (the closest point at the right distance; no move if already in range), `destination = _free_position_at(ideal, ...)` (same free-spot search as the cards, around `focus`), the enemy faces `focus`, walks (`_move_characters`, `MOVE_TIME` 0.25 s) and faces it again.
+* Targets (`_intent_targets`): AOE → **every hero within `aoe_radius` of the spot, checked at strike time** (a hero who walked away is spared); other kinds → the single target if it is still alive.
+* If `get_damage() > 0`: `target.take_hit(damage)` for each target (Evasion can dodge it, armor then health). Then `_apply_action_effects`, `_free_dead()`, `_update_facings()`.
+* `_apply_action_effects(enemy, action, targets)`: **only `ON_PLAY` effects run**; recipient `SELF` → the enemy, otherwise every living target (heroes, or the buffed enemy for a BUFF). The effects are applied **even when a hit was dodged by Evasion**.
+
+**Planning an intent (`_plan_intent`)**: called for every enemy in `start_battle()` (so the first action is visible on the first player turn) and after each enemy action.
+* `_pick_action` → `null` (no action possible, e.g. no hero left): `enemy.intent = null`, `intents_changed`. Otherwise a new `EnemyIntent`: AOE → `spot` = the position **of a random hero at this moment** (fixed from then on); other kinds → `target` = a random candidate. Then `enemy.intent = intent` (updates the display), `_face_intent`, `intents_changed.emit()`.
+* **Choosing the action:** `_get_actions(enemy)` = `data.actions`, or `{fallback: 1}` when empty (the fallback is `EnemyAction.new()` with its defaults: MELEE, damage 5, distance 32, named "Attack"; one warning per enemy id). Actions with **no possible candidate are excluded** (`_candidates_for`: all heroes, or for a BUFF the other enemies plus itself if `can_target_self`). Weights: a negative weight counts as 0; if all are 0 the choice is uniform; otherwise a weighted roll, so an action with weight 0 next to positive ones is never picked.
+* Randomness (`randi_range`, `pick_random`) is the **global, unseeded** generator: intents are not reproducible, unlike generated encounters (3.8).
+
+**When someone dies (`_on_character_died`)**: removed from `allies` / `enemies`, hidden, freed later (`_dead`, `_free_dead`). A hero: its health is written as 0 in the run and its cards leave the deck. Every enemy whose `intent.target` was the fallen character calls `_retarget_intent`: **same action and same wind-up on a new random candidate**, or a full `_plan_intent` if the action has no candidate left. An AOE spot is never re-aimed. `intents_changed` is emitted (this also hides the circle of a dead enemy).
+
+**Facing**: `_update_facings()` makes allies look at the closest enemy; each enemy looks at its intent (target, or the AOE spot) when it is valid, otherwise at the closest ally.
+
+**Display (`character.gd`)**: the `intent` setter calls `refresh_intent()`: in `%IntentIcon` a 16x16 cut (`INTENT_CUTOUT_SIZE`) of the **target's head** (`CharacterData.head_position`, clipped to its sprite; hidden for AOE or when there is no target), and in the optional `%IntentLabel` the text `intent.get_text()` ("Stab", "Heavy 1") tinted with `action.get_color()` (`self_modulate`: keep the label's own font color white). `intent_target` is now a **read-only getter** derived from `intent` (null for AOE, no intent, or a freed target). Battle calls `refresh_intent()` after changing a wind-up or a target. `IntentOverlay` (3.7) redraws on `intents_changed`.
+
+**Design points to be aware of**
+* Effects of an action other than `ON_PLAY` are silently skipped.
+* A dodged hit still applies the action's status effects.
+* A stunned enemy keeps its planned intent (it is only re-planned if the target disappears).
+* `intents_changed` is also emitted when an intent is cleared or re-aimed (the comment in `battle.gd` still says "picked a new target").
 
 ### 4.6b Status timing (player side)
 `_start_player_turn()`: `turn += 1` → `_start_of_turn_statuses(allies)` (Bleeding on heroes, may kill) → `_check_battle_end()` (returns if over) → phase `PLAYER_TURN`, actions reset, draw.
-`end_player_turn()`: `_end_of_turn_statuses(allies)` (decay) then the enemy turn. `can_play_card()` is false for a **stunned caster**.
+`end_player_turn()`: `_end_of_turn_statuses(allies)` (decay) then the enemy turn. `can_play_card()` is false for a caster who **cannot act** (stunned or asleep: `Character.is_incapacitated()`), or when the card has `consume_required` and the caster holds too few stacks.
 Helpers: `_start_of_turn_statuses(team)` (calls `StatusComponent.start_of_turn()` on each, frees dead, updates facings), `_end_of_turn_statuses(team)` (`end_of_turn()` on each).
 Known limit: a status applied to a character during **its own side's phase** also decays at the end of that same phase.
 
@@ -241,7 +323,7 @@ Known limit: a status applied to a character during **its own side's phase** als
 **No save is made in a battle.**
 
 ### 4.8 Facing
-Characters are never rotated. `Character.face_towards(pos)` flips `sprite.flip_h` (art faces left). `_update_facings()`: allies → closest enemy; enemies → `intent_target` (fallback closest ally). Attackers face their real target while walking/striking.
+Characters are never rotated. `Character.face_towards(pos)` flips `sprite.flip_h` (art faces left). `_update_facings()`: allies → closest enemy; enemies → their intent (the target, or the AOE spot; fallback closest ally). Attackers face their real target while walking/striking.
 
 ### 4.9 Objectives
 `BattleObjective` (Node): `description`, `start(battle)`, `_on_start()`, `is_started()`, `is_complete()`, `is_failed()`, `get_progress_text()`. `KillAllObjective` is the default (created when `objective` is null).
@@ -266,7 +348,7 @@ Character (Node2D, character.gd)
 └── %ClickArea (Area2D)
 	└── %ClickShape (CollisionShape2D with a CircleShape2D, "Local to Scene" enabled)
 ```
-Required unique names inside the UI scene: `HealthBar`, `ArmorBar`, `HealthValue`, `ArmorValue`, `IntentIcon`. Optional: `StatusIcons` (without it statuses still work but are invisible).
+Required unique names inside the UI scene: `HealthBar`, `ArmorBar`, `HealthValue`, `ArmorValue`, `IntentIcon`. Optional: `StatusIcons` (without it statuses still work but are invisible), `IntentLabel` (Label next to the intent icon showing the planned action name; its tint comes from the action, keep its font color white; without it intents work but the name is not shown).
 All generated or label Controls must use Mouse Filter = Ignore so the character stays clickable. Turn off the bars' *Show Percentage*.
 
 Constants: `TILE_SIZE` 32, `INTENT_CUTOUT_SIZE` 16x16, `STATUS_ICON_SIZE` and `STATUS_FONT_SIZE` (pixels **before** the UI scale; developer: 80 / 40), `UI_HEIGHT_ABOVE_HEAD` (developer: 20), `CLICK_RADIUS_FACTOR`.
@@ -275,9 +357,9 @@ Constants: `TILE_SIZE` 32, `INTENT_CUTOUT_SIZE` 16x16, `STATUS_ICON_SIZE` and `S
 Click radius: delivered formula `size.x * |sprite.scale.x| / 2 * CLICK_RADIUS_FACTOR`; **the developer uses `size.x * CLICK_RADIUS_FACTOR + 5`** (their own tweak). `shape.radius` is also the character radius used by the placement search (4.5). The circle size comes from `CharacterData.size_in_tiles`.
 
 Signals: `clicked(character)`, `died(character)`, `statuses_changed`.
-Members: `intent_target` (setter refreshes the cutout of the target's head), `status_component: StatusComponent` (created in `_ready()`, no scene node), `statuses` (read-only view of `status_component.stacks`), `health`, `sprite`, `ui`.
+Members: `intent: EnemyIntent` (enemies only; its setter calls `refresh_intent()`: head cutout + action label), `intent_target` (**read-only**, derived from `intent`), `refresh_intent()` (public, see 4.6), `status_component: StatusComponent` (created in `_ready()`, no scene node), `statuses` (read-only view of `status_component.stacks`), `health`, `sprite`, `ui`.
 Methods: `apply_status(status, stacks)` (ARMOR → `health.add_armor`, HEAL → `health.heal`, CLEANSE → `status_component.remove_debuffs()`, everything else → `status_component.add`; ignores `stacks <= 0` and dead characters),
-`take_hit(amount) -> int` (**the one place damage enters a character**: `status_component.try_dodge()` returns 0, else `health.take_damage(amount, false)`), `is_stunned()`, `set_highlighted(on)`, `face_towards(pos)`, `is_ally()`, `is_dead()`.
+`take_hit(amount) -> int` (**the one place damage enters a character**: `status_component.try_dodge()` returns 0, else `health.take_damage(amount, false)`, then **`status_component.wake_up()` if `amount > 0`**: a hit wakes a sleeper, damage over time never comes through here), `is_stunned()` (STUN only), `is_incapacitated()` (stunned or asleep: what Battle checks), `set_highlighted(on)`, `face_towards(pos)`, `is_ally()`, `is_dead()`.
 
 **UI placement** (`_place_ui`, `_update_ui_position`, `_update_ui_position_later`): the head height is `data.head_position` (texture pixels from the sprite's top-left, scaled by the sprite scale);
 the target for the **bottom of the health bar** is `head_y - UI_HEIGHT_ABOVE_HEAD`. `_update_ui_position()` measures the real transforms (health bar bottom expressed in the UI node's space) and sets `ui.position.y`, so the UI scene's own scale/layout does not matter;
@@ -295,10 +377,10 @@ Signals: `health_changed(current, max)`, `armor_changed`, `evasion_changed`, `da
 
 ### 5.3 `StatusComponent` (Node, `status_component.gd`)
 Created by `Character._ready()` with `StatusComponent.new(health)` and added as a child. Holds `stacks: Dictionary` (StatusData → stacks > 0). Signal `changed`.
-`add(status, amount)`, `get_stacks(status)`, `has_effect(effect)`, `is_stunned()`, `consume(status, amount := 1)` (for USES statuses),
+`add(status, amount)`, `get_stacks(status)`, `has_effect(effect)`, `is_stunned()`, `is_asleep()`, `is_incapacitated()`, `wake_up() -> bool` (removes every SLEEP status), `consume(status, amount := 1)` (for USES statuses),
 `try_dodge() -> bool` (finds an EVASION status; USES loses one stack per dodge, TURNS does not lose any),
 `remove_debuffs() -> bool` (removes every status whose `is_debuff()` is true),
-`start_of_turn()` (BLEED: `health.take_damage(stacks, false, status.bypass_armor)`; stops if the owner dies),
+`consume_all(status) -> int` (removes every stack, returns how many there were), `start_of_turn()` (every status with `is_tick_effect()`: `health.take_damage(status.get_tick_damage(stacks), false, status.bypass_armor)`, never dodged; stops if the owner dies),
 `end_of_turn()` (TURNS statuses lose `decay_per_turn`, removed at 0),
 `get_summary()` (text such as "Bleeding 3  Stunned 1", currently unused by the UI).
 Instant value effects (armor, heal) never reach this component.
@@ -367,9 +449,10 @@ map (Control, full rect, Mouse Filter Ignore, menu_gate_map.gd extends HubMenu)
 Sites live under a dedicated `ExpeditionSiteNodes` node on purpose: `_ready()` calls `configure()` on **every child** of it, so a Backdrop or any non-site node among them would error.
 
 **`menu_gate_map.gd`**
-* `_ready()`: `super._ready()`, then for each child of `ExpeditionSiteNodes`: looks up `GameState.expeditions.get_expedition(site.expedition_id)`, calls `site.configure(data, ExpeditionSite.State.UNLOCKED, profile.is_expedition_completed(id))` when the data exists, and connects `site.selected`. `%ChooseTeamButton` starts disabled; `%BackButton` is connected to `close` (**or** assign `close_button` in the inspector, never both).
-* `_on_expedition_site_selected(site)`: deselects the previous site, selects this one, stores `selected_expedition_id`, enables Choose Team, fills the three labels (`display_name` from `site.expedition` once configured, a capitalised id otherwise).
-* `_on_choose_team_pressed()`: instantiates `MENU_GATE_SCENE` (`preload` by uid), sets `expedition_id` **before** adding it, connects its `closed` signal, adds it to `%UI`, sets Full Rect anchors, and turns the sites non interactive. When the gate menu closes (`closed` signal → `_on_gate_closed`): it frees the instance (safe if already freed) and makes the sites interactive again.
+* Fields: `selected_expedition_id`, `currently_selected_site`; `Expedition_Site_Nodes = $ExpeditionSiteNodes`; `MENU_GATE_SCENE = preload("res://scenes/hub/gate/menu_gate.tscn")`.
+* `_ready()`: `super._ready()` (this wires the Back button: **`close_button` is assigned to `%BackButton` in the inspector**, so no manual `pressed.connect` is needed), then for each child of `ExpeditionSiteNodes`: looks up `GameState.expeditions.get_expedition(site.expedition_id)`, calls `site.configure(data, ExpeditionSite.State.UNLOCKED, GameState.profile.is_expedition_completed(id))` when the data exists, and connects `site.selected` (there is no `is ExpeditionSite` guard: **every child of `ExpeditionSiteNodes` must be a site**). `%ChooseTeamButton` is connected and starts disabled.
+* `_on_expedition_site_selected(site)`: deselects the previous site, selects this one, stores `selected_expedition_id`, enables Choose Team, fills the labels: title = `site.expedition.display_name`, body = `site.expedition.description`, status = `"ID: " + expedition_id` (if the site has no `ExpeditionData`: capitalised id and a generic text).
+* `_on_choose_team_pressed()`: returns if no expedition is selected; instantiates `MENU_GATE_SCENE`, sets `expedition_id` **before** adding it (so it is available in the menu's `_ready()`), connects its `closed` signal (`_on_gate_closed`, bound to the instance) and adds it to `%UI`. When the team menu closes, `_on_gate_closed` frees the instance (safe if it is already freed). The sites are **not** switched off while the team menu is open (`set_interactive` is not called): the full screen team menu is expected to swallow the clicks **[U]**.
 * Closing: **Esc** closes the team menu first, then the map (each `HubMenu` closes itself on Esc); the **Back** button closes the map.
 
 **`ExpeditionSite`** (`@tool`, `class_name ExpeditionSite`, extends Area2D; instance `expedition_site.tscn` once per expedition)
@@ -382,9 +465,10 @@ Sites live under a dedicated `ExpeditionSiteNodes` node on purpose: `_ready()` c
 **Authoring a new site**: instance `expedition_site.tscn` under `ExpeditionSiteNodes`, set `expedition_id` (must exist in the expedition catalog) and `texture`, move it. Sites placed with a different scale (the test map uses `scale = (5, 5)`) scale their collision with them.
 
 **Known issues / to do**
-* **Unlock conditions are not applied**: every site is configured as `UNLOCKED`. Planned: evaluate the expedition's conditions (3.6) to choose `UNLOCKED` / `TEASED` (clicking shows `describe()` of the missing conditions) / `HIDDEN`.
+* **Unlock conditions are not applied**: every site is configured as `UNLOCKED`. Planned: if all of `data.unlock_conditions` are met (`is_met(GameState.profile)`) → `UNLOCKED`; otherwise `data.locked_display` gives the state (`LockedDisplay.HIDDEN` → `ExpeditionSite.State.HIDDEN`, `TEASED` → `State.TEASED`), with `data.unlock_hint` or the conditions' `describe()` as the text shown for a teased site. The two enums use the same names.
 * The test map has two sites that both use `first_expedition` (the second is a placeholder until a second expedition exists).
-* Temporary debug code is still in `ExpeditionSite.gd` (`print` calls in `_refresh()` and `_on_mouse_entered`, an `_unhandled_input` override printing every click) and in `menu_gate_map.gd` (a `print` of the gate size after opening): to remove when the map is validated.
+* Temporary debug code is still in `ExpeditionSite.gd` (`print` calls in `_refresh()` and `_on_mouse_entered`, an `_unhandled_input` override printing every click): to remove when the map is validated. `menu_gate_map.gd` itself has none left.
+* No Full Rect anchor call is needed on the team menu: the missing-grid symptom was the layer bug above, not its size.
 * **Layer bug met during development**: the team menu was invisible (only its buttons seemed to show) because the map's `%UI` layer (10) and the Hub's menu layer (also 10) were equal. Fixed by moving the Hub menu layer to 2 (see section 0).
 
 ---
@@ -429,7 +513,7 @@ Scene: `NewGameButton`, `ContinueButton`, `LoadButton`, `QuitButton` (unique nam
 * Format:
 ```json
 { "version": 1, "saved_at": 1760000000.0, "name": "My adventure",
-  "profile": { "unlocked_heroes": ["knight"], "resources": {"wood": 6}, "unlocked_locations": ["gate","carpentry"], "upgrade_levels": {"gate":1,"carpentry":1} },
+  "profile": { "unlocked_heroes": ["knight"], "resources": {"wood": 6}, "unlocked_locations": ["gate","carpentry"], "upgrade_levels": {"gate":1,"carpentry":1}, "completed_expeditions": ["first_expedition"] },
   "run": null  /* or { "expedition_id", "team", "hero_health", "current_node_id", "visited_nodes", "node_resolved", "battle_result", "loot" } */ }
 ```
 * `SaveUtils`: `to_strings`, `to_names`, `dict_to_json`, `int_dict_from_json`.
@@ -481,6 +565,8 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 * **New status**: `StatusData.tres` with an `effect`, `duration_type`, icon, and the `debuff` box if it is negative. A genuinely new behaviour needs a new `Effect` value (appended at the end) handled in `Character.apply_status` / `StatusComponent`.
 * **Starting statuses on a character**: `CharacterData.starting_statuses` (status → stacks).
 * **New expedition**: `ExpeditionData.tres` with nodes (ids, types, `next_nodes`, lanes, encounters, `loot`), press **Validate graph**, add it to `data/expedition_catalog.tres`.
+* **New enemy action**: right click > New Resource > `EnemyAction`, pick the `kind` (the inspector shows only the fields that matter), set `damage` / `approach_distance` / `aoe_radius` / `windup_turns` / `effects`, then add it to `CharacterData.actions` of the enemy with a weight. A DEBUFF needs `damage` 0.
+* **New enemy**: `CharacterData.tres` with `team = ENEMY`, stats, `actions` (weights), `tags` and `threat` for generated fights.
 * **New expedition site on the gate map**: instance `expedition_site.tscn` under `ExpeditionSiteNodes` of `menu_gate_map.tscn`, set `expedition_id` and `texture` (see 7.4). The expedition must be in `data/expedition_catalog.tres`.
 * **New unlock requirement**: new script extending `UnlockCondition` (see 3.6).
 * **New building**: `BuildingData.tres` (+ `BuildingLevel`s) in `data/building_catalog.tres`, and a `HubLocation` with the **same id** placed in the hub scene (fixed position), with a `menu_scene` extending `HubMenu`. Hub warns in Output when one side is missing.
@@ -491,10 +577,10 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 
 ## 14. Known limitations / technical TODO
 
-* Status system: Bleeding, Stun, Evasion, armor, heal, cleanse exist. Missing: hover tooltips on icons, `USES` hooks other than Evasion (e.g. a vulnerability consumed on hit), dispel of buffs, partial cleanse, more statuses, auto-generated card descriptions.
+* Status system: Bleeding (scaling), Poison (flat), Stun, Sleep, Evasion, armor, heal, cleanse, and cards that spend stacks (arcane charges, 3.3b) exist. Missing: the card UI does not show the charge bonus (`Battle.get_charge_bonus_damage` is ready for it), charges only boost damage, hover tooltips on icons, `USES` hooks other than Evasion (e.g. a vulnerability consumed on hit), dispel of buffs, partial cleanse, auto-generated card descriptions.
 * A status applied to a character during its **own side's phase** decays at the end of that same phase (matters once enemies stun heroes).
 * `HealthComponent` still has unused evasion code (to remove).
-* **Enemy attack patterns**: implemented by the developer **[D]**, not documented (this line used to say "placeholder attack"). Whether enemies can apply statuses was not confirmed.
+* **Enemy actions** (3.7, 4.6): only `ON_PLAY` effects run; a dodged hit still applies its effects; weights are not validated in the data files (a negative weight counts as 0, see 4.6); enemy intents use the unseeded global random generator.
 * `EncounterData.spawn_pattern` AMBUSH/AMBUSHED not implemented; spawn positions are marker nodes.
 * Movement and knockback are not clamped to the map; the TileMapLayer is decoration only.
 * Camp and event nodes are simple (camp = heal 30%; event = stub dialog). The gate destination is now chosen on the gate map (7.4); unlock conditions are not applied there yet.
@@ -516,6 +602,8 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 | Cards | `card_data.gd`, `card_instance.gd`, `card_deck.gd`, `status_application.gd` |
 | Statuses | `status_data.gd`, `status_component.gd` (new), `status_application.gd` |
 | Battle | `battle.gd`, `BattleObjective.gd`, `KillAllObjective.gd`, `BattleUI.gd`, `Hand.gd`, `TargetingController.gd`, `TargetingOverlay.gd` |
+| Enemy actions | `EnemyAction.gd`, `EnemyIntent.gd`, `IntentOverlay.gd` (created by `battle.gd`) |
+| Encounters | `EncounterData.gd`, `EnemyCatalog.gd`, `EncounterGenerator.gd` (+ `tools/make_enemy_catalog.gd`, not shared) |
 | Expedition | `ExpeditionNode.gd`, `ExpeditionData.gd`, `EncounterData.gd`, `ExpeditionMap.gd`, `ExpeditionNodeButton.gd`, `expedition.gd` |
 | Hub | `Hub.gd`, `HubLocation.gd`, `HubMenu.gd`, `menu_gate_map.gd` (+ `.tscn`), `ExpeditionSite.gd` (+ `expedition_site.tscn`), `menu_gate.gd`, `HeroPortrait.gd`, `HeroSlot.gd`, `menu_carpentry.gd`, `ResourceBar.gd`, `BuildingData.gd`, `BuildingLevel.gd` |
 | Unlock conditions | `UnlockCondition.gd`, `UnlockBuildingLevel.gd`, `UnlockCompletedExpedition.gd` |
@@ -527,7 +615,7 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 ## 16. Manual test checklist for what is still unverified
 
 **Statuses (phase 8)**
-1. Bleeding 3 on an enemy: it takes 3 damage when the enemy phase starts (ignoring armor), the icon number goes 3, 2, 1, then disappears; a kill by Bleeding can end the battle.
+1. Bleeding 3 on an enemy with `tick_damage` 1: it takes 3 damage when the enemy phase starts (ignoring armor), the icon number goes 3, 2, 1, then disappears; a kill by Bleeding can end the battle. With `tick_damage` 2: 6, then 4, then 2.
 2. Stun on an enemy: it skips its next attack, then attacks normally. Stun on a hero: its cards are unplayable for one player turn, the other heroes' cards still work.
 3. Cleanse on a hero with Bleeding + Stun: both disappear, buffs (Evasion) stay; cleanse on a clean hero does nothing and does not error; an AOE cleanse hits every ally in the radius.
 4. Armor card: the armor bar jumps by exactly the stacks. Heal card: health rises, never above the maximum.
@@ -546,3 +634,39 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 **Gate map, still to verify [U]**
 1. After closing the team menu, the sites are clickable again and the selection is kept.
 2. With unlock conditions applied (once implemented): locked sites are teased/hidden and show what is missing.
+3. Completing an expedition (END node): `first_expedition` appears in the save's `completed_expeditions`, and its site shows " (done)" on the map. **Check who calls `PlayerProfile.complete_expedition`**: it was not found in the shared files.
+4. While the team menu is open, clicking where a site is on the map does nothing (the sites are not disabled by code).
+
+**Enemy actions (to verify against the running game)**
+1. An enemy with several actions picks them in roughly the ratio of the weights; an enemy with an empty `actions` falls back to a melee attack and warns once in the Output panel.
+2. Each kind: MELEE and RANGED stop at `approach_distance`; AOE shows its circle on the ground **at the planned spot** and a hero who left the circle is not hit; BUFF targets another enemy (itself only with `can_target_self`); DEBUFF with `damage = 0` applies its status without damage; HEAVY shows the wind-up count ("Heavy 1") and strikes on the following enemy phase.
+3. The intent text color matches the kind; the AOE circle disappears when the action is done or the enemy dies.
+4. A stunned enemy skips its turn: its intent stays and a HEAVY's wind-up does not progress.
+5. Kill the hero an enemy was aiming at: the enemy keeps its action (and wind-up) on another hero, the head icon changes, and with no hero left the intent is cleared.
+6. The head icon shows the target's head for single-target actions, nothing for AOE; a BUFF shows the head of the buffed enemy.
+7. An action with an effect whose trigger is not `ON_PLAY` does nothing (known behaviour).
+
+**Generated encounters (to verify)**
+1. A node with `fill_with_pool` and no fixed enemies gets enemies whose total `threat` stays within the budget; the Output panel prints the line `Encounter '<id>': budget N -> ...` in a debug build.
+2. Quit and reload the save, re-enter the same node: the same enemies; a new run: possibly different ones.
+3. A boss in `enemies` plus `fill_with_pool`: the boss is always there and the rest fills the remaining budget and slots (the number of `%EnemySpawns` markers).
+
+**Scaling Bleeding and Poison (to verify)**
+1. `bleeding.tres` with `tick_damage` 3 and one stack: 3 damage at the start of the owner's turn; two stacks (applied by two cards): 6. An old `bleeding.tres` without the field still deals `stacks` damage.
+2. `poison.tres` (effect POISON, `tick_damage` 4): 4 damage per turn with 1 stack and still 4 with 3 stacks, but it lasts 3 turns; the icon number is the turns left.
+3. Both ignore armor (`bypass_armor`), are removed by Cleanse, and a kill by either ends the battle correctly.
+4. The `tick_damage` and `bypass_armor` fields only show in the inspector for BLEED and POISON.
+
+**Sleep (to verify)**
+1. A sleeping enemy skips its turn (its intent stays, a HEAVY wind-up does not progress); a sleeping hero cannot play cards. Both lose one stack at the end of their side's phase.
+2. Hitting a sleeping enemy removes Sleep at once (the icon disappears) and it acts on its next turn; a dodged hit (Evasion) does not wake it.
+3. Bleeding or Poison ticks on a sleeper do not wake it; Cleanse removes Sleep.
+4. A hit fully absorbed by armor still wakes (default); to change that, see the comment in `Character.take_hit`.
+
+**Arcane charges (to verify)**
+1. A card with a `StatusApplication` (SELF, `ON_PLAY`) giving a `NONE` + `USES` status "arcane charge": the icon appears on the hero with its stack count and never decays.
+2. A card with `consume_status` = that status, `consume_amount` 0, `bonus_damage_per_stack` 2, base damage 3, and the hero holding 3 charges: each hit deals 9, the charges disappear, and with 0 charges it deals 3.
+3. `consume_amount` 2 with 3 charges: it spends 2 (1 left) and deals base + 2 x bonus. With `consume_required` on, the card is greyed out with fewer than 2 charges (1 charge when `consume_amount` is 0).
+4. Chain, multiple and AOE cards: charges are spent once, every target gets the same bonus. A critical hit multiplies the total.
+5. A card that spends charges and also gives some: it ends with only the new ones.
+6. A card with base damage 0 and a bonus still hits when charges are held, and does nothing without any.
