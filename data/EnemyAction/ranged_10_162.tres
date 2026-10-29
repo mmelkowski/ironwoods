@@ -9,5 +9,5 @@ id = &"ranged_10"
 display_name = "ranged_10"
 kind = 1
 damage = 10
-approach_distance = 162.0
+approach_distance = 200.0
 metadata/_custom_type_script = "uid://cyiubihrnsefw"

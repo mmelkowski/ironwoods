@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://pt2h5reh5esj"]
 
+[ext_resource type="Resource" uid="uid://dnodcq0kists1" path="res://data/status_data/rage.tres" id="1_l76xm"]
 [ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_qh4ox"]
 [ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_l76xm"]
 
@@ -8,8 +9,11 @@ script = ExtResource("2_l76xm")
 id = &"barbarian_mana_1"
 display_name = "barbarian_mana_1"
 description = "Consume all rage to hit an enemy.
-Add 10 damage per rage token."
+Add 10 damage per rage token.
+Require a least 1 stack."
 card_type = 2
 mana_cost = 3
 damage = 20
+consume_status = ExtResource("1_l76xm")
+consume_required = true
 metadata/_custom_type_script = "uid://j0prpwx7b06d"
