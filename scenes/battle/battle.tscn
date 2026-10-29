@@ -76,10 +76,10 @@ defeat_continue = NodePath("Defeat/defeat_continue")
 [node name="hand_container" type="HBoxContainer" parent="BattleUI" unique_id=892358315 node_paths=PackedStringArray("battle")]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 281.0
-offset_top = 846.0
-offset_right = 321.0
-offset_bottom = 886.0
+offset_left = 491.0
+offset_top = 834.0
+offset_right = 491.0
+offset_bottom = 834.0
 alignment = 1
 script = ExtResource("5_lpir7")
 battle = NodePath("../..")
