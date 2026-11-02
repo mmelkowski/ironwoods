@@ -16,7 +16,7 @@ This file documents **the code as delivered**: architecture, scripts, APIs, sign
 * `menu_gate.gd`: the destination is now `expedition_id` (set by the opener), no longer a constant. `title_label` export added.
 * `Hub.gd`: menus are opened on a dedicated `CanvasLayer` at **layer 2** (see the layer convention in section 0).
 * **Enemy actions and intents** (3.7, 4.6): enemies pick weighted `EnemyAction`s (melee, ranged, AOE, buff, debuff, heavy with wind-up), announce them as an `EnemyIntent` (head icon + name above the enemy, AOE circle on the ground), and carry them out on their next turn. Documented from `EnemyAction`, `EnemyIntent`, `IntentOverlay`, `CharacterData`, `character.gd` and `battle.gd`.
-* **Cards that spend a status** (arcane charges, 3.2 / 3.3b / 4.4b): `CardData.consume_status`, `consume_amount`, `bonus_damage_per_stack`, `consume_required`; `Battle.get_charges_to_spend` / `get_charge_bonus_damage`.
+* **Cards that spend a status** (charges, 3.2 / 3.3b / 4.4b): `CardData.consume_status`, `consume_from` (`CASTER` = the caster's own stacks, e.g. a barbarian's rage; `TARGET` = each target's stacks, e.g. arcane charges put on enemies), `consume_amount`, `bonus_damage_per_stack`, `consume_required`; `Battle.get_charges_to_spend(card, target)` / `get_charge_bonus_damage(card, target)`.
 * **Statuses: Sleep** (3.3): like Stun, but any hit that damages the sleeper removes it (`Character.take_hit` → `StatusComponent.wake_up`). `Battle` now checks `is_incapacitated()` instead of `is_stunned()`.
 * **Statuses: scaling Bleeding and Poison** (3.3, 5.3): `StatusData.tick_damage`; Bleeding now deals `tick_damage x stacks`, a new `POISON` effect deals a flat `tick_damage`; `StatusComponent.consume_all` added for stacks spent by cards (arcane charges, planned, 3.3b).
 * **Generated encounters** (3.8): `EncounterData.fill_with_pool`, `EnemyCatalog` and `EncounterGenerator` build a fight from the expedition's enemy tags and a threat budget.
@@ -43,9 +43,9 @@ This file documents **the code as delivered**: architecture, scripts, APIs, sign
 
 ```
  Main menu ──New/Load/Continue──► Hub ──Gate: map (expedition) ► team menu──► Expedition screen ◄──► Battle scene
-    ▲                              │ carpentry/tavern/forge        │  (graph, camp, events)     (cards, enemies)
-    │                              ▼                               ▼
-    └──────── Pause menu ◄── (available everywhere except main menu)    end of run ─► loot into profile ─► Hub
+	▲                              │ carpentry/tavern/forge        │  (graph, camp, events)     (cards, enemies)
+	│                              ▼                               ▼
+	└──────── Pause menu ◄── (available everywhere except main menu)    end of run ─► loot into profile ─► Hub
 
  Autoloads:  SceneManager (route + fade)   GameState (profile, run, catalogs, saves)   PauseMenu (Esc)
  Persistent: PlayerProfile (heroes, resources, buildings)     Temporary: RunState (team, health, node, loot)
@@ -127,7 +127,7 @@ Helpers: `get_sprite_texture()`, `get_head_texture(size := 16x16)` (AtlasTexture
 * Type & mana: `card_type` (`ATTACK`/`SUPPORT`/`MANA`), `mana_generation` (hidden for MANA), `mana_cost` (MANA only).
 * Damage: `damage`, `knockback` (`NONE`/`STANDARD`/`FORCEFUL`), `critical`.
 * Rules: `quick`.
-* Consume (all hidden except `consume_status` while it is empty): `consume_status: StatusData` (a status the caster spends when playing the card, e.g. arcane charges), `consume_amount` (0 = all the caster has), `bonus_damage_per_stack` (added to **each hit**, before the critical multiplier), `consume_required` (the card cannot be played unless the caster holds at least `consume_amount` stacks, at least 1 when it is 0). See 3.3b.
+* Consume (all hidden except `consume_status` while it is empty): `consume_status: StatusData` (the status the card spends: effect `NONE`, duration `USES`), `consume_from: ConsumeFrom` (`CASTER` default: the stacks of the caster, spent **once for the whole card**, bonus on **every hit**; `TARGET`: **each target spends its own stacks**, bonus only on the hit on that target), `consume_amount` (at most this many stacks; 0 = all), `bonus_damage_per_stack` (added before the critical multiplier), `consume_required` (`CASTER`: the card cannot be played without `consume_amount` stacks on the caster; `TARGET`: only targets holding `consume_amount` stacks can be picked; at least 1 when `consume_amount` is 0). See 3.3b.
 * Targeting: `target_team`, `target_type`, `max_targets` (MULTIPLE/CHAINED), `select_radius` (MULTIPLE, 0 = unlimited), `chain_radius` (CHAINED), `aoe_radius` (AOE). All radii in **pixels**.
 * Movement: `approach_distance` (max distance to the target, default 32), `use_approach_angle`, `approach_angle` (degrees, relative to the direction the caster comes from; 0 same side, 180 behind, ±90 flanks; positive = clockwise on screen).
 * Effects: `effects: Array[StatusApplication]`.
@@ -171,7 +171,10 @@ Resources to author: `armor`, `heal`, `cleanse` (instant), `bleeding` (BLEED, TU
 
 ### 3.3b Status roadmap: Poison and arcane charges
 * **Poison**: done at the data level (`POISON` effect, flat `tick_damage`, duration = stacks). Author `poison.tres` and give it to a card or an enemy `EnemyAction` like Bleeding. [U]
-* **Arcane charges (stack, then spend)** [U]: authored as a status with effect `NONE` and duration `USES` (never decays, shown with its stack count). Cards **give** it with a `StatusApplication` on SELF (recipient `SELF`, trigger `ON_PLAY`), and other cards **spend** it with the `CardData` "Consume" fields (3.2). At resolution (`Battle.play_card`, step 2b) the stacks are read and spent **once per card**: `spent = min(held, consume_amount)` (`consume_amount` 0 = all), removed with `status_component.consume`, and every hit gets `bonus_damage_per_stack x spent`. A chain or an AOE gives the same bonus to each of its hits. A card with 0 base damage and a bonus still hits. The spending happens **before** the card's own statuses, so a card can spend charges and give new ones. `get_charges_to_spend(card)` and `get_charge_bonus_damage(card)` are public so the card UI can preview the bonus (not done yet). Only damage uses the charges for now; other consumers (extra healing, a status consumed on hit, extra effects per charge) can reuse `get_charges_to_spend`.
+* **Charges (stack, then spend)** [U]: a charge is a status with effect `NONE` and duration `USES` (it never decays and shows its stack count). Two uses of the same mechanism, chosen by `CardData.consume_from`:
+  * **Arcane charges (wizard)**: cards **put** charges **on the enemy** (`StatusApplication`, recipient `TARGET`, trigger `ON_PLAY`); other cards with `consume_from = TARGET` **spend** them. Each target hit spends its own stacks (`min(held, consume_amount)`, 0 = all) and takes `bonus_damage_per_stack x spent` extra damage **on that hit only**: in an AOE or a chain, every enemy converts its own charges. The charges are spent even if the hit is dodged. `consume_required` limits the pickable targets to those holding enough charges.
+  * **Rage (barbarian)**: cards give charges to the caster (recipient `SELF`); cards with `consume_from = CASTER` spend them once and every hit gets the same bonus; the caster's spending happens before the card's own statuses, so a card can spend charges and give new ones.
+  `get_charges_to_spend(card, target)` and `get_charge_bonus_damage(card, target)` are public for previews (pass the enemy under the cursor in TARGET mode); the card UI does not use them yet. A card with 0 base damage and a bonus still hits. Only damage uses the charges for now; other consumers (healing, a status consumed on hit, extra effects per charge) can reuse `get_charges_to_spend`.
 
 ### 3.4 Expedition data
 * `ExpeditionNode` (`@tool`): `id`, `type` (`START, BATTLE, BOSS, CAMP, EVENT, END`), `title`, `description`, `next_nodes: Array[StringName]`, `encounter` (BATTLE/BOSS), `loot: Dictionary[StringName,int]`, `lane` (-1 top … 1 bottom, map layout hint). `has_encounter()`.
@@ -263,15 +266,15 @@ Heroes spawn with their carried-over health (`Character.setup(data, start_health
 
 ### 4.4 Public API (used by UI)
 `can_play_card(card)`, `get_valid_targets(card)`, `get_max_picks(card)`, `allows_repeat_picks(card)` (CHAINED), `get_pickable_targets(card, selected)`, `is_valid_selection(card, selected)`,
-`get_charges_to_spend(card)`, `get_charge_bonus_damage(card)` (charges the card would spend now / the extra damage per hit, for previews), `get_affected_targets(card, selected)` (AOE expansion), `find_approach_position(card, from, target)`, `get_approach_positions(card, selected)` (preview of where the caster will stand),
+`get_charges_to_spend(card, target := null)`, `get_charge_bonus_damage(card, target := null)` (stacks the card would spend now / the extra damage, for previews; `target` is needed in TARGET mode), `get_affected_targets(card, selected)` (AOE expansion), `find_approach_position(card, from, target)`, `get_approach_positions(card, selected)` (preview of where the caster will stand),
 `play_card(card, selected)` (**coroutine, `await` it**), `end_player_turn()` (coroutine), `leave_battle()`.
 Fields: `allies`, `enemies` (living only), `deck` (CardDeck), `phase`, `turn`, `actions_left`, `mana`, `encounter`, `objective`.
 
 ### 4.4b `play_card` pipeline
 1. Guard (`can_play_card` + `is_valid_selection`), phase `RESOLVING`.
-2. Pay: one action; mana for MANA cards. **2b. Spend the charges** (`consume_status`): `get_charges_to_spend`, `status_component.consume`, `bonus_damage` computed once.
+2. Pay: one action; mana for MANA cards. **2b. CASTER charges** (`consume_status`, `consume_from = CASTER`): `get_charges_to_spend`, `status_component.consume`, `bonus_damage` computed once. (TARGET charges are spent in step 4.)
 3. If target team is ENEMY: caster walks (`_approach`: face target, tween to the free approach position, face again). Chain: hop by hop (each target: walk → hit → knockback, skipping dead ones); other types: walk to the first pick, then hit all affected targets at once.
-4. `_deal_damage(card, targets, killed, bonus)`: per target, `(card.damage + bonus)` times the crit multiplier, **`Character.take_hit(amount)`** (evasion check, then armor, then health); kills detected with a "was alive" check (a chain can list a target several times).
+4. `_deal_damage(card, targets, killed, bonus)`: per target: in TARGET mode the target first spends its own charges (`target_bonus`), then `(card.damage + bonus + target_bonus)` times the crit multiplier (a hit of 0 or less is skipped), **`Character.take_hit(amount)`** (evasion check, then armor, then health); kills detected with a "was alive" check (a chain can list a target several times).
 5. `_knock_back` (survivors), `_apply_effects` (ON_PLAY SELF once, TARGET per living target; ON_KILL SELF once per kill).
 6. Mana gain (non-MANA cards), Quick refund if a kill, discard, `card_played`, free dead, update facings, `_check_battle_end()`; else back to `PLAYER_TURN`.
 
@@ -312,7 +315,7 @@ Fields: `allies`, `enemies` (living only), `deck` (CardDeck), `phase`, `turn`, `
 
 ### 4.6b Status timing (player side)
 `_start_player_turn()`: `turn += 1` → `_start_of_turn_statuses(allies)` (Bleeding on heroes, may kill) → `_check_battle_end()` (returns if over) → phase `PLAYER_TURN`, actions reset, draw.
-`end_player_turn()`: `_end_of_turn_statuses(allies)` (decay) then the enemy turn. `can_play_card()` is false for a caster who **cannot act** (stunned or asleep: `Character.is_incapacitated()`), or when the card has `consume_required` and the caster holds too few stacks.
+`end_player_turn()`: `_end_of_turn_statuses(allies)` (decay) then the enemy turn. `can_play_card()` is false for a caster who **cannot act** (stunned or asleep: `Character.is_incapacitated()`), or when the card has `consume_required` (CASTER mode) and the caster holds too few stacks. In TARGET mode `consume_required` filters `get_pickable_targets` instead (an enemy without charges cannot be picked, and the UI gives no explanation yet).
 Helpers: `_start_of_turn_statuses(team)` (calls `StatusComponent.start_of_turn()` on each, frees dead, updates facings), `_end_of_turn_statuses(team)` (`end_of_turn()` on each).
 Known limit: a status applied to a character during **its own side's phase** also decays at the end of that same phase.
 
@@ -577,7 +580,7 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 
 ## 14. Known limitations / technical TODO
 
-* Status system: Bleeding (scaling), Poison (flat), Stun, Sleep, Evasion, armor, heal, cleanse, and cards that spend stacks (arcane charges, 3.3b) exist. Missing: the card UI does not show the charge bonus (`Battle.get_charge_bonus_damage` is ready for it), charges only boost damage, hover tooltips on icons, `USES` hooks other than Evasion (e.g. a vulnerability consumed on hit), dispel of buffs, partial cleanse, auto-generated card descriptions.
+* Status system: Bleeding (scaling), Poison (flat), Stun, Sleep, Evasion, armor, heal, cleanse, and cards that spend stacks (charges on the caster or on enemies, 3.3b) exist. Missing: the card UI does not show the charge bonus (`Battle.get_charge_bonus_damage` is ready for it), `consume_required` on a TARGET card hides the enemies without charges silently, charges only boost damage, hover tooltips on icons, `USES` hooks other than Evasion (e.g. a vulnerability consumed on hit), dispel of buffs, partial cleanse, auto-generated card descriptions.
 * A status applied to a character during its **own side's phase** decays at the end of that same phase (matters once enemies stun heroes).
 * `HealthComponent` still has unused evasion code (to remove).
 * **Enemy actions** (3.7, 4.6): only `ON_PLAY` effects run; a dodged hit still applies its effects; weights are not validated in the data files (a negative weight counts as 0, see 4.6); enemy intents use the unseeded global random generator.
@@ -663,10 +666,15 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 3. Bleeding or Poison ticks on a sleeper do not wake it; Cleanse removes Sleep.
 4. A hit fully absorbed by armor still wakes (default); to change that, see the comment in `Character.take_hit`.
 
-**Arcane charges (to verify)**
-1. A card with a `StatusApplication` (SELF, `ON_PLAY`) giving a `NONE` + `USES` status "arcane charge": the icon appears on the hero with its stack count and never decays.
-2. A card with `consume_status` = that status, `consume_amount` 0, `bonus_damage_per_stack` 2, base damage 3, and the hero holding 3 charges: each hit deals 9, the charges disappear, and with 0 charges it deals 3.
-3. `consume_amount` 2 with 3 charges: it spends 2 (1 left) and deals base + 2 x bonus. With `consume_required` on, the card is greyed out with fewer than 2 charges (1 charge when `consume_amount` is 0).
-4. Chain, multiple and AOE cards: charges are spent once, every target gets the same bonus. A critical hit multiplies the total.
-5. A card that spends charges and also gives some: it ends with only the new ones.
-6. A card with base damage 0 and a bonus still hits when charges are held, and does nothing without any.
+**Charges on the enemy: arcane charges (to verify)**
+1. A card with a `StatusApplication` (recipient `TARGET`, `ON_PLAY`) giving the `NONE` + `USES` status "arcane charge": the icon appears on the enemy with its stack count, never decays, and survives the enemy turns.
+2. A card with `consume_status` = that status, `consume_from = TARGET`, `consume_amount` 0, `bonus_damage_per_stack` 2, base damage 3, on an enemy holding 3 charges: the hit deals 9 and the enemy's charges disappear; on an enemy without charges it deals 3.
+3. An AOE or chain of that card over enemies with different charges: each enemy takes base + 2 x its own charges; the charges are spent even if a hit is dodged (Evasion).
+4. `consume_amount` 2 with 3 charges: it spends 2 (1 left). With `consume_required` on, enemies with fewer than 2 charges cannot be picked.
+5. A critical hit multiplies the total (base + bonus).
+
+**Charges on the caster: rage (to verify)**
+1. A card giving the caster the rage status (recipient `SELF`): the icon appears on the hero.
+2. A card with `consume_from = CASTER`, `bonus_damage_per_stack` 2, base damage 3, the hero holding 3 charges: **every** hit deals 9 and the charges are spent once; with 0 charges it deals 3.
+3. With `consume_required` on, the card is greyed out until the caster holds `consume_amount` stacks (1 when it is 0).
+4. A card that spends rage and also gives some ends with only the new ones.
