@@ -13,7 +13,6 @@ Deal 10 damage per stack."
 card_type = 2
 mana_cost = 2
 consume_status = ExtResource("1_7rq85")
-consume_amount = null
+consume_from = 1
 bonus_damage_per_stack = 10
-consume_required = null
 metadata/_custom_type_script = "uid://j0prpwx7b06d"

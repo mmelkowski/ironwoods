@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cnmyd54wd6ip"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_2ejia"]
+[ext_resource type="Resource" uid="uid://dnodcq0kists1" path="res://data/status_data/rage.tres" id="1_gent6"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_kxc14"]
+[ext_resource type="Resource" uid="uid://d262mq2h3ofg" path="res://data/status_application/heal_on_self.tres" id="3_wn6eg"]
+
+[resource]
+script = ExtResource("2_kxc14")
+id = &"barbarian_support_2"
+display_name = "Fueled Healing"
+description = "Consume 4 stack to heal 20 helthpoint"
+card_type = 1
+mana_generation = 3
+consume_status = ExtResource("1_gent6")
+consume_amount = 4
+consume_required = true
+effects = Array[ExtResource("1_2ejia")]([ExtResource("3_wn6eg")])
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

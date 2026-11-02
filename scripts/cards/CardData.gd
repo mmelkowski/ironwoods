@@ -12,6 +12,8 @@ enum Type { ATTACK, SUPPORT, MANA }
 enum TargetType { SINGLE, MULTIPLE, CHAINED, AOE }
 enum TargetTeam { ENEMY, ALLY, SELF }
 enum Knockback { NONE, STANDARD, FORCEFUL }
+## Whose stacks of `consume_status` the card spends: its caster's (rage) or each target's (arcane charges).
+enum ConsumeFrom { CASTER, TARGET }
 
 @export_group("Identity")
 @export var id: StringName
@@ -40,18 +42,23 @@ enum Knockback { NONE, STANDARD, FORCEFUL }
 @export var quick: bool = false
 
 @export_group("Consume")
-## A status the caster spends when it plays this card, for example arcane charges (a status with
-## duration USES that other cards give to themselves). Empty = the card spends nothing.
+## A status this card spends, for example charges (a status with effect NONE and duration USES that
+## other cards give). Empty = the card spends nothing.
 @export var consume_status: StatusData:
 	set(value):
 		consume_status = value
 		notify_property_list_changed()
-## How many stacks are spent at most (0 = all the caster has).
+## CASTER: the card spends the stacks its caster holds, once for the whole card (a barbarian's rage).
+## TARGET: each target hit spends its own stacks (arcane charges put on enemies by other cards).
+@export var consume_from: ConsumeFrom = ConsumeFrom.CASTER
+## How many stacks are spent at most (0 = all of them).
 @export_range(0, 99) var consume_amount: int = 0
-## Extra damage per stack spent. Added to the damage of every hit, before the critical multiplier.
+## Extra damage per stack spent. CASTER: added to every hit. TARGET: added to the hit on the target
+## that held the stacks. Always before the critical multiplier.
 @export_range(0, 999) var bonus_damage_per_stack: int = 0
-## On: the card cannot be played unless the caster holds at least `consume_amount` stacks
-## (at least 1 when consume_amount is 0).
+## On: CASTER: the card cannot be played unless the caster holds at least `consume_amount` stacks.
+## TARGET: only a target holding at least `consume_amount` stacks can be picked.
+## (At least 1 stack when consume_amount is 0.)
 @export var consume_required: bool = false
 
 @export_group("Targeting")
@@ -128,7 +135,7 @@ func _validate_property(property: Dictionary) -> void:
 			hide = target_type != TargetType.AOE
 		"approach_angle":
 			hide = not use_approach_angle
-		"consume_amount", "bonus_damage_per_stack", "consume_required":
+		"consume_from", "consume_amount", "bonus_damage_per_stack", "consume_required":
 			hide = consume_status == null
 	if hide:
 		property.usage = PROPERTY_USAGE_NO_EDITOR

@@ -232,28 +232,48 @@ func can_play_card(card: CardInstance) -> bool:
 	)
 
 
-## Charges (stacks of CardData.consume_status) this card would spend right now: what the caster
-## holds, at most `consume_amount` (0 = no limit). 0 if the card consumes nothing.
+## Stacks of CardData.consume_status this card would spend right now: what the holder has, at most
+## `consume_amount` (0 = no limit). The holder is the caster (consume_from CASTER) or the given
+## `target` (consume_from TARGET; 0 if no target is given). 0 if the card consumes nothing.
 ## The UI can use it to preview the bonus.
-func get_charges_to_spend(card: CardInstance) -> int:
+func get_charges_to_spend(card: CardInstance, target: Character = null) -> int:
 	var data := card.data
 	if data.consume_status == null:
 		return 0
-	var held := card.caster.status_component.get_stacks(data.consume_status)
+	var holder: Character = card.caster
+	if data.consume_from == CardData.ConsumeFrom.TARGET:
+		if target == null:
+			return 0
+		holder = target
+	var held := holder.status_component.get_stacks(data.consume_status)
 	return held if data.consume_amount <= 0 else mini(held, data.consume_amount)
 
 
-## Extra damage per hit the card would get from its charges right now (UI preview).
-func get_charge_bonus_damage(card: CardInstance) -> int:
-	return card.data.bonus_damage_per_stack * get_charges_to_spend(card)
+## Extra damage the card would get from its charges right now (UI preview): on every hit for
+## CASTER, on the hit on `target` for TARGET.
+func get_charge_bonus_damage(card: CardInstance, target: Character = null) -> int:
+	return card.data.bonus_damage_per_stack * get_charges_to_spend(card, target)
 
 
-## False when the card needs charges (consume_required) and the caster has too few.
+## CASTER mode: false when the card needs charges (consume_required) and the caster has too few.
 func _has_required_charges(card: CardInstance) -> bool:
 	var data := card.data
 	if data.consume_status == null or not data.consume_required:
 		return true
+	if data.consume_from != CardData.ConsumeFrom.CASTER:
+		return true
 	return get_charges_to_spend(card) >= maxi(data.consume_amount, 1)
+
+
+## TARGET mode: false when the card needs charges (consume_required) and this target has too few,
+## so it cannot be picked.
+func _target_has_required_charges(card: CardInstance, target: Character) -> bool:
+	var data := card.data
+	if data.consume_status == null or not data.consume_required:
+		return true
+	if data.consume_from != CardData.ConsumeFrom.TARGET:
+		return true
+	return get_charges_to_spend(card, target) >= maxi(data.consume_amount, 1)
 
 
 ## Everyone the card could be aimed at.
@@ -292,6 +312,8 @@ func get_pickable_targets(card: CardInstance, selected: Array[Character]) -> Arr
 	var data := card.data
 	for candidate in get_valid_targets(card):
 		if selected.has(candidate) and not allows_repeat_picks(card):
+			continue
+		if not _target_has_required_charges(card, candidate):
 			continue
 		match data.target_type:
 			CardData.TargetType.MULTIPLE:
@@ -338,12 +360,15 @@ func play_card(card: CardInstance, selected: Array[Character]) -> void:
 	if data.card_type == CardData.Type.MANA:
 		_set_mana(mana - card.mana_cost)
 
-	# 1b. Spend the charges once for the whole card (a chain or an AOE gives the same bonus to each
-	# hit). Done before the statuses of step 5, so a card can spend charges and give new ones.
-	var spent := get_charges_to_spend(card)
-	if spent > 0:
-		caster.status_component.consume(data.consume_status, spent)
-	var bonus_damage := data.bonus_damage_per_stack * spent
+	# 1b. CASTER charges (rage): spent once for the whole card, every hit gets the same bonus.
+	# Done before the statuses of step 5, so a card can spend charges and give new ones.
+	# TARGET charges (arcane charges) are spent hit by hit in _deal_damage.
+	var bonus_damage := 0
+	if data.consume_status != null and data.consume_from == CardData.ConsumeFrom.CASTER:
+		var spent := get_charges_to_spend(card)
+		if spent > 0:
+			caster.status_component.consume(data.consume_status, spent)
+		bonus_damage = data.bonus_damage_per_stack * spent
 
 	# 2. Move, hit and knock back
 	var killed: Array[Character] = []
@@ -480,12 +505,20 @@ func _approach(card: CardInstance, target: Character) -> void:
 
 
 ## One hit on each target (dodged by Evasion in the StatusComponent, then armor and health).
-## Characters that die are added to `killed`. `bonus` is the extra damage from spent charges.
+## Characters that die are added to `killed`. `bonus` is the extra damage from the caster's spent
+## charges (CASTER mode); in TARGET mode each target spends its own charges here, then takes the hit.
 func _deal_damage(card: CardInstance, targets: Array[Character], killed: Array[Character], bonus: int = 0) -> void:
-	if card.damage + bonus <= 0:
-		return
-	var amount := roundi((card.damage + bonus) * (CRIT_MULTIPLIER if card.critical else 1.0))
+	var data := card.data
 	for target in targets:
+		var target_bonus := 0
+		if data.consume_status != null and data.consume_from == CardData.ConsumeFrom.TARGET:
+			var spent := get_charges_to_spend(card, target)
+			if spent > 0:
+				target.status_component.consume(data.consume_status, spent)
+			target_bonus = data.bonus_damage_per_stack * spent
+		var amount := roundi((card.damage + bonus + target_bonus) * (CRIT_MULTIPLIER if card.critical else 1.0))
+		if amount <= 0:
+			continue
 		var was_alive := not target.is_dead()
 		target.take_hit(amount)
 		if was_alive and target.is_dead():

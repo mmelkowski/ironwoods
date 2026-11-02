@@ -7,5 +7,5 @@
 script = ExtResource("1_0xbjr")
 recipient = 1
 status = ExtResource("2_ed0sg")
-stacks = 10
+stacks = 20
 metadata/_custom_type_script = "uid://1s4n8vmvkar7"
