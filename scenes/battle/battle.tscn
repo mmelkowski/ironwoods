@@ -15,9 +15,11 @@ font_size = 64
 [sub_resource type="LabelSettings" id="LabelSettings_13qdw"]
 font_size = 64
 
-[node name="battle" type="Node2D" unique_id=2014053538 node_paths=PackedStringArray("objective")]
+[node name="battle" type="Node2D" unique_id=2014053538 node_paths=PackedStringArray("objective", "map_layer")]
 script = ExtResource("1_a12nh")
 objective = NodePath("BattleObjective/KillAllObjective")
+map_layer = NodePath("TileMapLayer")
+show_walls_debug = true
 
 [node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=1837440378]
 scale = Vector2(1.6677935, 1.6677935)
@@ -32,18 +34,6 @@ unique_name_in_owner = true
 
 [node name="EnemySpawns" type="Node2D" parent="." unique_id=37792728]
 unique_name_in_owner = true
-
-[node name="Marker2D" type="Marker2D" parent="EnemySpawns" unique_id=1526618720]
-position = Vector2(1182, 578)
-
-[node name="Marker2D2" type="Marker2D" parent="EnemySpawns" unique_id=212997311]
-position = Vector2(1223, 382)
-
-[node name="Marker2D3" type="Marker2D" parent="EnemySpawns" unique_id=2014090736]
-position = Vector2(1418, 433)
-
-[node name="Marker2D4" type="Marker2D" parent="EnemySpawns" unique_id=1521035928]
-position = Vector2(1374, 650)
 
 [node name="Standard" type="Node2D" parent="EnemySpawns" unique_id=1101861346]
 position = Vector2(1305, 514)
@@ -85,15 +75,6 @@ elliptic = true
 
 [node name="AllySpawns" type="Node2D" parent="." unique_id=1567768452]
 unique_name_in_owner = true
-
-[node name="Marker2D" type="Marker2D" parent="AllySpawns" unique_id=309930850]
-position = Vector2(560, 337)
-
-[node name="Marker2D2" type="Marker2D" parent="AllySpawns" unique_id=523255535]
-position = Vector2(674, 490)
-
-[node name="Marker2D3" type="Marker2D" parent="AllySpawns" unique_id=2009150849]
-position = Vector2(557, 621)
 
 [node name="Standard" type="Node2D" parent="AllySpawns" unique_id=331646994]
 position = Vector2(590, 483)

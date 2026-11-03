@@ -45,6 +45,12 @@ const PLACEMENT_TOLERANCE := 0.5         # px: bodies that merely touch don't ov
 const SPAWN_TRIES := 24   # random points tested in the zone before falling back to the free-spot search
 const SPAWN_GAP := 10.0   # px kept between two bodies at spawn (so nobody starts glued to a neighbour)
 
+# Walls: tiles whose TileSet custom data `blocked` (bool) is true (see is_walkable)
+const WALL_DATA := "blocked"
+const WALL_STEP := 8.0          # px between two tests along a move (smaller than any wall is thick)
+const WALL_BODY_FACTOR := 0.5   # the body that must stay out of walls = this x the character's shape.radius
+const WALL_BODY_SAMPLES := 8    # points tested around the body (plus its centre)
+
 @onready var character_scene: PackedScene = preload("res://scenes/character/character.tscn")
 ## Everyone to spawn. Each CharacterData's `team` decides which side it joins.
 ## If filled in, the battle starts automatically (handy for testing).
@@ -61,6 +67,13 @@ const SPAWN_GAP := 10.0   # px kept between two bodies at spawn (so nobody start
 ## What has to be done to win. If empty, a KillAllObjective is created.
 ## Add an objective node to the scene and assign it here to change the mission goal.
 @export var objective: BattleObjective
+
+## The TileMapLayer that holds the walls. Empty = the first TileMapLayer child of this node.
+@export var map_layer: TileMapLayer
+## An empty cell (nothing painted) is outside the map: nobody can enter it.
+@export var empty_cells_are_walls := true
+## Paints the wall tiles in red while the game runs, to check what was marked.
+@export var show_walls_debug := false
 
 @onready var allies_root: Node2D = %Allies
 @onready var enemies_root: Node2D = %Enemies
@@ -92,6 +105,7 @@ var _zone_fill := {}  # SpawnZone -> how many characters were placed in it this 
 
 
 func _ready() -> void:
+	_setup_walls()
 	_create_intent_overlay()
 	# Inside an expedition the fight comes from the current node. Otherwise
 	# (battle scene tested alone) the `roster` set in the inspector is used.
@@ -264,6 +278,8 @@ func _get_spawn_position(character: Character, is_ally: bool, index: int) -> Vec
 
 
 func _is_spawn_spot_free(spot: Vector2, mover: Character) -> bool:
+	if not is_walkable(spot, mover):
+		return false
 	for team in [allies, enemies]:
 		for other in team:
 			var min_gap: float = mover.shape.radius + other.shape.radius + SPAWN_GAP
@@ -513,7 +529,8 @@ func _free_position(ideal: Vector2, from: Vector2, target: Character, mover: Cha
 func _free_position_at(ideal: Vector2, from: Vector2, center: Vector2, mover: Character) -> Vector2:
 	if ideal.is_equal_approx(from):
 		return from  # already in range, the mover doesn't walk
-	return _find_free_position(ideal, center, mover)
+	# A wall between `from` and the spot stops the walk early (preview and real move agree).
+	return _clamp_move(mover, from, _find_free_position(ideal, center, mover))
 
 
 ## Searches around `center` for a spot where `mover` doesn't overlap anyone:
@@ -540,6 +557,8 @@ func _find_free_position(ideal: Vector2, center: Vector2, mover: Character) -> V
 
 ## True if a body of the mover's size standing at `spot` overlaps no other character.
 func _is_spot_free(spot: Vector2, mover: Character) -> bool:
+	if not is_walkable(spot, mover):
+		return false
 	for team in [allies, enemies]:
 		for other in team:
 			if other == mover:
@@ -926,16 +945,109 @@ func _set_mana(value: int) -> void:
 	mana_changed.emit(mana)
 
 
+# ---------------------------------------------------------------------------
+# Walls (TileMapLayer)
+# ---------------------------------------------------------------------------
+
+var _wall_layer := -1  # index of the `blocked` custom data layer in the TileSet (-1 = none)
+
+
+func _setup_walls() -> void:
+	if map_layer == null:
+		for child in get_children():
+			if child is TileMapLayer:
+				map_layer = child
+				break
+	if map_layer == null or map_layer.tile_set == null:
+		return  # no map: nothing blocks anyone
+	_wall_layer = map_layer.tile_set.get_custom_data_layer_by_name(WALL_DATA)
+	if _wall_layer < 0:
+		push_warning("Battle: the TileSet has no custom data layer '%s' (bool): no wall tiles." % WALL_DATA)
+	if show_walls_debug:
+		var overlay := Node2D.new()
+		overlay.z_index = 100
+		add_child(overlay)
+		overlay.draw.connect(_draw_walls_debug.bind(overlay))
+		overlay.queue_redraw()
+
+
+func _draw_walls_debug(overlay: Node2D) -> void:
+	var half := Vector2(map_layer.tile_set.tile_size) * 0.5
+	for cell in map_layer.get_used_cells():
+		if not _is_wall_cell(cell):
+			continue
+		var center := map_layer.map_to_local(cell)
+		var corners := PackedVector2Array()
+		for sign_vector in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+			corners.append(overlay.to_local(map_layer.to_global(center + sign_vector * half)))
+		overlay.draw_colored_polygon(corners, Color(1.0, 0.0, 0.0, 0.35))
+
+
+## True if this cell holds a tile marked `blocked`.
+func _is_wall_cell(cell: Vector2i) -> bool:
+	var data := map_layer.get_cell_tile_data(cell)
+	if data == null or _wall_layer < 0:
+		return false
+	var blocked: bool = data.get_custom_data(WALL_DATA)
+	return blocked
+
+
+## True if a point of the world is on ground (not a wall tile, not outside the painted map).
+func _point_is_walkable(point: Vector2) -> bool:
+	var cell := map_layer.local_to_map(map_layer.to_local(point))
+	if map_layer.get_cell_tile_data(cell) == null:
+		return not empty_cells_are_walls
+	return not _is_wall_cell(cell)
+
+
+## True if a character standing at `at` touches no wall. The body is its centre plus a ring
+## of points (shape.radius x WALL_BODY_FACTOR), so it can't stand half inside a wall.
+## Without a mover only the point itself is tested. Public: the UI can use it for previews.
+func is_walkable(at: Vector2, mover: Character = null) -> bool:
+	if map_layer == null:
+		return true
+	if not _point_is_walkable(at):
+		return false
+	if mover == null:
+		return true
+	var radius: float = mover.shape.radius * WALL_BODY_FACTOR
+	for i in WALL_BODY_SAMPLES:
+		var point := at + Vector2.from_angle(TAU * i / WALL_BODY_SAMPLES) * radius
+		if not _point_is_walkable(point):
+			return false
+	return true
+
+
+## Walks the straight line from `from` to `to` and stops at the last spot before a wall
+## (or the map edge). Returns `to` when the way is clear.
+func _clamp_move(mover: Character, from: Vector2, to: Vector2) -> Vector2:
+	if map_layer == null:
+		return to
+	var distance := from.distance_to(to)
+	if distance < 0.01:
+		return to
+	var steps := ceili(distance / WALL_STEP)
+	var last := from
+	for i in range(1, steps + 1):
+		var spot := from.lerp(to, float(i) / steps)
+		if not is_walkable(spot, mover):
+			return last
+		last = spot
+	return to
+
+
 ## Moves several characters at once and waits until they arrive.
 ## moves: { Character: Vector2 destination }
+## Walls stop every move at the last free spot (this is what keeps knockback inside the map).
 func _move_characters(moves: Dictionary, duration: float) -> void:
 	var tween: Tween = null
 	for character in moves:
-		if character.global_position.is_equal_approx(moves[character]):
+		var destination := _clamp_move(character, character.global_position, moves[character])
+		if character.global_position.is_equal_approx(destination):
 			continue
 		if tween == null:
 			tween = create_tween().set_parallel(true)
-		tween.tween_property(character, "global_position", moves[character], duration)
+		tween.tween_property(character, "global_position", destination, duration)
 	if tween != null:
 		await tween.finished
 
