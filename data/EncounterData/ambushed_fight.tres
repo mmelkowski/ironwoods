@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="EncounterData" format=3 uid="uid://dl58tx6qaxud3"]
+
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="1_xee2c"]
+[ext_resource type="Script" uid="uid://c0pdfac1nyf65" path="res://scripts/expedition/encounter/EncounterData.gd" id="2_j7yd6"]
+
+[resource]
+script = ExtResource("2_j7yd6")
+fill_with_pool = true
+spawn_pattern = 2
+metadata/_custom_type_script = "uid://c0pdfac1nyf65"

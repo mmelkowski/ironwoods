@@ -1,8 +1,10 @@
 [gd_resource type="Resource" script_class="ExpeditionData" format=3 uid="uid://drsuciagschsy"]
 
 [ext_resource type="Script" uid="uid://dsg3xmy0citai" path="res://scripts/expedition/ExpeditionNode.gd" id="1_nk4hx"]
+[ext_resource type="Resource" uid="uid://dxpwnruumnow0" path="res://data/EncounterData/ambush_fight.tres" id="2_olven"]
 [ext_resource type="Resource" uid="uid://dcj2nr54iiqd7" path="res://data/encounters/standard_fight.tres" id="2_r176i"]
 [ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="3_olven"]
+[ext_resource type="Resource" uid="uid://dl58tx6qaxud3" path="res://data/EncounterData/ambushed_fight.tres" id="3_x2bst"]
 [ext_resource type="Resource" uid="uid://cqyo7amo8xapq" path="res://data/character/enemies/hobgoblin.tres" id="4_x2bst"]
 [ext_resource type="Script" uid="uid://c0pdfac1nyf65" path="res://scripts/expedition/encounter/EncounterData.gd" id="5_euodn"]
 [ext_resource type="Script" uid="uid://djuxvwgpk5gw6" path="res://scripts/expedition/ExpeditionData.gd" id="6_oqnlf"]
@@ -20,7 +22,7 @@ script = ExtResource("1_nk4hx")
 id = &"fight_1"
 title = "Ambush on the road"
 next_nodes = Array[StringName]([&"fight_hard", &"camp"])
-encounter = ExtResource("2_r176i")
+encounter = ExtResource("2_olven")
 loot = Dictionary[StringName, int]({
 &"wood": 3
 })
@@ -30,7 +32,7 @@ script = ExtResource("1_nk4hx")
 id = &"fight_hard"
 title = "The goblin patrol"
 next_nodes = Array[StringName]([&"fight_2"])
-encounter = ExtResource("2_r176i")
+encounter = ExtResource("3_x2bst")
 difficulty_bonus = 3
 loot = Dictionary[StringName, int]({
 &"stone": 3,

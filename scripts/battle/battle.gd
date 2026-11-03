@@ -7,8 +7,8 @@ extends Node2D
 ##   ├── Map (TileMapLayer)    <- decor/layout, not used by the logic yet
 ##   ├── %Allies (Node2D)      <- ally Characters are added here
 ##   ├── %Enemies (Node2D)     <- enemy Characters are added here
-##   ├── %AllySpawns (Node2D)  <- Marker2D children = placeholder ally positions
-##   └── %EnemySpawns (Node2D) <- Marker2D children = placeholder enemy positions
+##   ├── %AllySpawns (Node2D)  <- SpawnZone children (one or more per SpawnPattern)
+##   └── %EnemySpawns (Node2D) <- SpawnZone children (old Marker2D children still work as a fallback)
 ##
 ## UI talks to this node through signals and these methods:
 ##   get_valid_targets(), is_valid_selection(), can_play_card(), play_card(), end_player_turn()
@@ -41,6 +41,10 @@ const PLACEMENT_STEPS := 24              # 24 x 15 degrees = a full turn
 const PLACEMENT_RINGS := 4               # how many times the distance grows by one body radius
 const PLACEMENT_TOLERANCE := 0.5         # px: bodies that merely touch don't overlap
 
+# Random spawn inside a SpawnZone (see _get_spawn_position)
+const SPAWN_TRIES := 24   # random points tested in the zone before falling back to the free-spot search
+const SPAWN_GAP := 10.0   # px kept between two bodies at spawn (so nobody starts glued to a neighbour)
+
 @onready var character_scene: PackedScene = preload("res://scenes/character/character.tscn")
 ## Everyone to spawn. Each CharacterData's `team` decides which side it joins.
 ## If filled in, the battle starts automatically (handy for testing).
@@ -70,8 +74,9 @@ var deck := CardDeck.new()
 
 ## Set when the battle comes from an expedition node.
 var encounter: EncounterData
-## Only STANDARD exists for now (see EncounterData.SpawnPattern); _get_spawn_position will use it.
-var spawn_pattern: EncounterData.SpawnPattern = EncounterData.SpawnPattern.STANDARD
+## Which SpawnZones are used (see EncounterData.SpawnPattern). Set from the encounter inside an
+## expedition; exported so a battle scene tested alone can try AMBUSH / AMBUSHED.
+@export var spawn_pattern: EncounterData.SpawnPattern = EncounterData.SpawnPattern.STANDARD
 
 var phase: Phase = Phase.SETUP
 var turn := 0
@@ -82,6 +87,8 @@ var _in_expedition := false  # true when the heroes and enemies come from a run
 var _dead: Array[Character] = []  # hidden, freed once the current action ends
 var _warned_no_actions := {}  # enemy ids without actions already reported (one warning each)
 var _fallback_action: EnemyAction  # basic melee used by enemies that have no action
+var _spawn_rng := RandomNumberGenerator.new()  # seeded per node inside a run (same layout after a reload)
+var _zone_fill := {}  # SpawnZone -> how many characters were placed in it this battle
 
 
 func _ready() -> void:
@@ -127,9 +134,9 @@ func _start_from_run() -> bool:
 	var characters: Array[CharacterData] = []
 	characters.append_array(GameState.get_run_fighters())
 	# Hand-made enemies and/or enemies generated from the expedition's pool and the node's budget.
-	# The battle can place as many enemies as there are %EnemySpawns markers.
+	# The battle can place as many enemies as the enemy zones of the pattern hold (see SpawnZone.capacity).
 	characters.append_array(EncounterGenerator.build_enemies(
-		expedition, node, GameState.run.rng_seed, enemy_spawns.get_child_count()))
+		expedition, node, GameState.run.rng_seed, _enemy_capacity()))
 	start_battle(characters)
 	return true
 
@@ -177,6 +184,8 @@ func _starting_health(data: CharacterData) -> int:
 
 
 func _spawn_roster(characters: Array[CharacterData]) -> void:
+	_seed_spawn_rng()
+	_zone_fill.clear()
 	for data in characters:
 		var is_ally := data.team == CharacterData.Team.ALLY
 		var team := allies if is_ally else enemies
@@ -184,17 +193,83 @@ func _spawn_roster(characters: Array[CharacterData]) -> void:
 		var character: Character = character_scene.instantiate()
 		character.setup(data, _starting_health(data))
 		(allies_root if is_ally else enemies_root).add_child(character)
-		character.global_position = _get_spawn_position(is_ally, team.size())
+		character.global_position = _get_spawn_position(character, is_ally, team.size())
 		character.died.connect(_on_character_died)
 		character.clicked.connect(character_clicked.emit)
 		team.append(character)
 
 
-## Placeholder: fixed markers. Replace this one function later for
-## ambush / ambushed patterns.
-func _get_spawn_position(is_ally: bool, index: int) -> Vector2:
-	var points := ally_spawns if is_ally else enemy_spawns
-	return points.get_child(index % points.get_child_count()).global_position
+## Inside a run the layout depends on the run seed and the node, so reloading a save
+## gives the same placement (like the generated enemies). A battle tested alone is random.
+func _seed_spawn_rng() -> void:
+	if _in_expedition:
+		_spawn_rng.seed = hash("%d:%s:spawn" % [GameState.run.rng_seed, GameState.run.current_node_id])
+	else:
+		_spawn_rng.randomize()
+
+
+## The SpawnZones of a side for the current pattern. A pattern without any zone on that side
+## falls back to the STANDARD zones.
+func _get_spawn_zones(is_ally: bool) -> Array[SpawnZone]:
+	var root := ally_spawns if is_ally else enemy_spawns
+	var matching: Array[SpawnZone] = []
+	var standard: Array[SpawnZone] = []
+	for child in root.get_children():
+		var zone := child as SpawnZone
+		if zone == null:
+			continue
+		if zone.pattern == spawn_pattern:
+			matching.append(zone)
+		if zone.pattern == EncounterData.SpawnPattern.STANDARD:
+			standard.append(zone)
+	return matching if not matching.is_empty() else standard
+
+
+## How many enemies the enemy zones of the pattern hold (the generator never makes more).
+func _enemy_capacity() -> int:
+	var zones := _get_spawn_zones(false)
+	if zones.is_empty():
+		return enemy_spawns.get_child_count()  # old Marker2D layout
+	var total := 0
+	for zone in zones:
+		total += zone.capacity
+	return maxi(total, 1)
+
+
+## Random spot inside a zone of the side, not overlapping anyone already placed.
+## The zone is the least filled one (relative to its capacity), so two zones share the group.
+## `index` is only used by the old Marker2D layout.
+func _get_spawn_position(character: Character, is_ally: bool, index: int) -> Vector2:
+	var zones := _get_spawn_zones(is_ally)
+	if zones.is_empty():
+		var points := ally_spawns if is_ally else enemy_spawns
+		return points.get_child(index % points.get_child_count()).global_position
+
+	var zone: SpawnZone = null
+	var best_ratio := INF
+	for candidate in zones:
+		var filled: int = _zone_fill.get(candidate, 0)
+		var ratio := float(filled) / float(candidate.capacity)
+		if ratio < best_ratio:
+			best_ratio = ratio
+			zone = candidate
+	_zone_fill[zone] = int(_zone_fill.get(zone, 0)) + 1
+
+	for i in SPAWN_TRIES:
+		var spot := zone.random_point(_spawn_rng)
+		if _is_spawn_spot_free(spot, character):
+			return spot
+	# The zone is too crowded: take a random point and slide to the closest free spot around it.
+	return _find_free_position(zone.random_point(_spawn_rng), zone.global_position, character)
+
+
+func _is_spawn_spot_free(spot: Vector2, mover: Character) -> bool:
+	for team in [allies, enemies]:
+		for other in team:
+			var min_gap: float = mover.shape.radius + other.shape.radius + SPAWN_GAP
+			if spot.distance_to(other.global_position) < min_gap:
+				return false
+	return true
 
 
 # ---------------------------------------------------------------------------
