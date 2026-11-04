@@ -11,6 +11,8 @@ extends Control
 @export var action_counter: Label
 @export var mana_counter: Label
 @export var end_turn_button: Button
+## Optional: moves (walk or push) the team still has this turn.
+@export var moves_counter: Label
 ## Optional: shows the objective and its progress ("Defeat all enemies / Enemies left: 3").
 @export var objective_label: Label
 ## Optional: panels shown when the battle ends. Hidden at the start.
@@ -28,6 +30,7 @@ func _ready() -> void:
 
 	battle.actions_changed.connect(_on_actions_changed)
 	battle.mana_changed.connect(_on_mana_changed)
+	battle.moves_changed.connect(_on_moves_changed)
 	battle.phase_changed.connect(_on_phase_changed)
 	battle.objective_updated.connect(_refresh_objective)
 	battle.battle_ended.connect(_on_battle_ended)
@@ -43,6 +46,7 @@ func _ready() -> void:
 	# Show the current values (the battle may have started already)
 	_on_actions_changed(battle.actions_left)
 	_on_mana_changed(battle.mana)
+	_on_moves_changed(battle.moves_left)
 	_on_phase_changed(battle.phase)
 	_refresh_objective()
 	for panel in [victory_panel, defeat_panel]:
@@ -56,6 +60,11 @@ func _on_actions_changed(actions_left: int) -> void:
 
 func _on_mana_changed(mana: int) -> void:
 	mana_counter.text = "Mana: %d" % mana
+
+
+func _on_moves_changed(moves_left: int) -> void:
+	if moves_counter != null:
+		moves_counter.text = "Moves: %d" % moves_left
 
 
 ## The player can end the turn at any moment of their own turn, even with

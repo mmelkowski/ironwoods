@@ -45,6 +45,11 @@ func _ready() -> void:
 	battle.phase_changed.connect(_clear_selection.unbind(1))  # enemy turn, battle end...
 
 
+## True while a card waits for its targets. The MoveController stays out of the way meanwhile.
+func has_selection() -> bool:
+	return _card != null
+
+
 func confirm_selection() -> void:
 	if _card == null or _picks.is_empty():
 		return

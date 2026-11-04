@@ -19,6 +19,7 @@ signal phase_changed(phase: Phase)
 signal turn_started(turn: int)
 signal actions_changed(actions_left: int)
 signal mana_changed(mana: int)
+signal moves_changed(moves_left: int)
 signal character_clicked(character: Character)  # forwarded from every Character
 signal intents_changed  # an enemy picked a new target (redraw the intent arrows)
 signal card_played(card: CardInstance)
@@ -26,6 +27,7 @@ signal objective_updated  # the objective may have changed (refresh the HUD)
 signal battle_ended(victory: bool)
 
 const ACTIONS_PER_TURN := 3
+const MOVES_PER_TURN := 1  # move actions (walk or push) of the whole team, independent from cards
 const CRIT_MULTIPLIER := 1.5
 const KNOCKBACK_DISTANCE := {
 	CardData.Knockback.STANDARD: 48.0,
@@ -44,6 +46,12 @@ const PLACEMENT_TOLERANCE := 0.5         # px: bodies that merely touch don't ov
 # Random spawn inside a SpawnZone (see _get_spawn_position)
 const SPAWN_TRIES := 24   # random points tested in the zone before falling back to the free-spot search
 const SPAWN_GAP := 10.0   # px kept between two bodies at spawn (so nobody starts glued to a neighbour)
+
+# Move action (see plan_walk / plan_push / do_move)
+const PUSH_DISTANCE := 48.0              # how far a pushed character slides (a standard knockback)
+const PUSH_CONE_HALF_ANGLE := PI / 9.0   # 20 degrees on each side: the cone is 40 degrees wide
+const COLLISION_DAMAGE_SAME_TEAM := 10   # pushed into a character of its own team: both take it
+const COLLISION_DAMAGE_OPPONENT := 30    # pushed into the other team: only the pushed one takes it
 
 # Walls: tiles whose TileSet custom data `blocked` (bool) is true (see is_walkable)
 const WALL_DATA := "blocked"
@@ -94,6 +102,7 @@ var encounter: EncounterData
 var phase: Phase = Phase.SETUP
 var turn := 0
 var actions_left := 0
+var moves_left := 0  # shared by the whole team, like the actions
 var mana := 0  # shared by the whole team
 
 var _in_expedition := false  # true when the heroes and enemies come from a run
@@ -299,6 +308,7 @@ func _start_player_turn() -> void:
 		return
 	_set_phase(Phase.PLAYER_TURN)
 	_set_actions(ACTIONS_PER_TURN)
+	_set_moves(MOVES_PER_TURN)
 	deck.draw_to_full()
 	turn_started.emit(turn)
 
@@ -943,6 +953,165 @@ func _set_actions(value: int) -> void:
 func _set_mana(value: int) -> void:
 	mana = maxi(value, 0)
 	mana_changed.emit(mana)
+
+
+# ---------------------------------------------------------------------------
+# Move action: click a hero, then an empty spot (walk) or a character (push)
+# ---------------------------------------------------------------------------
+# Independent from cards: it costs one move of the hero, not an action. The MoveController
+# handles the clicks and the preview; the rules are here.
+
+func _set_moves(value: int) -> void:
+	moves_left = maxi(value, 0)
+	moves_changed.emit(moves_left)
+
+
+## Can this hero start a move right now? (The team needs a move left, and the hero must be able to act.)
+func can_move(character: Character) -> bool:
+	return (
+		phase == Phase.PLAYER_TURN
+		and is_instance_valid(character)
+		and character.is_ally()
+		and not character.is_dead()
+		and not character.is_incapacitated()
+		and moves_left > 0)
+
+
+## The character whose circle (the clickable area) contains this world point, or null.
+func get_character_at(point: Vector2) -> Character:
+	var best: Character = null
+	var best_distance := INF
+	for team in [allies, enemies]:
+		for character in team:
+			var distance := point.distance_to(character.global_position)
+			if distance <= character.shape.radius and distance < best_distance:
+				best = character
+				best_distance = distance
+	return best
+
+
+## A walk of `mover` to `spot`: valid if the spot is free (no overlap, no wall) and no wall is on the way.
+func plan_walk(mover: Character, spot: Vector2) -> MovePlan:
+	var plan := MovePlan.new()
+	plan.kind = MovePlan.Kind.WALK
+	plan.mover = mover
+	plan.destination = spot
+	plan.valid = (
+		can_move(mover)
+		and spot.distance_to(mover.global_position) >= 1.0
+		and _is_spot_free(spot, mover)
+		and _clamp_move(mover, mover.global_position, spot).is_equal_approx(spot))
+	return plan
+
+
+## `mover` hits `victim` like a billiard ball. `aim` is the mouse position: the push goes from the victim
+## toward it, kept inside a cone centered on the line mover -> victim (the way the mover walks).
+## The mover stops in contact with the victim, which slides PUSH_DISTANCE (less if a wall or a
+## character is in the way). Hitting a character deals damage, see COLLISION_DAMAGE_*.
+func plan_push(mover: Character, victim: Character, aim: Vector2) -> MovePlan:
+	var plan := MovePlan.new()
+	plan.kind = MovePlan.Kind.PUSH
+	plan.mover = mover
+	plan.victim = victim
+	var from := mover.global_position
+	var start := victim.global_position
+
+	plan.axis = from.direction_to(start)
+	if plan.axis == Vector2.ZERO:
+		plan.axis = Vector2.RIGHT
+	var swing := clampf(plan.axis.angle_to(start.direction_to(aim)), -PUSH_CONE_HALF_ANGLE, PUSH_CONE_HALF_ANGLE)
+	plan.direction = plan.axis.rotated(swing)
+
+	# The mover ends touching the victim, on the side opposite to the push
+	plan.destination = start - plan.direction * (mover.shape.radius + victim.shape.radius)
+
+	# The victim slides until a wall or a character stops it
+	var wall_end := _clamp_move(victim, start, start + plan.direction * PUSH_DISTANCE)
+	var slide := start.distance_to(wall_end)
+	var hit := _find_push_collision(plan, start, slide)
+	if not hit.is_empty():
+		plan.collided = hit["who"]
+		slide = hit["at"]
+		if plan.collided.is_ally() == victim.is_ally():
+			plan.damage_to_victim = COLLISION_DAMAGE_SAME_TEAM
+			plan.damage_to_other = COLLISION_DAMAGE_SAME_TEAM
+		else:
+			plan.damage_to_victim = COLLISION_DAMAGE_OPPONENT
+	plan.push_end = start + plan.direction * slide
+
+	plan.valid = (
+		can_move(mover)
+		and victim != mover
+		and not victim.is_dead()
+		and _is_spot_free(plan.destination, mover)
+		and _clamp_move(mover, from, plan.destination).is_equal_approx(plan.destination)
+		and (slide >= 1.0 or plan.collided != null))  # a push that goes nowhere is refused
+	return plan
+
+
+## The first character (not the mover, not the victim) that the victim runs into while sliding
+## `reach` px from `start` along plan.direction. {"who": Character, "at": distance} or {}.
+func _find_push_collision(plan: MovePlan, start: Vector2, reach: float) -> Dictionary:
+	var best := {}
+	var best_distance := INF
+	for team in [allies, enemies]:
+		for other in team:
+			if other == plan.mover or other == plan.victim:
+				continue
+			# Circle against circle: |offset + direction * t| = contact
+			var contact: float = plan.victim.shape.radius + other.shape.radius
+			var offset: Vector2 = start - other.global_position
+			var b := offset.dot(plan.direction)
+			var c := offset.length_squared() - contact * contact
+			var discriminant := b * b - c
+			if discriminant < 0.0:
+				continue
+			var t := -b - sqrt(discriminant)
+			if t < 0.0:
+				if c <= 0.0 and b < 0.0:
+					t = 0.0  # already touching and moving into it
+				else:
+					continue  # behind the victim
+			if t <= reach and t < best_distance:
+				best_distance = t
+				best = {"who": other, "at": t}
+	return best
+
+
+## Runs a plan from plan_walk() / plan_push(). Use `await battle.do_move(plan)`.
+## Does nothing if the plan is no longer valid.
+func do_move(plan: MovePlan) -> void:
+	if plan == null or not plan.valid or not can_move(plan.mover):
+		return
+	if plan.kind == MovePlan.Kind.PUSH and (not is_instance_valid(plan.victim) or plan.victim.is_dead()):
+		return
+
+	_set_phase(Phase.RESOLVING)
+	_set_moves(moves_left - 1)
+
+	if plan.kind == MovePlan.Kind.WALK:
+		await _move_characters({plan.mover: plan.destination}, MOVE_TIME)
+	else:
+		plan.mover.face_towards(plan.victim.global_position)
+		await _move_characters({plan.mover: plan.destination}, MOVE_TIME)
+		await _move_characters({plan.victim: plan.push_end}, KNOCKBACK_TIME)
+		_apply_collision(plan)
+
+	_free_dead()
+	_update_facings()
+	if not _check_battle_end():
+		_set_phase(Phase.PLAYER_TURN)
+
+
+## The pushed character hit someone: damage through take_hit (armor absorbs, Evasion can dodge).
+func _apply_collision(plan: MovePlan) -> void:
+	var other := plan.collided
+	if other == null or not is_instance_valid(other):
+		return
+	if plan.damage_to_victim > 0 and not plan.victim.is_dead():
+		plan.victim.take_hit(plan.damage_to_victim)
+	if plan.damage_to_other > 0 and not other.is_dead():
+		other.take_hit(plan.damage_to_other)
 
 
 # ---------------------------------------------------------------------------

@@ -7,6 +7,7 @@ This file documents **the code as delivered**: architecture, scripts, APIs, sign
 > **[T]**: phases 1 to 7 (hub buildings and carpentry included), the pause menu, saves, the status icon row (Evasion included) and the character UI placement/labels.
 > **[U]**: Bleeding / Stun ticking, Cleanse, armor/heal cards, the gate grid fit, the rebuilt `Expedition.tscn`.
 > **[T] added in this revision**: the gate map (expedition selection before the team selection): site picking, Choose Team, destination reaching the run, Back button, Esc closing the gate, Hub menu layer.
+> **[U] added in this revision**: spawn zones (4.5b), walls on the TileMapLayer (4.5c) and the move action (4.5d, 6).
 > **[D]** = exists in the project but its file was not shared with the documentation author (now only `tools/make_enemy_catalog.gd` and `CardData.closest_in_range`, which `battle.gd` calls).
 
 **Changes in this revision**
@@ -20,6 +21,9 @@ This file documents **the code as delivered**: architecture, scripts, APIs, sign
 * **Statuses: Sleep** (3.3): like Stun, but any hit that damages the sleeper removes it (`Character.take_hit` → `StatusComponent.wake_up`). `Battle` now checks `is_incapacitated()` instead of `is_stunned()`.
 * **Statuses: scaling Bleeding and Poison** (3.3, 5.3): `StatusData.tick_damage`; Bleeding now deals `tick_damage x stacks`, a new `POISON` effect deals a flat `tick_damage`; `StatusComponent.consume_all` added for stacks spent by cards (arcane charges, planned, 3.3b).
 * **Generated encounters** (3.8): `EncounterData.fill_with_pool`, `EnemyCatalog` and `EncounterGenerator` build a fight from the expedition's enemy tags and a threat budget.
+* **Spawn zones** (4.5b): `%AllySpawns` / `%EnemySpawns` now hold `SpawnZone` areas (one or more per `SpawnPattern`) instead of fixed markers; characters start at a random free point of a zone. `AMBUSH` / `AMBUSHED` are implemented as zone sets. The layout is seeded per run and node. Old `Marker2D` children still work as a fallback.
+* **Walls** (4.5c): tiles with the TileSet custom data `blocked = true` (and empty cells) stop walking, spawning and knockback (`Battle.is_walkable`, `_clamp_move`).
+* **Move action** (4.5d, 6): the team has `moves_left` (1 per turn, independent from cards and actions). Click a hero, then an empty spot (walk) or a character (push, with a 40 degree cone). A push into another character deals collision damage (10 same team, 30 other team, to the pushed one only). New `MovePlan`, `MoveController`, `Battle.plan_walk` / `plan_push` / `do_move`, `moves_changed` signal; `TargetingOverlay` draws cones and arrows; `BattleUI` has an optional `moves_counter`.
 
 ---
 
@@ -224,11 +228,11 @@ Helpers: `get_damage()`, `get_windup_turns()`, `targets_own_side()` (true for BU
 **Pipeline** (from the script comments): the enemy **plans** an action and shows it to the player (text above it, AOE circle, target) → on its **next turn** it walks within `approach_distance` of the target (or of the spot), deals `damage`, applies `effects`. A HEAVY first spends `windup_turns` turns charging. How `Battle` does all this: 4.6.
 
 ### 3.8 Generated encounters (`EncounterData`, `EnemyCatalog`, `EncounterGenerator`) [U]
-**`EncounterData`** (`@tool` Resource, stored in a BATTLE/BOSS node): `enemies` (guaranteed enemies, e.g. a boss), `fill_with_pool` (add more from the pool), `objective_scene` (root extends `BattleObjective`; empty = kill all), `spawn_pattern` (`STANDARD` only; `AMBUSH` / `AMBUSHED` are placeholders for `Battle._get_spawn_position`). Leave `enemies` empty for a normal generated fight.
+**`EncounterData`** (`@tool` Resource, stored in a BATTLE/BOSS node): `enemies` (guaranteed enemies, e.g. a boss), `fill_with_pool` (add more from the pool), `objective_scene` (root extends `BattleObjective`; empty = kill all), `spawn_pattern` (`STANDARD` / `AMBUSH` / `AMBUSHED`: picks which `SpawnZone`s of the battle scene are used, see 4.5b; `AMBUSH` = the heroes ambush the enemies, `AMBUSHED` = the enemies surround the heroes). Leave `enemies` empty for a normal generated fight.
 
 **`EnemyCatalog`** (`@tool` Resource, one file: `res://data/enemy_catalog.tres`, constant `PATH`; built by `tools/make_enemy_catalog.gd` (not shared) or filled by hand): `enemies: Array[CharacterData]`. `get_enemy(id)`, `get_pool(tags) -> Array[CharacterData]` (ENEMY team characters sharing at least one tag), `validate()` (pushes a warning per problem: empty entry, no id, duplicated id, not on the ENEMY team, `threat < 1`). Enemies used only in hand-made encounters do not have to be listed.
 
-**`EncounterGenerator`** (RefCounted, static): `build_enemies(expedition, node, run_seed, max_enemies = DEFAULT_MAX_ENEMIES (6))`. Called by `Battle._start_from_run()` with `GameState.run.rng_seed` and the number of `%EnemySpawns` markers as `max_enemies`.
+**`EncounterGenerator`** (RefCounted, static): `build_enemies(expedition, node, run_seed, max_enemies = DEFAULT_MAX_ENEMIES (6))`. Called by `Battle._start_from_run()` with `GameState.run.rng_seed` and `Battle._enemy_capacity()` as `max_enemies` (the sum of the `capacity` of the enemy `SpawnZone`s of the pattern; the number of markers in the old marker layout).
 1. No encounter on the node: empty list. Starts with `encounter.enemies`; without `fill_with_pool` that is the result.
 2. Budget = `expedition.get_budget(node)` (`base_budget + budget_per_depth * depth + node.difficulty_bonus`) minus the `threat` of the guaranteed enemies.
 3. Pool = `expedition.get_enemy_pool()`. Empty pool: a warning (no enemy matches the tags), nothing added.
@@ -236,7 +240,7 @@ Helpers: `get_damage()`, `get_windup_turns()`, `targets_own_side()` (true for BU
 5. If the result is still empty (budget below the cheapest enemy and no guaranteed enemy), the cheapest enemy of the pool is used: **never an empty battle**.
 6. Debug builds print `Encounter '<node id>': budget N -> enemy ids`.
 Also `load_catalog()` (loads `EnemyCatalog.PATH`, `push_error` and an empty catalog if missing or of the wrong type); `build_enemies` itself reads the pool through `ExpeditionData.get_enemy_pool()`.
-Note: a hand-made fight with more enemies than `%EnemySpawns` markers reuses markers (`index % count` in `_get_spawn_position`), so the extra enemies stand on top of others.
+Note: a hand-made fight with more enemies than the zones' capacity is allowed: the extra enemies are still placed in the least filled zone and slide to the nearest free spot if it is crowded (they no longer stack). Only the old marker layout reuses markers (`index % count`).
 
 ---
 
@@ -244,31 +248,33 @@ Note: a hand-made fight with more enemies than `%EnemySpawns` markers reuses mar
 
 ### 4.1 Scene tree to build (`battle.tscn`)
 ```
-Battle (Node2D, battle.gd)           exports: character_scene (developer's copy uses @onready), roster, objective
-├── Map (TileMapLayer)               decor, not used by logic yet
-├── TargetingOverlay (Node2D)        AFTER the Map, BEFORE Allies/Enemies (circles drawn under sprites)
+Battle (Node2D, battle.gd)           exports: roster, objective, spawn_pattern, map_layer, empty_cells_are_walls, show_walls_debug (character_scene: the developer's copy uses @onready)
+├── TileMapLayer                     the floor AND the walls: its TileSet needs a custom data layer `blocked` (bool), see 4.5c
+├── TargetingOverlay (Node2D)        AFTER the TileMapLayer, BEFORE Allies/Enemies (circles drawn under sprites)
 ├── %Allies (Node2D)   %Enemies (Node2D)
-├── %AllySpawns (Node2D) / %EnemySpawns (Node2D)   Marker2D children = placeholder positions (index order)
+├── %AllySpawns (Node2D) / %EnemySpawns (Node2D)   SpawnZone children (several per pattern allowed, see 4.5b); old Marker2D children still work
 ├── TargetingController (Node)       exports: hand, overlay (battle found through owner)
+├── MoveController (Node)            exports: hand (overlay and targeting are found by themselves)
 └── BattleUI (Control, BattleUI.gd)  + Hand (HBoxContainer, Hand.gd) + counters, End Turn button, panels
 ```
-Set full-screen HUD containers to Mouse Filter = Ignore (otherwise characters can't be clicked).
+Set full-screen HUD containers to Mouse Filter = Ignore (otherwise characters and the map can't be clicked).
 
 ### 4.2 Signals
-`phase_changed(phase)`, `turn_started(turn)`, `actions_changed(n)`, `mana_changed(n)`, `character_clicked(character)`, `intents_changed` (an intent was planned, re-aimed or cleared: `IntentOverlay` redraws), `card_played(card)`, `objective_updated`, `battle_ended(victory)`.
-`enum Phase { SETUP, PLAYER_TURN, RESOLVING, ENEMY_TURN, ENDED }`. Constants: `ACTIONS_PER_TURN = 3`, `CRIT_MULTIPLIER = 1.5`, `KNOCKBACK_DISTANCE` (48/96), `MOVE_TIME`, `KNOCKBACK_TIME`, `ENEMY_ACTION_DELAY = 0.4`, `PLACEMENT_*`.
+`phase_changed(phase)`, `turn_started(turn)`, `actions_changed(n)`, `mana_changed(n)`, `moves_changed(n)`, `character_clicked(character)`, `intents_changed` (an intent was planned, re-aimed or cleared: `IntentOverlay` redraws), `card_played(card)`, `objective_updated`, `battle_ended(victory)`.
+`enum Phase { SETUP, PLAYER_TURN, RESOLVING, ENEMY_TURN, ENDED }`. Constants: `ACTIONS_PER_TURN = 3`, `MOVES_PER_TURN = 1`, `CRIT_MULTIPLIER = 1.5`, `KNOCKBACK_DISTANCE` (48/96), `MOVE_TIME`, `KNOCKBACK_TIME`, `ENEMY_ACTION_DELAY = 0.4`, `PLACEMENT_*`, `SPAWN_TRIES = 24`, `SPAWN_GAP = 10`, `WALL_DATA = "blocked"`, `WALL_STEP = 8`, `WALL_BODY_FACTOR = 0.5`, `WALL_BODY_SAMPLES = 8`, `PUSH_DISTANCE = 48`, `PUSH_CONE_HALF_ANGLE = PI / 9` (20 degrees), `COLLISION_DAMAGE_SAME_TEAM = 10`, `COLLISION_DAMAGE_OPPONENT = 30`.
 
 ### 4.3 Start-up
 `_ready()`: `_start_from_run()` (inside an expedition) else `roster` (battle tested alone).
-`_start_from_run()`: reads the current node's `encounter`, sets `objective` from `objective_scene` if any, builds the roster = `GameState.get_run_fighters()` + `encounter.enemies`, `_in_expedition = true`.
-`start_battle(characters)`: spawns by `data.team` (ally list / enemy list), faces everyone, builds the deck from the living allies, assigns enemy targets, starts the objective, starts the player turn.
+`_ready()` first calls `_setup_walls()` (4.5c). `_start_from_run()`: reads the current node's `encounter`, sets `spawn_pattern` and `objective` from it (`objective_scene` if any), builds the roster = `GameState.get_run_fighters()` + `encounter.enemies`, `_in_expedition = true`.
+`start_battle(characters)`: spawns by `data.team` (ally list / enemy list; positions come from the spawn zones, 4.5b), faces everyone, builds the deck from the living allies, assigns enemy targets, starts the objective, starts the player turn.
 Heroes spawn with their carried-over health (`Character.setup(data, start_health)`).
 
 ### 4.4 Public API (used by UI)
 `can_play_card(card)`, `get_valid_targets(card)`, `get_max_picks(card)`, `allows_repeat_picks(card)` (CHAINED), `get_pickable_targets(card, selected)`, `is_valid_selection(card, selected)`,
 `get_charges_to_spend(card, target := null)`, `get_charge_bonus_damage(card, target := null)` (stacks the card would spend now / the extra damage, for previews; `target` is needed in TARGET mode), `get_affected_targets(card, selected)` (AOE expansion), `find_approach_position(card, from, target)`, `get_approach_positions(card, selected)` (preview of where the caster will stand),
 `play_card(card, selected)` (**coroutine, `await` it**), `end_player_turn()` (coroutine), `leave_battle()`.
-Fields: `allies`, `enemies` (living only), `deck` (CardDeck), `phase`, `turn`, `actions_left`, `mana`, `encounter`, `objective`.
+Move action (4.5d): `can_move(character)`, `get_character_at(point)`, `plan_walk(mover, spot)`, `plan_push(mover, victim, aim)` (both return a `MovePlan`), `do_move(plan)` (**coroutine, `await` it**). Walls (4.5c): `is_walkable(at, mover := null)`.
+Fields: `allies`, `enemies` (living only), `deck` (CardDeck), `phase`, `turn`, `actions_left`, `moves_left`, `mana`, `encounter`, `objective`, `spawn_pattern`, `map_layer`.
 
 ### 4.4b `play_card` pipeline
 1. Guard (`can_play_card` + `is_valid_selection`), phase `RESOLVING`.
@@ -279,7 +285,45 @@ Fields: `allies`, `enemies` (living only), `deck` (CardDeck), `phase`, `turn`, `
 6. Mana gain (non-MANA cards), Quick refund if a kill, discard, `card_played`, free dead, update facings, `_check_battle_end()`; else back to `PLAYER_TURN`.
 
 ### 4.5 Free-position search (placement)
-`_find_free_position(ideal, center, mover)`: starting from the ideal spot around the target, test spots every 15° alternating sides (+15, −15, +30…); if the whole circle is blocked, grow the distance by the mover's radius (`shape.radius`), up to 4 rings; fallback to the ideal spot. Obstacles = every living character except the mover (including the target). Used by cards, previews and enemy attacks.
+`_find_free_position(ideal, center, mover)`: starting from the ideal spot around the target, test spots every 15° alternating sides (+15, −15, +30…); if the whole circle is blocked, grow the distance by the mover's radius (`shape.radius`), up to 4 rings; fallback to the ideal spot. Obstacles = every living character except the mover (including the target); a spot inside a wall or outside the map is rejected too (`_is_spot_free` calls `is_walkable`, 4.5c). Used by cards, previews, enemy attacks and the spawn fallback.
+`_free_position_at(ideal, center, mover)` (cards and enemies) also passes the result through `_clamp_move` so a wall between the mover and the spot stops the walk early, and the approach preview matches the real move.
+
+### 4.5b Spawn zones (`SpawnZone.gd`, `Battle._get_spawn_position`) [U]
+**`SpawnZone`** (`@tool` Node2D, `class_name SpawnZone`): exports `pattern` (`EncounterData.SpawnPattern`), `size` (Vector2, centered on the node), `elliptic` (ellipse instead of rectangle), `capacity` (1 to 8: how many characters it is meant to hold). `random_point(rng)` returns a uniformly random **global** position inside it (follows the node's position, rotation and scale). It is drawn in the editor only (translucent: blue STANDARD, green AMBUSH, red AMBUSHED).
+
+**Choosing the zones** (`_get_spawn_zones(is_ally)`): the `SpawnZone` children of `%AllySpawns` / `%EnemySpawns` whose `pattern` equals `Battle.spawn_pattern`; a pattern with no zone on that side falls back to the STANDARD zones; no zone at all = the old `Marker2D` layout (`index % count`). Several zones per pattern and side are allowed (e.g. two enemy zones on opposite sides for AMBUSHED). `spawn_pattern` is set from the node's `EncounterData`; it is also an `@export` so a battle scene tested alone can try AMBUSH / AMBUSHED.
+
+**Placing a character** (`_get_spawn_position(character, is_ally, index)`, called right after `add_child` so `shape.radius` exists):
+1. The zone is the **least filled** one (`_zone_fill[zone] / capacity`), so several zones share the group in proportion to their capacity.
+2. Up to `SPAWN_TRIES` (24) random points of the zone are tested with `_is_spawn_spot_free`: walkable (4.5c) and at least `radius + other radius + SPAWN_GAP (10 px)` from every character already placed.
+3. Still nothing: `_find_free_position(random point, zone center, character)` slides to the nearest free spot.
+
+**Randomness** (`_seed_spawn_rng`): inside a run the generator is seeded with `hash("%d:%s:spawn" % [run.rng_seed, run.current_node_id])`, so **the same node gives the same layout** after a reload (like the generated enemies, 3.8); a battle tested alone is randomized. **`_enemy_capacity()`** = the sum of the `capacity` of the enemy zones of the pattern (the marker count in the old layout); it is the `max_enemies` given to `EncounterGenerator`.
+
+### 4.5c Walls (TileMapLayer) [U]
+* **Marking walls**: in the TileSet add a **custom data layer named `blocked`** (type `bool`), then in the TileSet editor (Paint tab, Custom Data) tick the tiles that must block. The flag is **per tile type**: every cell that uses the tile blocks.
+* **Setup** (`_setup_walls`): `map_layer` (export; empty = the first `TileMapLayer` child of the battle). Without a map nothing blocks anyone; a TileSet without the `blocked` layer logs a warning. `empty_cells_are_walls` (default true): a cell with no tile is outside the map and blocks, which gives the **map bounds**. `show_walls_debug` draws the wall tiles in red above everything while playing.
+* **`is_walkable(at, mover := null)`**: the cell under the point must be painted and not `blocked` (`local_to_map(to_local(point))`, so the layer's scale is handled). With a `mover` the same test is made on 8 points of a ring of radius `shape.radius * WALL_BODY_FACTOR (0.5)` around `at`, so a body cannot stand half inside a wall.
+* **`_clamp_move(mover, from, to)`**: walks the straight line in `WALL_STEP` (8 px) steps and returns the last walkable point before a wall or the map edge (`to` if the way is clear; `from` if the first step is blocked).
+* **Where it applies**: `_is_spot_free` and `_is_spawn_spot_free` (destinations and spawns avoid walls), `_free_position_at` (previews) and `_move_characters` (**every walk and every knockback**: a character pushed into a wall or the map edge just stops early, with no damage).
+* **Limits**: no pathfinding (a hero walking toward a target behind a wall stops at the wall; the attack still resolves); the flag cannot differ between two cells of the same tile (use an alternative tile).
+
+### 4.5d Move action (`MovePlan`, `plan_walk`, `plan_push`, `do_move`) [U]
+**Resource.** The move is **team-wide**, like actions and mana, and independent from cards: `moves_left` is set to `MOVES_PER_TURN` (1) in `_start_player_turn` (`_set_moves`, signal `moves_changed(n)`) and spent by `do_move`. Cards and characters that add or regenerate moves later only need to call `_set_moves(moves_left + n)` (no helper written yet). `can_move(character)` = phase `PLAYER_TURN`, a living hero that can act (`not is_incapacitated()`), and `moves_left > 0`.
+
+**`MovePlan`** (RefCounted, runtime only): `kind` (`WALK` / `PUSH`), `mover`, `valid`, `destination` (where the mover ends), and for a push `victim`, `axis` (unit vector mover to victim: the center of the cone), `direction` (unit vector the victim slides along), `push_end`, `collided` (the character it hits, or null), `damage_to_victim`, `damage_to_other`.
+
+**`plan_walk(mover, spot)`**: valid if `can_move`, the spot is at least 1 px away, `_is_spot_free` (no overlap, no wall) and `_clamp_move` reaches it.
+
+**`plan_push(mover, victim, aim)`** (`aim` = the mouse position):
+1. `axis` = from the mover toward the victim. `direction` = from the victim toward `aim`, **clamped to `PUSH_CONE_HALF_ANGLE` (20 degrees) on each side of `axis`**: a 40 degree cone centered on the movement of the mover, like a billiard shot.
+2. `destination` = the contact point behind the victim: `victim position - direction * (mover radius + victim radius)`.
+3. The victim slides `PUSH_DISTANCE` (48 px): first limited by walls (`_clamp_move`), then by the first character it meets (`_find_push_collision`: circle against circle, the mover and the victim excluded; a character already touching in the push direction is hit at distance 0). It stops on contact.
+4. Collision damage: **same team 10 to both** (`COLLISION_DAMAGE_SAME_TEAM`); **different teams 30 to the pushed one only** (`COLLISION_DAMAGE_OPPONENT`), e.g. a hero pushing an enemy into a hero. The other character is only damaged, not pushed.
+5. `valid` = `can_move`, victim alive and not the mover, `destination` free and reachable, and the push goes somewhere (slide of at least 1 px or a collision).
+
+**`do_move(plan)`** (coroutine): does nothing if the plan is no longer valid. Phase `RESOLVING`, `_set_moves(moves_left - 1)`. WALK: `_move_characters({mover: destination}, MOVE_TIME)`. PUSH: the mover faces the victim and walks to `destination`, then the victim slides to `push_end` (`KNOCKBACK_TIME`), then `_apply_collision`: `take_hit` on the victim and the other character, so **armor absorbs and Evasion can dodge** it. Then `_free_dead`, `_update_facings`, `_check_battle_end()`, back to `PLAYER_TURN`. A kill by collision counts like any other (objective, defeat).
+Input and preview are in `MoveController` (section 6); the rules stay here.
 
 ### 4.6 Enemy turn and intents [T, reported by the developer]
 **Flow.** `end_player_turn()` → `_end_of_turn_statuses(allies)` → `await _run_enemy_turn()`: phase `ENEMY_TURN` → `_start_of_turn_statuses(enemies)` (Bleeding; deaths freed; battle end checked) → for each enemy still alive (`enemies.duplicate()`): `await _enemy_act(enemy)`, `_check_battle_end()`, wait `ENEMY_ACTION_DELAY` (0.4 s, `create_timer(delay, false)`: **frozen by the pause menu**) → `_end_of_turn_statuses(enemies)` → `_start_player_turn()`.
@@ -314,7 +358,7 @@ Fields: `allies`, `enemies` (living only), `deck` (CardDeck), `phase`, `turn`, `
 * `intents_changed` is also emitted when an intent is cleared or re-aimed (the comment in `battle.gd` still says "picked a new target").
 
 ### 4.6b Status timing (player side)
-`_start_player_turn()`: `turn += 1` → `_start_of_turn_statuses(allies)` (Bleeding on heroes, may kill) → `_check_battle_end()` (returns if over) → phase `PLAYER_TURN`, actions reset, draw.
+`_start_player_turn()`: `turn += 1` → `_start_of_turn_statuses(allies)` (Bleeding on heroes, may kill) → `_check_battle_end()` (returns if over) → phase `PLAYER_TURN`, actions and moves reset, draw.
 `end_player_turn()`: `_end_of_turn_statuses(allies)` (decay) then the enemy turn. `can_play_card()` is false for a caster who **cannot act** (stunned or asleep: `Character.is_incapacitated()`), or when the card has `consume_required` (CASTER mode) and the caster holds too few stacks. In TARGET mode `consume_required` filters `get_pickable_targets` instead (an enemy without charges cannot be picked, and the UI gives no explanation yet).
 Helpers: `_start_of_turn_statuses(team)` (calls `StatusComponent.start_of_turn()` on each, frees dead, updates facings), `_end_of_turn_statuses(team)` (`end_of_turn()` on each).
 Known limit: a status applied to a character during **its own side's phase** also decays at the end of that same phase.
@@ -398,10 +442,15 @@ Instant value effects (armor, heal) never reach this component.
 * **`TargetingController`** (Node): turns clicks into `play_card`. SINGLE/AOE: first click selects (AOE shows its radius, highlights who will be hit), second click on the same target (or Enter/Space) confirms; another click changes the selection.
   CHAINED: click targets in order (repeats allowed), **plays automatically when `max_targets` is reached**. MULTIPLE: click targets, confirm with Enter/Space (`auto_confirm_when_full` export).
   Right click = undo last pick (cancel if none), Esc / clicking the card again = cancel; SELF-target cards play immediately.
-  Public: `confirm_selection()`, `cancel_selection()`. It draws previews through `TargetingOverlay` (auto-found if the export is empty).
+  Public: `confirm_selection()`, `cancel_selection()`, `has_selection()` (true while a card waits for its targets). It draws previews through `TargetingOverlay` (auto-found if the export is empty).
   Esc handling calls `set_input_as_handled()` so the same key does not also open the pause menu.
-* **`TargetingOverlay`** (Node2D): `show_preview(circles, line, badges)` / `clear()`. Circles (with optional `"color"`) are drawn under characters, the chain line and number badges above. Range circle (MULTIPLE around the caster, `chain_radius` around the last pick, AOE around the target) is yellow, the caster's destination circles are translucent green.
-* **`BattleUI`** (Control): exports `battle`, `action_counter`, `mana_counter`, `end_turn_button`, optional `objective_label`, `victory_panel`, `defeat_panel`, `victory_continue`, `defeat_continue`.
+* **`MoveController`** (Node, `MoveController.gd`) [U]: turns clicks into `battle.do_move()`. Exports `battle` (defaults to `owner`), `hand` (selecting a card cancels the move), `overlay` and `targeting` (found automatically when empty). **Does nothing while a card is being aimed** (`TargetingController.has_selection()`), and only in `PLAYER_TURN`.
+  Steps (`enum Step { IDLE, MOVER, AIM }`): **1st click** on a hero (`can_move`) selects it; **2nd click** on an empty spot = walk (if `plan_walk` is valid), on a character (ally or enemy) = chosen for a push, on the selected hero = cancel; **3rd click** (push) confirms the angle (if `plan_push` is valid). The 3rd click is separate so the player can aim with the whole mouse, without pointing at a precise part of the character's area.
+  Right click goes back one step, Esc (`set_input_as_handled`) or clicking a card cancels. It also resets on any phase change and when `moves_changed` makes the hero unable to move.
+  Clicks are read in `_unhandled_input` and the character under the mouse comes from `Battle.get_character_at` (geometry), not from `character_clicked` (the Area2D picking arrives after `_unhandled_input`).
+  **Preview** (every frame the mouse moves): rings for the area of every character (blue allies, orange enemies); WALK: a circle the size of the hero under the mouse (green = valid, red = blocked), none while the mouse is over a character (that character is highlighted: a click chooses it); PUSH: the cone (yellow, centered on `axis`), the arrow (`direction`), the circle where the hero will stand, a ring where the victim will end, the collided character highlighted and `-N` badges with the damage. The selected hero is highlighted (`set_highlighted`).
+* **`TargetingOverlay`** (Node2D): `show_preview(circles, line, badges, cones := [], arrows := [])` / `clear()`. Circles (with optional `"color"` and `"outline_only"`) and **cones** (`{apex, axis, half_angle, length, color}`) are drawn under characters, the chain line, **arrows** (`{from, to, color}`) and number badges above. Range circle (MULTIPLE around the caster, `chain_radius` around the last pick, AOE around the target) is yellow, the caster's destination circles are translucent green.
+* **`BattleUI`** (Control): exports `battle`, `action_counter`, `mana_counter`, `end_turn_button`, optional `moves_counter` ("Moves: N", from `moves_changed`), optional `objective_label`, `victory_panel`, `defeat_panel`, `victory_continue`, `defeat_continue`.
   End Turn is enabled only in `PLAYER_TURN` and has focus disabled (so Enter does not trigger it). Continue buttons call `battle.leave_battle()`.
 
 ---
@@ -584,8 +633,9 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 * A status applied to a character during its **own side's phase** decays at the end of that same phase (matters once enemies stun heroes).
 * `HealthComponent` still has unused evasion code (to remove).
 * **Enemy actions** (3.7, 4.6): only `ON_PLAY` effects run; a dodged hit still applies its effects; weights are not validated in the data files (a negative weight counts as 0, see 4.6); enemy intents use the unseeded global random generator.
-* `EncounterData.spawn_pattern` AMBUSH/AMBUSHED not implemented; spawn positions are marker nodes.
-* Movement and knockback are not clamped to the map; the TileMapLayer is decoration only.
+* Spawn zones (4.5b) and walls (4.5c) are new and not confirmed yet. `AMBUSH` / `AMBUSHED` only choose different zones: no gameplay effect yet (e.g. a free first turn for the ambushers).
+* Walls: no pathfinding (a straight walk stops at the first wall), the `blocked` flag is per tile type, no damage when something is pushed into a wall. An `AStarGrid2D` built from the same tiles could be added if heroes must walk around walls.
+* Move action (4.5d): the pool is team-wide with no helper yet to add or regenerate moves (a card or character bonus would call `_set_moves`); the second character hit by a push is only damaged, not pushed (no chain reaction); `PUSH_DISTANCE`, the cone angle and the collision damage are constants of `battle.gd`; the preview does not explain why a push is refused (the arrow turns red); no sound or animation on impact.
 * Camp and event nodes are simple (camp = heal 30%; event = stub dialog). The gate destination is now chosen on the gate map (7.4); unlock conditions are not applied there yet.
 * Tavern (buffs) and Forge menus are not written. Hero health upgrades are a TODO in `RunState.start()`.
 * Placeholder UI: text buttons for map nodes, code-built rows in lists, default font (blurry with pixel art), no audio, no settings menu. The health bar shows a number only (chunks every 10 points are planned).
@@ -604,7 +654,7 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 | Character data & scene | `character_data.gd`, `character.gd`, `health_component.gd` |
 | Cards | `card_data.gd`, `card_instance.gd`, `card_deck.gd`, `status_application.gd` |
 | Statuses | `status_data.gd`, `status_component.gd` (new), `status_application.gd` |
-| Battle | `battle.gd`, `BattleObjective.gd`, `KillAllObjective.gd`, `BattleUI.gd`, `Hand.gd`, `TargetingController.gd`, `TargetingOverlay.gd` |
+| Battle | `battle.gd`, `BattleObjective.gd`, `KillAllObjective.gd`, `BattleUI.gd`, `Hand.gd`, `TargetingController.gd`, `TargetingOverlay.gd`, `SpawnZone.gd`, `MovePlan.gd`, `MoveController.gd` |
 | Enemy actions | `EnemyAction.gd`, `EnemyIntent.gd`, `IntentOverlay.gd` (created by `battle.gd`) |
 | Encounters | `EncounterData.gd`, `EnemyCatalog.gd`, `EncounterGenerator.gd` (+ `tools/make_enemy_catalog.gd`, not shared) |
 | Expedition | `ExpeditionNode.gd`, `ExpeditionData.gd`, `EncounterData.gd`, `ExpeditionMap.gd`, `ExpeditionNodeButton.gd`, `expedition.gd` |
@@ -617,6 +667,15 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 
 ## 16. Manual test checklist for what is still unverified
 
+**Move action (to verify)**
+1. `moves_counter` (if assigned) shows "Moves: 1" at the start of each player turn; after one walk or push it shows 0 and **no hero** can start another move until the next turn.
+2. Click a hero, then an empty spot: green circle under the mouse (red on an occupied spot or a wall), the hero walks there on the 2nd click. Click the selected hero again, right click or Esc: cancelled with no move spent.
+3. Click a hero, then another character (ally or enemy): the cone (40 degrees) centered on the line hero to target and the arrow appear; moving the mouse around the target rotates the arrow only inside the cone; the 3rd click starts the push. Right click goes back to the walk step.
+4. Push an enemy into another enemy: 10 damage to both. Push an enemy into a hero: 30 to the enemy only. Push a hero into an enemy: 30 to the hero only. The `-N` badges match the damage dealt (armor and Evasion aside).
+5. A push toward a wall stops at the wall with no damage; a push that cannot move at all (wall against the target, nobody hit) gives a red arrow and the 3rd click does nothing.
+6. With a card selected, clicking an ally still targets the card; clicking a card while a move is in progress cancels the move. During the enemy turn or a card animation nothing can be started.
+7. A stunned or sleeping hero cannot be selected; killing someone with a collision updates the objective and can end the battle.
+
 **Statuses (phase 8)**
 1. Bleeding 3 on an enemy with `tick_damage` 1: it takes 3 damage when the enemy phase starts (ignoring armor), the icon number goes 3, 2, 1, then disappears; a kill by Bleeding can end the battle. With `tick_damage` 2: 6, then 4, then 2.
 2. Stun on an enemy: it skips its next attack, then attacks normally. Stun on a hero: its cards are unplayable for one player turn, the other heroes' cards still work.
@@ -624,57 +683,3 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 4. Armor card: the armor bar jumps by exactly the stacks. Heal card: health rises, never above the maximum.
 5. Evasion x2: one hit dodged per stack, the number on the icon goes down, no damage taken; Bleeding is not dodged. An Evasion with `TURNS` dodges everything until it expires.
 6. Pausing during the enemy turn freezes the battle.
-
-**Gate and expedition**
-1. Gate: three columns fill the left panel; resizing the window keeps them filling; the pick numbers and the team slots still work; heroes with `unlocked_by_default` appear even in an old save.
-2. `Expedition.tscn` rebuilt: the map, team panel and dialogs show again; the scripts are attached; a full expedition still works.
-
-**Gate map [T]** (confirmed by the developer)
-1. The gate building opens the map; Esc and the Back button close it.
-2. Picking a site enables Choose Team and updates the labels; Choose Team opens the team menu **above** the map with the hero grid and team slots visible.
-3. Esc in the team menu closes only the team menu; the launched expedition is the one of the selected site.
-
-**Gate map, still to verify [U]**
-1. After closing the team menu, the sites are clickable again and the selection is kept.
-2. With unlock conditions applied (once implemented): locked sites are teased/hidden and show what is missing.
-3. Completing an expedition (END node): `first_expedition` appears in the save's `completed_expeditions`, and its site shows " (done)" on the map. **Check who calls `PlayerProfile.complete_expedition`**: it was not found in the shared files.
-4. While the team menu is open, clicking where a site is on the map does nothing (the sites are not disabled by code).
-
-**Enemy actions (to verify against the running game)**
-1. An enemy with several actions picks them in roughly the ratio of the weights; an enemy with an empty `actions` falls back to a melee attack and warns once in the Output panel.
-2. Each kind: MELEE and RANGED stop at `approach_distance`; AOE shows its circle on the ground **at the planned spot** and a hero who left the circle is not hit; BUFF targets another enemy (itself only with `can_target_self`); DEBUFF with `damage = 0` applies its status without damage; HEAVY shows the wind-up count ("Heavy 1") and strikes on the following enemy phase.
-3. The intent text color matches the kind; the AOE circle disappears when the action is done or the enemy dies.
-4. A stunned enemy skips its turn: its intent stays and a HEAVY's wind-up does not progress.
-5. Kill the hero an enemy was aiming at: the enemy keeps its action (and wind-up) on another hero, the head icon changes, and with no hero left the intent is cleared.
-6. The head icon shows the target's head for single-target actions, nothing for AOE; a BUFF shows the head of the buffed enemy.
-7. An action with an effect whose trigger is not `ON_PLAY` does nothing (known behaviour).
-
-**Generated encounters (to verify)**
-1. A node with `fill_with_pool` and no fixed enemies gets enemies whose total `threat` stays within the budget; the Output panel prints the line `Encounter '<id>': budget N -> ...` in a debug build.
-2. Quit and reload the save, re-enter the same node: the same enemies; a new run: possibly different ones.
-3. A boss in `enemies` plus `fill_with_pool`: the boss is always there and the rest fills the remaining budget and slots (the number of `%EnemySpawns` markers).
-
-**Scaling Bleeding and Poison (to verify)**
-1. `bleeding.tres` with `tick_damage` 3 and one stack: 3 damage at the start of the owner's turn; two stacks (applied by two cards): 6. An old `bleeding.tres` without the field still deals `stacks` damage.
-2. `poison.tres` (effect POISON, `tick_damage` 4): 4 damage per turn with 1 stack and still 4 with 3 stacks, but it lasts 3 turns; the icon number is the turns left.
-3. Both ignore armor (`bypass_armor`), are removed by Cleanse, and a kill by either ends the battle correctly.
-4. The `tick_damage` and `bypass_armor` fields only show in the inspector for BLEED and POISON.
-
-**Sleep (to verify)**
-1. A sleeping enemy skips its turn (its intent stays, a HEAVY wind-up does not progress); a sleeping hero cannot play cards. Both lose one stack at the end of their side's phase.
-2. Hitting a sleeping enemy removes Sleep at once (the icon disappears) and it acts on its next turn; a dodged hit (Evasion) does not wake it.
-3. Bleeding or Poison ticks on a sleeper do not wake it; Cleanse removes Sleep.
-4. A hit fully absorbed by armor still wakes (default); to change that, see the comment in `Character.take_hit`.
-
-**Charges on the enemy: arcane charges (to verify)**
-1. A card with a `StatusApplication` (recipient `TARGET`, `ON_PLAY`) giving the `NONE` + `USES` status "arcane charge": the icon appears on the enemy with its stack count, never decays, and survives the enemy turns.
-2. A card with `consume_status` = that status, `consume_from = TARGET`, `consume_amount` 0, `bonus_damage_per_stack` 2, base damage 3, on an enemy holding 3 charges: the hit deals 9 and the enemy's charges disappear; on an enemy without charges it deals 3.
-3. An AOE or chain of that card over enemies with different charges: each enemy takes base + 2 x its own charges; the charges are spent even if a hit is dodged (Evasion).
-4. `consume_amount` 2 with 3 charges: it spends 2 (1 left). With `consume_required` on, enemies with fewer than 2 charges cannot be picked.
-5. A critical hit multiplies the total (base + bonus).
-
-**Charges on the caster: rage (to verify)**
-1. A card giving the caster the rage status (recipient `SELF`): the icon appears on the hero.
-2. A card with `consume_from = CASTER`, `bonus_damage_per_stack` 2, base damage 3, the hero holding 3 charges: **every** hit deals 9 and the charges are spent once; with 0 charges it deals 3.
-3. With `consume_required` on, the card is greyed out until the caster holds `consume_amount` stacks (1 when it is 0).
-4. A card that spends rage and also gives some ends with only the new ones.
