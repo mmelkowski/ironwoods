@@ -26,10 +26,13 @@ const DESTINATION_COLOR := Color(0.3, 0.9, 0.4)  # translucent green: where the 
 ## without pressing confirm. (CHAINED cards always do.)
 @export var auto_confirm_when_full: bool = false
 
+const PUSH_COLOR := Color(1.0, 0.85, 0.3)  # cone, arrow and end of the push (same as MoveController)
+
 var _card: CardInstance                  # the card waiting for its targets
 var _picks: Array[Character] = []        # targets picked so far, in order (may repeat in a chain)
 var _pickable: Array[Character] = []     # characters that can be clicked next
 var _tinted: Array[Character] = []       # characters currently highlighted
+var _last_mouse := Vector2.INF           # aiming a push: redraw only when the mouse moved
 
 
 func _ready() -> void:
@@ -60,8 +63,10 @@ func confirm_selection() -> void:
 	if not battle.is_valid_selection(card, picks):
 		return
 
+	# A push is aimed with the mouse: its position at the moment of the confirmation
+	var aim := battle.get_global_mouse_position() if battle.has_push_aim(card) else Battle.NO_AIM
 	_clear_selection()
-	await battle.play_card(card, picks)
+	await battle.play_card(card, picks, aim)
 
 
 func cancel_selection() -> void:
@@ -86,8 +91,8 @@ func _on_card_clicked(card: CardInstance) -> void:
 
 
 func _on_character_clicked(character: Character) -> void:
-	if _card == null:
-		return
+	if _card == null or _is_aiming():
+		return  # while a push is aimed, any click confirms it (see _unhandled_input)
 
 	var max_picks := battle.get_max_picks(_card)
 
@@ -123,6 +128,14 @@ func _plays_when_full(card: CardInstance) -> bool:
 func _unhandled_input(event: InputEvent) -> void:
 	if _card == null:
 		return
+	# 3rd click of a card with a push: anywhere on the map validates the aimed cone (even on a character,
+	# which may be the one to push the target into). set_input_as_handled keeps the MoveController
+	# from using this same click once the selection is cleared.
+	if _is_aiming() and event is InputEventMouseButton and event.pressed \
+			and event.button_index == MOUSE_BUTTON_LEFT:
+		get_viewport().set_input_as_handled()
+		confirm_selection()
+		return
 	var right_click: bool = (
 		event is InputEventMouseButton
 		and event.pressed
@@ -144,7 +157,18 @@ func _unhandled_input(event: InputEvent) -> void:
 # Preview
 # ---------------------------------------------------------------------------
 
+## True once the target of a card with an aimable push is picked: the cone follows the mouse.
+func _is_aiming() -> bool:
+	return _card != null and battle.has_push_aim(_card) and _picks.size() == 1
+
+
+func _process(_delta: float) -> void:
+	if _is_aiming() and battle.get_global_mouse_position() != _last_mouse:
+		_refresh_preview()
+
+
 func _refresh_preview() -> void:
+	set_process(_is_aiming())
 	# SINGLE / AOE keep every valid target clickable so the selection can be changed
 	var single := battle.get_max_picks(_card) == 1
 	var basis: Array[Character] = []
@@ -215,7 +239,39 @@ func _refresh_preview() -> void:
 		for character in numbers:
 			badges.append({"at": character.global_position, "text": ",".join(numbers[character])})
 
-	overlay.show_preview(circles, line, badges)
+	var cones: Array[Dictionary] = []
+	var arrows: Array[Dictionary] = []
+	if _is_aiming():
+		_preview_push(circles, badges, cones, arrows)
+	overlay.show_preview(circles, line, badges, cones, arrows)
+
+
+## The cone of the push (its length is the push distance: 48 px standard, 96 px forceful),
+## the arrow of the chosen direction, where the target will end and the damage of a collision.
+func _preview_push(
+		circles: Array[Dictionary], badges: Array[Dictionary],
+		cones: Array[Dictionary], arrows: Array[Dictionary]) -> void:
+	var target := _picks[0]
+	_last_mouse = battle.get_global_mouse_position()
+	var plan := battle.plan_card_push(_card, target, _last_mouse)
+	var origin := target.global_position
+	var reach := battle.get_card_push_distance(_card) + target.shape.radius
+
+	cones.append({
+		"apex": origin, "axis": plan.axis, "half_angle": Battle.PUSH_CONE_HALF_ANGLE,
+		"length": reach, "color": PUSH_COLOR,
+	})
+	arrows.append({"from": origin, "to": origin + plan.direction * reach, "color": PUSH_COLOR})
+	circles.append({
+		"center": plan.push_end, "radius": target.shape.radius,
+		"color": PUSH_COLOR, "outline_only": true,
+	})
+	if plan.collided != null:
+		_tinted.append(plan.collided)
+		plan.collided.set_highlighted(true)
+		badges.append({"at": origin, "text": "-%d" % plan.damage_to_victim})
+		if plan.damage_to_other > 0:
+			badges.append({"at": plan.collided.global_position, "text": "-%d" % plan.damage_to_other})
 
 
 func _set_highlight(characters: Array[Character], on: bool) -> void:

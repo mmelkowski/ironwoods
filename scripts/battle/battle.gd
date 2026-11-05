@@ -52,6 +52,7 @@ const PUSH_DISTANCE := 48.0              # how far a pushed character slides (a 
 const PUSH_CONE_HALF_ANGLE := PI / 9.0   # 20 degrees on each side: the cone is 40 degrees wide
 const COLLISION_DAMAGE_SAME_TEAM := 10   # pushed into a character of its own team: both take it
 const COLLISION_DAMAGE_OPPONENT := 30    # pushed into the other team: only the pushed one takes it
+const NO_AIM := Vector2.INF              # "no aim point": a card push goes straight away from the caster
 
 # Walls: tiles whose TileSet custom data `blocked` (bool) is true (see is_walkable)
 const WALL_DATA := "blocked"
@@ -447,7 +448,9 @@ func is_valid_selection(card: CardInstance, selected: Array[Character]) -> bool:
 
 ## Plays a card. Use `await battle.play_card(card, targets)` so the UI waits
 ## for the animations. Does nothing if the play is not allowed.
-func play_card(card: CardInstance, selected: Array[Character]) -> void:
+## `aim` is the mouse position that aims the push of a card with has_push_aim() (see plan_card_push);
+## NO_AIM pushes straight away from the caster.
+func play_card(card: CardInstance, selected: Array[Character], aim: Vector2 = NO_AIM) -> void:
 	if not can_play_card(card) or not is_valid_selection(card, selected):
 		return
 
@@ -489,7 +492,7 @@ func play_card(card: CardInstance, selected: Array[Character]) -> void:
 		if attacks:
 			await _approach(card, selected[0])
 		_deal_damage(card, targets, killed, bonus_damage)
-		await _knock_back(card, targets)
+		await _knock_back(card, targets, aim)
 
 	# 5. Statuses, then mana, Quick refund and cleanup
 	_apply_effects(card, targets, killed)
@@ -630,8 +633,18 @@ func _deal_damage(card: CardInstance, targets: Array[Character], killed: Array[C
 
 
 ## Pushes survivors away from the caster, all at the same time.
-func _knock_back(card: CardInstance, targets: Array[Character]) -> void:
+## A card with has_push_aim() (one target) pushes inside the aimed cone and a collision deals damage
+## (see plan_card_push); the other cards (AOE, several targets, chains) push straight away, no collision.
+func _knock_back(card: CardInstance, targets: Array[Character], aim: Vector2 = NO_AIM) -> void:
 	if card.data.knockback == CardData.Knockback.NONE:
+		return
+	if has_push_aim(card):
+		for target in targets:
+			if not target.is_dead():
+				# The caster has already walked: the cone starts from where it stands now
+				var plan := plan_card_push(card, target, aim, card.caster.global_position)
+				await _move_characters({target: plan.push_end}, KNOCKBACK_TIME)
+				_apply_collision(plan)
 		return
 	var pushes := {}
 	for target in targets:
@@ -1016,28 +1029,12 @@ func plan_push(mover: Character, victim: Character, aim: Vector2) -> MovePlan:
 	var from := mover.global_position
 	var start := victim.global_position
 
-	plan.axis = from.direction_to(start)
-	if plan.axis == Vector2.ZERO:
-		plan.axis = Vector2.RIGHT
-	var swing := clampf(plan.axis.angle_to(start.direction_to(aim)), -PUSH_CONE_HALF_ANGLE, PUSH_CONE_HALF_ANGLE)
-	plan.direction = plan.axis.rotated(swing)
+	_aim_push(plan, from, aim)
 
 	# The mover ends touching the victim, on the side opposite to the push
 	plan.destination = start - plan.direction * (mover.shape.radius + victim.shape.radius)
 
-	# The victim slides until a wall or a character stops it
-	var wall_end := _clamp_move(victim, start, start + plan.direction * PUSH_DISTANCE)
-	var slide := start.distance_to(wall_end)
-	var hit := _find_push_collision(plan, start, slide)
-	if not hit.is_empty():
-		plan.collided = hit["who"]
-		slide = hit["at"]
-		if plan.collided.is_ally() == victim.is_ally():
-			plan.damage_to_victim = COLLISION_DAMAGE_SAME_TEAM
-			plan.damage_to_other = COLLISION_DAMAGE_SAME_TEAM
-		else:
-			plan.damage_to_victim = COLLISION_DAMAGE_OPPONENT
-	plan.push_end = start + plan.direction * slide
+	var slide := _slide_victim(plan, PUSH_DISTANCE)
 
 	plan.valid = (
 		can_move(mover)
@@ -1046,6 +1043,73 @@ func plan_push(mover: Character, victim: Character, aim: Vector2) -> MovePlan:
 		and _is_spot_free(plan.destination, mover)
 		and _clamp_move(mover, from, plan.destination).is_equal_approx(plan.destination)
 		and (slide >= 1.0 or plan.collided != null))  # a push that goes nowhere is refused
+	return plan
+
+
+## Sets plan.axis (the line from `from`, where the pusher stands, to the victim: the center of the cone)
+## and plan.direction (from the victim toward `aim`, kept inside the cone; the axis itself for NO_AIM).
+func _aim_push(plan: MovePlan, from: Vector2, aim: Vector2) -> void:
+	var start := plan.victim.global_position
+	plan.axis = from.direction_to(start)
+	if plan.axis == Vector2.ZERO:
+		plan.axis = Vector2.RIGHT
+	plan.direction = plan.axis
+	if aim != NO_AIM:
+		var swing := clampf(plan.axis.angle_to(start.direction_to(aim)), -PUSH_CONE_HALF_ANGLE, PUSH_CONE_HALF_ANGLE)
+		plan.direction = plan.axis.rotated(swing)
+
+
+## The victim slides up to `distance` px along plan.direction until a wall or a character stops it.
+## Fills plan.push_end, plan.collided and the collision damage. Returns how far it slides.
+func _slide_victim(plan: MovePlan, distance: float) -> float:
+	var start := plan.victim.global_position
+	var wall_end := _clamp_move(plan.victim, start, start + plan.direction * distance)
+	var slide := start.distance_to(wall_end)
+	var hit := _find_push_collision(plan, start, slide)
+	if not hit.is_empty():
+		plan.collided = hit["who"]
+		slide = hit["at"]
+		if plan.collided.is_ally() == plan.victim.is_ally():
+			plan.damage_to_victim = COLLISION_DAMAGE_SAME_TEAM
+			plan.damage_to_other = COLLISION_DAMAGE_SAME_TEAM
+		else:
+			plan.damage_to_victim = COLLISION_DAMAGE_OPPONENT
+	plan.push_end = plan.victim.global_position + plan.direction * slide
+	return slide
+
+
+## True if the player aims the push of this card with the cone: a one-target card with a knockback.
+## (AOE, several targets and chains keep the automatic push straight away from the caster.)
+func has_push_aim(card: CardInstance) -> bool:
+	match card.data.target_type:
+		CardData.TargetType.AOE, CardData.TargetType.MULTIPLE, CardData.TargetType.CHAINED:
+			return false
+	return card.data.knockback != CardData.Knockback.NONE
+
+
+## How far the card pushes its target: 48 px (standard) or 96 px (forceful), see KNOCKBACK_DISTANCE.
+func get_card_push_distance(card: CardInstance) -> float:
+	return KNOCKBACK_DISTANCE.get(card.data.knockback, 0.0)
+
+
+## The push of a card (has_push_aim) on `target`, for the preview and for the real push.
+## The cone is centered on the line from where the caster stands to the target (`from`; by default
+## where it will stand after its approach) and is 40 degrees wide; `aim` (the mouse) picks the direction
+## inside it. The target slides get_card_push_distance(), stopped by a wall or the first character it hits
+## (same collision damage as the move action). Always valid: a push that goes nowhere never blocks the card.
+func plan_card_push(card: CardInstance, target: Character, aim: Vector2, from: Vector2 = NO_AIM) -> MovePlan:
+	var plan := MovePlan.new()
+	plan.kind = MovePlan.Kind.PUSH
+	plan.mover = card.caster
+	plan.victim = target
+	if from == NO_AIM:
+		from = card.caster.global_position
+		if card.data.target_team == CardData.TargetTeam.ENEMY:
+			from = find_approach_position(card, from, target)  # the caster walks first
+	plan.destination = from
+	_aim_push(plan, from, aim)
+	_slide_victim(plan, get_card_push_distance(card))
+	plan.valid = not target.is_dead()
 	return plan
 
 

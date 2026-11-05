@@ -18,12 +18,8 @@ font_size = 64
 
 [node name="battle" type="Node2D" unique_id=2014053538 node_paths=PackedStringArray("objective", "map_layer")]
 script = ExtResource("1_a12nh")
-roster = null
 objective = NodePath("BattleObjective/KillAllObjective")
 map_layer = NodePath("TileMapLayer")
-empty_cells_are_walls = null
-show_walls_debug = null
-spawn_pattern = null
 
 [node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=1837440378]
 scale = Vector2(1.6677935, 1.6677935)
