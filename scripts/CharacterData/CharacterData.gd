@@ -41,6 +41,12 @@ const TILE_SIZE := 32
 ## Leave empty for a normal enemy.
 @export var roles: Array[Role] = []
 
+@export_group("Behaviour")
+## Off: the character never takes a turn (no intent, no attack): a totem, a casket, a hostage.
+@export var acts: bool = true
+## Off: nothing moves it (pushes, knockbacks, walks): an object that stays where it spawned.
+@export var can_be_moved: bool = true
+
 @export_group("Cards")
 ## Heroes: the cards this hero adds to the shared draw pile.
 @export var deck: Array[CardData] = []

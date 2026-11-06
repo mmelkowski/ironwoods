@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://dcamuyhbyovrx"]
+
+[ext_resource type="Script" uid="uid://beu83mk0u0gh" path="res://scripts/battle/objectives/DestroyObjectObjective.gd" id="1_23ur1"]
+
+[node name="DestroyObjectObjective" type="Node" unique_id=586549269]
+script = ExtResource("1_23ur1")

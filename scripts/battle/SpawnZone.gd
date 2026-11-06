@@ -23,12 +23,20 @@ extends Node2D
 ## How many characters this zone is meant to hold. With several zones on a side, the group is
 ## shared in proportion to the capacities; the sum is also the maximum number of generated enemies.
 @export_range(1, 8) var capacity: int = 3
+## Enemy side only. On: the zone is used only by characters that don't act (a totem, see
+## CharacterData.acts), never by normal enemies, and it doesn't count in the number of generated
+## enemies. Without such a zone, those characters use the normal enemy zones.
+@export var objects_only := false:
+	set(value):
+		objects_only = value
+		queue_redraw()
 
 const COLORS := {
 	EncounterData.SpawnPattern.STANDARD: Color(0.3, 0.6, 1.0),
 	EncounterData.SpawnPattern.AMBUSH: Color(0.3, 0.9, 0.4),
 	EncounterData.SpawnPattern.AMBUSHED: Color(1.0, 0.35, 0.3),
 }
+const OBJECT_COLOR := Color(1.0, 0.85, 0.2)
 const ELLIPSE_POINTS := 32
 
 
@@ -48,6 +56,8 @@ func _draw() -> void:
 	if not Engine.is_editor_hint():
 		return
 	var color: Color = COLORS.get(pattern, Color.WHITE)
+	if objects_only:
+		color = OBJECT_COLOR
 	var outline := PackedVector2Array()
 	if elliptic:
 		for i in ELLIPSE_POINTS + 1:

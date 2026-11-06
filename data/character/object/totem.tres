@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CharacterData" format=3 uid="uid://50jnfwkby1yt"]
+
+[ext_resource type="Script" uid="uid://cyiubihrnsefw" path="res://scripts/battle/enemy_action/EnemyAction.gd" id="1_f3w46"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_328bt"]
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="3_mo2ca"]
+[ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="4_tabnf"]
+[ext_resource type="Texture2D" uid="uid://dp08fl0pitasl" path="res://assets/32rogues/tiles.png" id="5_328bt"]
+
+[resource]
+script = ExtResource("3_mo2ca")
+id = &"totem"
+display_name = "Totem skull"
+unlocked_by_default = false
+tileset = ExtResource("5_328bt")
+tile_coords = Vector2i(1, 5)
+max_health = 60
+roles = Array[int]([1])
+acts = false
+can_be_moved = false
+metadata/_custom_type_script = "uid://y7hn1ijwr8yv"

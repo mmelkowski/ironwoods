@@ -194,7 +194,6 @@ func start_battle(characters: Array[CharacterData]) -> void:
 
 func _start_objective() -> void:
 	if objective == null:
-		print("[DEBUG]HERE")
 		objective = KillAllObjective.new()
 		add_child(objective)
 	objective.start(self)
@@ -235,13 +234,13 @@ func _seed_spawn_rng() -> void:
 
 ## The SpawnZones of a side for the current pattern. A pattern without any zone on that side
 ## falls back to the STANDARD zones.
-func _get_spawn_zones(is_ally: bool) -> Array[SpawnZone]:
+func _get_spawn_zones(is_ally: bool, objects_only: bool = false) -> Array[SpawnZone]:
 	var root := ally_spawns if is_ally else enemy_spawns
 	var matching: Array[SpawnZone] = []
 	var standard: Array[SpawnZone] = []
 	for child in root.get_children():
 		var zone := child as SpawnZone
-		if zone == null:
+		if zone == null or zone.objects_only != objects_only:
 			continue
 		if zone.pattern == spawn_pattern:
 			matching.append(zone)
@@ -265,7 +264,11 @@ func _enemy_capacity() -> int:
 ## The zone is the least filled one (relative to its capacity), so two zones share the group.
 ## `index` is only used by the old Marker2D layout.
 func _get_spawn_position(character: Character, is_ally: bool, index: int) -> Vector2:
-	var zones := _get_spawn_zones(is_ally)
+	var zones: Array[SpawnZone] = []
+	if not is_ally and not character.data.acts:  # a totem: the object-only zones first
+		zones = _get_spawn_zones(false, true)
+	if zones.is_empty():
+		zones = _get_spawn_zones(is_ally)
 	if zones.is_empty():
 		var points := ally_spawns if is_ally else enemy_spawns
 		return points.get_child(index % points.get_child_count()).global_position
@@ -681,8 +684,8 @@ func _run_enemy_turn() -> void:
 	if _check_battle_end():
 		return
 	for enemy in enemies.duplicate():
-		if not enemies.has(enemy):
-			continue
+		if not enemies.has(enemy) or not enemy.data.acts:
+			continue  # dead, or an object: no turn and no delay
 		await _enemy_act(enemy)
 		if _check_battle_end():
 			return
@@ -694,6 +697,8 @@ func _run_enemy_turn() -> void:
 ## One enemy's turn: skip if stunned, charge if the action has a windup, otherwise carry out
 ## the planned action, then plan the next one (shown to the player during their turn).
 func _enemy_act(enemy: Character) -> void:
+	if not enemy.data.acts:
+		return
 	if enemy.is_incapacitated():  # stunned or asleep
 		return  # turn skipped (a windup does not progress either), the stun loses a stack at the end of the enemy phase
 	if not _intent_is_valid(enemy):
@@ -769,7 +774,7 @@ func _apply_action_effects(enemy: Character, action: EnemyAction, targets: Array
 ## Chooses the next action of an enemy and who/where it aims at. The player sees it
 ## (head of the target, action name, AOE circle) and can react during their turn.
 func _plan_intent(enemy: Character) -> void:
-	if not is_instance_valid(enemy):
+	if not is_instance_valid(enemy) or not enemy.data.acts:  # an object never plans anything
 		return
 	var action := _pick_action(enemy)
 	if action == null:  # nothing possible (for example no hero left)
@@ -1041,6 +1046,7 @@ func plan_push(mover: Character, victim: Character, aim: Vector2) -> MovePlan:
 		can_move(mover)
 		and victim != mover
 		and not victim.is_dead()
+		and victim.data.can_be_moved
 		and _is_spot_free(plan.destination, mover)
 		and _clamp_move(mover, from, plan.destination).is_equal_approx(plan.destination)
 		and (slide >= 1.0 or plan.collided != null))  # a push that goes nowhere is refused
@@ -1064,6 +1070,9 @@ func _aim_push(plan: MovePlan, from: Vector2, aim: Vector2) -> void:
 ## Fills plan.push_end, plan.collided and the collision damage. Returns how far it slides.
 func _slide_victim(plan: MovePlan, distance: float) -> float:
 	var start := plan.victim.global_position
+	if not plan.victim.data.can_be_moved:  # an object doesn't slide, so it can't collide either
+		plan.push_end = start
+		return 0.0
 	var wall_end := _clamp_move(plan.victim, start, start + plan.direction * distance)
 	var slide := start.distance_to(wall_end)
 	var hit := _find_push_collision(plan, start, slide)
@@ -1276,6 +1285,8 @@ func _clamp_move(mover: Character, from: Vector2, to: Vector2) -> Vector2:
 func _move_characters(moves: Dictionary, duration: float) -> void:
 	var tween: Tween = null
 	for character in moves:
+		if not character.data.can_be_moved:
+			continue
 		var destination := _clamp_move(character, character.global_position, moves[character])
 		if character.global_position.is_equal_approx(destination):
 			continue
@@ -1293,6 +1304,8 @@ func _move_characters(moves: Dictionary, duration: float) -> void:
 func _update_facings() -> void:
 	_face_closest(allies, enemies)
 	for enemy in enemies:
+		if not enemy.data.acts:
+			continue  # an object never turns
 		if _intent_is_valid(enemy):
 			_face_intent(enemy)
 		else:

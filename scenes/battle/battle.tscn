@@ -39,6 +39,7 @@ script = ExtResource("3_py4tk")
 size = Vector2(300, 500)
 elliptic = true
 capacity = 8
+objects_only = null
 
 [node name="Ambush" type="Node2D" parent="EnemySpawns" unique_id=1283440215]
 position = Vector2(960, 540)
@@ -47,6 +48,7 @@ pattern = 1
 size = Vector2(400, 400)
 elliptic = true
 capacity = 8
+objects_only = null
 
 [node name="AmbushedRight" type="Node2D" parent="EnemySpawns" unique_id=1437751675]
 position = Vector2(1232, 442)
@@ -55,6 +57,7 @@ script = ExtResource("3_py4tk")
 pattern = 2
 size = Vector2(200, 500)
 elliptic = true
+objects_only = null
 
 [node name="AmbushedTop" type="Node2D" parent="EnemySpawns" unique_id=921476683]
 position = Vector2(753.00006, 309.00003)
@@ -63,6 +66,7 @@ script = ExtResource("3_py4tk")
 pattern = 2
 size = Vector2(500, 200)
 elliptic = true
+objects_only = null
 
 [node name="AmbushedBottom" type="Node2D" parent="EnemySpawns" unique_id=1358681145]
 position = Vector2(937, 835)
@@ -70,6 +74,7 @@ script = ExtResource("3_py4tk")
 pattern = 2
 size = Vector2(500, 200)
 elliptic = true
+objects_only = null
 
 [node name="AllySpawns" type="Node2D" parent="." unique_id=1567768452]
 unique_name_in_owner = true
@@ -79,6 +84,7 @@ position = Vector2(590, 483)
 script = ExtResource("3_py4tk")
 size = Vector2(200, 320)
 elliptic = true
+objects_only = null
 
 [node name="AmbushRight" type="Node2D" parent="AllySpawns" unique_id=1731325746]
 position = Vector2(1272, 546)
@@ -86,6 +92,7 @@ script = ExtResource("3_py4tk")
 pattern = 1
 elliptic = true
 capacity = 1
+objects_only = null
 
 [node name="AmbushTop" type="Node2D" parent="AllySpawns" unique_id=24301134]
 position = Vector2(843, 248)
@@ -93,6 +100,7 @@ script = ExtResource("3_py4tk")
 pattern = 1
 elliptic = true
 capacity = 1
+objects_only = null
 
 [node name="AmbushBottom" type="Node2D" parent="AllySpawns" unique_id=1527655112]
 position = Vector2(758, 774)
@@ -100,6 +108,7 @@ script = ExtResource("3_py4tk")
 pattern = 1
 elliptic = true
 capacity = 1
+objects_only = null
 
 [node name="Ambushed" type="Node2D" parent="AllySpawns" unique_id=333619939]
 position = Vector2(960, 540)
@@ -107,6 +116,7 @@ script = ExtResource("3_py4tk")
 pattern = 2
 size = Vector2(300, 300)
 elliptic = true
+objects_only = null
 
 [node name="BattleUI" type="Control" parent="." unique_id=1932553233 node_paths=PackedStringArray("battle", "action_counter", "mana_counter", "end_turn_button", "objective_label", "victory_panel", "defeat_panel", "victory_continue", "defeat_continue")]
 layout_mode = 3
