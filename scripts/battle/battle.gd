@@ -194,6 +194,7 @@ func start_battle(characters: Array[CharacterData]) -> void:
 
 func _start_objective() -> void:
 	if objective == null:
+		print("[DEBUG]HERE")
 		objective = KillAllObjective.new()
 		add_child(objective)
 	objective.start(self)

@@ -231,6 +231,14 @@ offset_top = 855.0
 offset_right = 1698.0
 offset_bottom = 878.0
 
+[node name="ObjectiveLabel2" type="Label" parent="BattleUI" unique_id=1784708706]
+layout_mode = 0
+offset_left = 1654.0
+offset_top = 833.0
+offset_right = 1732.0
+offset_bottom = 856.0
+text = "Objective:"
+
 [node name="TargetingController" type="Node" parent="." unique_id=1049644035 node_paths=PackedStringArray("battle", "hand")]
 script = ExtResource("6_6vh42")
 battle = NodePath("..")
