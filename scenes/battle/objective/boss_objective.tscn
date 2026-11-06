@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://ba8ljhqmi7rk7"]
+
+[ext_resource type="Script" uid="uid://dlql54xb1fovp" path="res://scripts/battle/objectives/BossObjective.gd" id="1_7gwcv"]
+
+[node name="BossObjective" type="Node" unique_id=1944686881]
+script = ExtResource("1_7gwcv")

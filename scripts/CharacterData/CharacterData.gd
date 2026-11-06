@@ -5,6 +5,11 @@ extends Resource
 
 enum Team { ALLY, ENEMY }
 
+## What a character means for the battle objective. Append new values at the END (saved as integers).
+## BOSS: BossObjective is won by killing it. The other three are reserved for the
+## destroy-an-object and rescue-a-hostage objectives (nothing uses them yet).
+enum Role { BOSS, OBJECT, CAPTOR, HOSTAGE }
+
 const TILE_SIZE := 32
 
 @export_group("Identity")
@@ -31,6 +36,11 @@ const TILE_SIZE := 32
 @export var starting_armor: int = 0
 @export var starting_statuses: Dictionary[StatusData, int] = {}
 
+@export_group("Roles")
+## Enemies: the part this character plays in the objective of its battle (see BossObjective).
+## Leave empty for a normal enemy.
+@export var roles: Array[Role] = []
+
 @export_group("Cards")
 ## Heroes: the cards this hero adds to the shared draw pile.
 @export var deck: Array[CardData] = []
@@ -49,6 +59,10 @@ const TILE_SIZE := 32
 ## Cost of this enemy in the threat budget of a battle (goblin 2, hobgoblin 6...).
 ## It is also what keeps strong enemies for later: one never appears while the budget is lower.
 @export_range(1, 99) var threat: int = 1
+
+
+func has_role(role: Role) -> bool:
+	return roles.has(role)
 
 
 ## The whole sprite, cut from the tileset.
