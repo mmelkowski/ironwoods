@@ -15,5 +15,6 @@ card_type = 2
 mana_cost = 3
 damage = 20
 consume_status = ExtResource("1_l76xm")
+bonus_damage_per_stack = 10
 consume_required = true
 metadata/_custom_type_script = "uid://j0prpwx7b06d"

@@ -11,6 +11,11 @@
 [ext_resource type="Texture2D" uid="uid://bu8egxg5q0gk1" path="res://assets/Isometric_pixel-art_room_diorama_tileset/isometricroomtileset(10).png" id="8_2mx8n"]
 [ext_resource type="Texture2D" uid="uid://7wpstepvtpcp" path="res://assets/Isometric_pixel-art_room_diorama_tileset/isometricroomtileset(5).png" id="9_dhidh"]
 
+[sub_resource type="LabelSettings" id="LabelSettings_xrivr"]
+font_size = 24
+outline_size = 2
+outline_color = Color(0, 0, 0, 1)
+
 [node name="Hub" type="Node2D" unique_id=1907624046]
 script = ExtResource("1_ajtfx")
 
@@ -60,6 +65,20 @@ texture = ExtResource("9_dhidh")
 offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("7_20fyn")
+
+[node name="Label" type="Label" parent="." unique_id=488857447]
+offset_left = 1213.0
+offset_top = 66.0
+offset_right = 1873.0
+offset_bottom = 396.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+text = "Explication vite fait: 
+- La main gate permet de partir en expedition chercher des ressources
+- La \"carpentry\" permet de craft des batiments (placeholder)
+- En Combat tu peux utiliser 3 cartes par tour
+- Et un movement par tour en cliquant sur un de tes héros pour soit juste le déplacer ou cliquer sur un enemy pour le pousser (dégat de collision dans ce cas)"
+label_settings = SubResource("LabelSettings_xrivr")
+autowrap_mode = 2
 
 [editable path="MainGate"]
 [editable path="carpentry"]
