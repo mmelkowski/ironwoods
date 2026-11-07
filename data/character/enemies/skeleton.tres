@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CharacterData" format=3 uid="uid://ddxgl8gsdl2s0"]
+
+[ext_resource type="Script" uid="uid://cyiubihrnsefw" path="res://scripts/battle/enemy_action/EnemyAction.gd" id="1_odi0d"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_iop5u"]
+[ext_resource type="Resource" uid="uid://c0t4shbf3kyyk" path="res://data/EnemyAction/melee_10.tres" id="2_itq72"]
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="3_itq72"]
+[ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="4_habv1"]
+[ext_resource type="Texture2D" uid="uid://uhqi1oryicdy" path="res://assets/32rogues/monsters.png" id="5_g58rq"]
+
+[resource]
+script = ExtResource("3_itq72")
+id = &"skeleton"
+display_name = "Skeleton"
+tileset = ExtResource("5_g58rq")
+tile_coords = Vector2i(0, 4)
+max_health = 25
+actions = Dictionary[ExtResource("1_odi0d"), int]({
+ExtResource("2_itq72"): 0
+})
+tags = Array[StringName]([&"skeleton", &"catacomb"])
+metadata/_custom_type_script = "uid://y7hn1ijwr8yv"

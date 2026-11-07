@@ -28,7 +28,7 @@ enum LockedDisplay { HIDDEN, TEASED }
 @export_multiline var unlock_hint: String = ""
 
 @export_group("Enemies")
-## Tags of the enemies that live here ("forest", "catacombs"...). Generated fights (EncounterData.
+## Tags of the enemies that live here ("forest", "catacomb"...). Generated fights (EncounterData.
 ## fill_with_pool) pick enemies of the EnemyCatalog that share at least one of these tags.
 @export var enemy_tags: Array[StringName] = []
 ## Threat budget of a battle at the start of the map (depth 0). A harder expedition: a higher base.

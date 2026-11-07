@@ -8,6 +8,7 @@ const ENEMIES_DIR := "res://data/character/enemies"
 const OUTPUT := "res://data/enemy_catalog.tres"
 
 
+
 func _run() -> void:
 	var dir := DirAccess.open(ENEMIES_DIR)
 	if dir == null:

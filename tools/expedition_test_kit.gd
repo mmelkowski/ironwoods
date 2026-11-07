@@ -23,7 +23,8 @@ const DESTROY_OBJECTIVE_PATH := "res://scenes/battle/objective/destroy_object_ob
 const RESCUE_OBJECTIVE_PATH := "res://scenes/battle/objective/rescue_objective.tscn"
 
 # --- Characters and card: you author these, the tool only loads and checks them ---
-const BOSS_PATH := "res://data/character/enemies/hobgoblin.tres"  # roles: BOSS
+const BOSS_PATH := "res://data/character/enemies/hobgoblin.tres"  # roles: BOSS (forest expeditions)
+const CATACOMB_BOSS_PATH := "res://data/character/enemies/living_armor.tres"  # roles: BOSS (catacomb expedition)
 const FALLBACK_BOSS_PATH := "res://data/character/enemies/goblin.tres"  # used if there is no hobgoblin
 const TOTEM_PATH := "res://data/character/object/totem.tres"  # roles: OBJECT, acts off, can_be_moved off
 const CAPTOR_PATH := "res://data/character/enemies/goblin_captor.tres"  # roles: CAPTOR  (adjust the path)
@@ -50,9 +51,15 @@ static func load_boss() -> CharacterData:
 	if boss == null:
 		push_error("ExpeditionTestKit: no enemy found at %s or %s" % [BOSS_PATH, FALLBACK_BOSS_PATH])
 		return null
-	if not boss.roles.has(CharacterData.Role.BOSS):
-		push_warning("ExpeditionTestKit: '%s' has no BOSS role: a BossObjective fight would fall back to 'defeat all enemies'. Add BOSS to its roles." % boss.display_name)
+	check_boss(boss)
 	return boss
+
+
+static func check_boss(data: CharacterData) -> void:
+	if not data.roles.has(CharacterData.Role.BOSS):
+		push_warning("ExpeditionTestKit: '%s' has no BOSS role: a BossObjective fight would fall back to 'defeat all enemies'. Add BOSS to its roles." % data.display_name)
+	if data.tags.size() > 0:
+		push_warning("ExpeditionTestKit: boss '%s' has tags %s: if it is also in the EnemyCatalog it can be picked as an ordinary escort." % [data.display_name, data.tags])
 
 
 ## Warnings only: a wrongly set character would not fail here but misbehave in the battle.

@@ -6,11 +6,21 @@ This file documents **the code as delivered**: architecture, scripts, APIs, sign
 > Status legend: **[T]** tested/confirmed by the developer, **[U]** delivered but not confirmed yet.
 > **[T]**: phases 1 to 7 (hub buildings and carpentry included), the pause menu, saves, the status icon row (Evasion included) and the character UI placement/labels.
 > **[U]**: Bleeding / Stun ticking, Cleanse, armor/heal cards, the gate grid fit, the rebuilt `Expedition.tscn`.
-> **[T] added in this revision**: the gate map (expedition selection before the team selection): site picking, Choose Team, destination reaching the run, Back button, Esc closing the gate, Hub menu layer.
-> **[U] added in this revision**: spawn zones (4.5b), walls on the TileMapLayer (4.5c) and the move action (4.5d, 6).
+> **[T] added in an earlier revision**: the gate map (expedition selection before the team selection): site picking, Choose Team, destination reaching the run, Back button, Esc closing the gate, Hub menu layer.
+> **[U] added in an earlier revision**: spawn zones (4.5b), walls on the TileMapLayer (4.5c) and the move action (4.5d, 6).
+> **[U] added in this revision**: the objectives (boss, destroy object, rescue a hostage, 4.9), character roles and behaviour flags (3.1), the neutral team (4.3), object-only spawn zones (4.5b), the card push with the cone (4.5e), and the debug expedition generator (11).
 > **[D]** = exists in the project but its file was not shared with the documentation author (now only `tools/make_enemy_catalog.gd` and `CardData.closest_in_range`, which `battle.gd` calls).
 
-**Changes in this revision**
+**Changes in this revision (objectives, hostage, debug expeditions)** [U]
+* **Objectives** (4.9): `BattleObjective` gets the hook `on_character_died(character)`. New `KillRoleObjective` (win when the enemies that have a given role are dead) with two thin subclasses, `BossObjective` (`Role.BOSS`) and `DestroyObjectObjective` (`Role.OBJECT`), and `RescueObjective` (kill the captors, a card frees the hostage). All are data driven: they find their targets through `CharacterData.roles`.
+* **Roles and behaviour** (3.1): `CharacterData.Role { BOSS, OBJECT, CAPTOR, HOSTAGE }` + `roles`, and two behaviour flags, `acts` (takes a turn) and `can_be_moved` (pushes and knockbacks move it). A totem is `OBJECT` + `acts` off + `can_be_moved` off.
+* **Neutral team** (4.3, 4.5, 4.5d): `CharacterData.Team.NEUTRAL` and `Battle.neutrals`. A neutral (the hostage) is in neither `allies` nor `enemies`: cards, enemies, clicks and the defeat check ignore it, but it blocks movement and spawning.
+* **Object-only spawn zones** (4.5b): `SpawnZone.objects_only`; characters with `acts` off use these zones first.
+* **Card push with the cone** (4.5e): a one-target card with a knockback pushes inside the same 40 degree cone as the move action, aimed with the mouse (`plan_card_push`, `has_push_aim`, `play_card(..., aim)`).
+* **`CardDeck.add_to_hand(card)`** (4.10): a card given by an objective.
+* **Editor tools** (11): `tools/make_test_expedition.gd` now builds three fixed debug expeditions (`first_expedition`, `test_objectives`, `test_catacomb`) through the new shared `tools/expedition_test_kit.gd`; `tools/make_test_location.gd` keeps the locked-location tests.
+
+**Changes in the previous revisions**
 * New **gate map** (section 7.4): the gate building now opens `menu_gate_map`, where the player picks an expedition on a map of `ExpeditionSite`s, then `menu_gate` for the team.
 * New `ExpeditionSite` (Area2D), `expedition_site.tscn` and the **unlock conditions** (`UnlockCondition` and subclasses, section 3.6). `ExpeditionData` has the matching `unlock_conditions` / `locked_display` / `unlock_hint` (3.4) and `PlayerProfile` the `completed_expeditions` list (2.3, saved). The conditions are defined but **not applied yet** by the gate map.
 * `ExpeditionData` also has enemy tags and a threat budget for generated fights (3.4).
@@ -114,7 +124,7 @@ Methods: `static start(expedition_id, heroes)` (heroes at full `max_health`, TOD
 ### 3.1 `CharacterData` (heroes and enemies)
 | Field | Notes |
 |---|---|
-| `id`, `display_name`, `team` (`ALLY`/`ENEMY`) | id required for saves. |
+| `id`, `display_name`, `team` (`ALLY`/`ENEMY`/`NEUTRAL`) | id required for saves. `NEUTRAL` is for a hostage: it is spawned into `Battle.neutrals` (4.3). The enum is saved as integers: **append new values at the end**. |
 | `unlocked_by_default` | Hero is part of a new game's roster. |
 | `tileset`, `tile_coords` (in tiles), `size_in_tiles`, `head_position` (px, default (16, 8)) | Sprite cut from the tileset. |
 | `max_health`, `starting_armor` | Armor is a health layer, not a status. |
@@ -123,13 +133,17 @@ Methods: `static start(expedition_id, heroes)` (heroes at full `max_health`, TOD
 | `actions: Dictionary[EnemyAction, int]` | Enemies: what it can do on its turn, **action → weight** (higher = more often; `{goblin_stab: 3, goblin_throw: 1}` stabs 3 times out of 4). One usable action is picked at random each turn (rules in 4.6: negative weight counts as 0, all weights 0 = equal chances, a 0 next to positive weights is never picked). **No action = a basic melee attack with a warning** (replaces the removed `attack_damage` / `attack_range`). See 3.7. |
 | `tags: Array[StringName]` | Enemies: where it lives ("forest", "catacombs"). It can be picked for an expedition sharing at least one of its `enemy_tags` (3.4). |
 | `threat` (1 to 99) | Enemies: cost in the threat budget of a generated battle (goblin 2, hobgoblin 6...). A strong enemy never appears while the budget is lower. |
+| `roles: Array[Role]` | `enum Role { BOSS, OBJECT, CAPTOR, HOSTAGE }` (append only). What the character means for the objective of its battle (4.9): `BOSS` = `BossObjective` is won by killing it, `OBJECT` = what `DestroyObjectObjective` asks to destroy, `CAPTOR` = an enemy guarding a hostage, `HOSTAGE` = the character to rescue. Empty for an ordinary character. Helper `has_role(role)`. |
+| `acts` (default true) | Off: the character never takes a turn: no intent, no attack, no delay in the enemy phase, never turned by `_update_facings` (4.6). A totem, a casket, a hostage. |
+| `can_be_moved` (default true) | Off: nothing moves it: walks, pushes and knockbacks skip it and a push on it is refused (4.5d). It still blocks other characters. |
+Roles say what a character **means**, the two flags say how it **behaves**; they are independent (a barrel can be immovable without any objective). A destroyable object therefore needs three settings: `roles = [OBJECT]`, `acts` off, `can_be_moved` off (`DestroyObjectObjective` warns if `acts` is still on).
 Helpers: `get_sprite_texture()`, `get_head_texture(size := 16x16)` (AtlasTexture crops, clamped inside the sprite).
 
 ### 3.2 `CardData` (static card, shared) and `CardInstance` (runtime)
 `@tool` script (the inspector hides irrelevant fields).
 * Identity: `id`, `display_name`, `description`, `art`.
 * Type & mana: `card_type` (`ATTACK`/`SUPPORT`/`MANA`), `mana_generation` (hidden for MANA), `mana_cost` (MANA only).
-* Damage: `damage`, `knockback` (`NONE`/`STANDARD`/`FORCEFUL`), `critical`.
+* Damage: `damage`, `knockback` (`NONE`/`STANDARD`/`FORCEFUL`; a one-target card pushes inside the aimed 40 degree cone and a collision hurts, see 4.5e), `critical`.
 * Rules: `quick`.
 * Consume (all hidden except `consume_status` while it is empty): `consume_status: StatusData` (the status the card spends: effect `NONE`, duration `USES`), `consume_from: ConsumeFrom` (`CASTER` default: the stacks of the caster, spent **once for the whole card**, bonus on **every hit**; `TARGET`: **each target spends its own stacks**, bonus only on the hit on that target), `consume_amount` (at most this many stacks; 0 = all), `bonus_damage_per_stack` (added before the critical multiplier), `consume_required` (`CASTER`: the card cannot be played without `consume_amount` stacks on the caster; `TARGET`: only targets holding `consume_amount` stacks can be picked; at least 1 when `consume_amount` is 0). See 3.3b.
 * Targeting: `target_team`, `target_type`, `max_targets` (MULTIPLE/CHAINED), `select_radius` (MULTIPLE, 0 = unlimited), `chain_radius` (CHAINED), `aoe_radius` (AOE). All radii in **pixels**.
@@ -182,7 +196,7 @@ Resources to author: `armor`, `heal`, `cleanse` (instant), `bleeding` (BLEED, TU
 
 ### 3.4 Expedition data
 * `ExpeditionNode` (`@tool`): `id`, `type` (`START, BATTLE, BOSS, CAMP, EVENT, END`), `title`, `description`, `next_nodes: Array[StringName]`, `encounter` (BATTLE/BOSS), `loot: Dictionary[StringName,int]`, `lane` (-1 top … 1 bottom, map layout hint). `has_encounter()`.
-* `EncounterData` (`@tool`): `enemies: Array[CharacterData]` (always present; the whole fight when `fill_with_pool` is off), `fill_with_pool: bool` (add enemies from the expedition's pool until the threat budget is spent, see 3.8), `objective_scene: PackedScene` (root extends `BattleObjective`; empty = kill all), `spawn_pattern` (`STANDARD, AMBUSH, AMBUSHED`; only STANDARD implemented).
+* `EncounterData` (`@tool`): `enemies: Array[CharacterData]` (always present; the whole fight when `fill_with_pool` is off), `fill_with_pool: bool` (add enemies from the expedition's pool until the threat budget is spent, see 3.8), `objective_scene: PackedScene` (root extends `BattleObjective`; empty = kill all; see 4.9 for boss, destroy object and rescue), `spawn_pattern` (`STANDARD, AMBUSH, AMBUSHED`: picks which spawn zones are used, see 4.5b).
 * `ExpeditionData` (`@tool`): `id`, `display_name`, `description`, `goal` (shown in the gate menu), `completion_bonus: Dictionary[StringName,int]`, `nodes`, plus three groups:
   * **Unlock**: `unlock_conditions: Array[UnlockCondition]` (all must be met; empty = always available), `locked_display` (`enum LockedDisplay { HIDDEN, TEASED }`, what the map shows while locked), `unlock_hint` (text of a teased site; empty = built from the conditions' `describe()`).
   * **Enemies**: `enemy_tags: Array[StringName]` (tags of the enemies living here), `base_budget` (threat budget of a battle at depth 0, default 2), `budget_per_depth` (added per column, default 2). Used by generated fights: `EncounterData.fill_with_pool`, `EnemyCatalog.get_pool(tags)` (matches `CharacterData.tags`) and `CharacterData.threat` (3.1). See 3.8 for `EnemyCatalog` and `EncounterGenerator`.
@@ -230,7 +244,7 @@ Helpers: `get_damage()`, `get_windup_turns()`, `targets_own_side()` (true for BU
 ### 3.8 Generated encounters (`EncounterData`, `EnemyCatalog`, `EncounterGenerator`) [U]
 **`EncounterData`** (`@tool` Resource, stored in a BATTLE/BOSS node): `enemies` (guaranteed enemies, e.g. a boss), `fill_with_pool` (add more from the pool), `objective_scene` (root extends `BattleObjective`; empty = kill all), `spawn_pattern` (`STANDARD` / `AMBUSH` / `AMBUSHED`: picks which `SpawnZone`s of the battle scene are used, see 4.5b; `AMBUSH` = the heroes ambush the enemies, `AMBUSHED` = the enemies surround the heroes). Leave `enemies` empty for a normal generated fight.
 
-**`EnemyCatalog`** (`@tool` Resource, one file: `res://data/enemy_catalog.tres`, constant `PATH`; built by `tools/make_enemy_catalog.gd` (not shared) or filled by hand): `enemies: Array[CharacterData]`. `get_enemy(id)`, `get_pool(tags) -> Array[CharacterData]` (ENEMY team characters sharing at least one tag), `validate()` (pushes a warning per problem: empty entry, no id, duplicated id, not on the ENEMY team, `threat < 1`). Enemies used only in hand-made encounters do not have to be listed.
+**`EnemyCatalog`** (`@tool` Resource, one file: `res://data/enemy_catalog.tres`, constant `PATH`; built by `tools/make_enemy_catalog.gd` (not shared) or filled by hand): `enemies: Array[CharacterData]`. `get_enemy(id)`, `get_pool(tags) -> Array[CharacterData]` (ENEMY team characters sharing at least one tag), `validate()` (pushes a warning per problem: empty entry, no id, duplicated id, not on the ENEMY team, `threat < 1`). Enemies used only in hand-made encounters do not have to be listed. **Bosses, totems, captors and hostages are placed by hand: keep them out of the catalog (or without tags)**, otherwise `get_pool` can pick them as ordinary escorts (a NEUTRAL character is never in the pool, the pool only takes the ENEMY team).
 
 **`EncounterGenerator`** (RefCounted, static): `build_enemies(expedition, node, run_seed, max_enemies = DEFAULT_MAX_ENEMIES (6))`. Called by `Battle._start_from_run()` with `GameState.run.rng_seed` and `Battle._enemy_capacity()` as `max_enemies` (the sum of the `capacity` of the enemy `SpawnZone`s of the pattern; the number of markers in the old marker layout).
 1. No encounter on the node: empty list. Starts with `encounter.enemies`; without `fill_with_pool` that is the result.
@@ -261,37 +275,40 @@ Set full-screen HUD containers to Mouse Filter = Ignore (otherwise characters an
 
 ### 4.2 Signals
 `phase_changed(phase)`, `turn_started(turn)`, `actions_changed(n)`, `mana_changed(n)`, `moves_changed(n)`, `character_clicked(character)`, `intents_changed` (an intent was planned, re-aimed or cleared: `IntentOverlay` redraws), `card_played(card)`, `objective_updated`, `battle_ended(victory)`.
-`enum Phase { SETUP, PLAYER_TURN, RESOLVING, ENEMY_TURN, ENDED }`. Constants: `ACTIONS_PER_TURN = 3`, `MOVES_PER_TURN = 1`, `CRIT_MULTIPLIER = 1.5`, `KNOCKBACK_DISTANCE` (48/96), `MOVE_TIME`, `KNOCKBACK_TIME`, `ENEMY_ACTION_DELAY = 0.4`, `PLACEMENT_*`, `SPAWN_TRIES = 24`, `SPAWN_GAP = 10`, `WALL_DATA = "blocked"`, `WALL_STEP = 8`, `WALL_BODY_FACTOR = 0.5`, `WALL_BODY_SAMPLES = 8`, `PUSH_DISTANCE = 48`, `PUSH_CONE_HALF_ANGLE = PI / 9` (20 degrees), `COLLISION_DAMAGE_SAME_TEAM = 10`, `COLLISION_DAMAGE_OPPONENT = 30`.
+`enum Phase { SETUP, PLAYER_TURN, RESOLVING, ENEMY_TURN, ENDED }`. Constants: `ACTIONS_PER_TURN = 3`, `MOVES_PER_TURN = 1`, `CRIT_MULTIPLIER = 1.5`, `KNOCKBACK_DISTANCE` (48/96), `MOVE_TIME`, `KNOCKBACK_TIME`, `ENEMY_ACTION_DELAY = 0.4`, `PLACEMENT_*`, `SPAWN_TRIES = 24`, `SPAWN_GAP = 10`, `WALL_DATA = "blocked"`, `WALL_STEP = 8`, `WALL_BODY_FACTOR = 0.5`, `WALL_BODY_SAMPLES = 8`, `PUSH_DISTANCE = 48`, `PUSH_CONE_HALF_ANGLE = PI / 9` (20 degrees), `COLLISION_DAMAGE_SAME_TEAM = 10`, `COLLISION_DAMAGE_OPPONENT = 30`, `NO_AIM = Vector2.INF` (no aim point: a card push goes straight away from the caster).
 
 ### 4.3 Start-up
 `_ready()`: `_start_from_run()` (inside an expedition) else `roster` (battle tested alone).
 `_ready()` first calls `_setup_walls()` (4.5c). `_start_from_run()`: reads the current node's `encounter`, sets `spawn_pattern` and `objective` from it (`objective_scene` if any), builds the roster = `GameState.get_run_fighters()` + `encounter.enemies`, `_in_expedition = true`.
-`start_battle(characters)`: spawns by `data.team` (ally list / enemy list; positions come from the spawn zones, 4.5b), faces everyone, builds the deck from the living allies, assigns enemy targets, starts the objective, starts the player turn.
+`start_battle(characters)`: spawns by `data.team` (`allies` / `enemies` / `neutrals`; positions come from the spawn zones, 4.5b). A neutral is a child of `%Enemies` like the enemies, but its click area is not pickable and it never connects `clicked`, so it cannot be selected or hovered, faces everyone, builds the deck from the living allies, assigns enemy targets, starts the objective, starts the player turn.
 Heroes spawn with their carried-over health (`Character.setup(data, start_health)`).
 
 ### 4.4 Public API (used by UI)
 `can_play_card(card)`, `get_valid_targets(card)`, `get_max_picks(card)`, `allows_repeat_picks(card)` (CHAINED), `get_pickable_targets(card, selected)`, `is_valid_selection(card, selected)`,
 `get_charges_to_spend(card, target := null)`, `get_charge_bonus_damage(card, target := null)` (stacks the card would spend now / the extra damage, for previews; `target` is needed in TARGET mode), `get_affected_targets(card, selected)` (AOE expansion), `find_approach_position(card, from, target)`, `get_approach_positions(card, selected)` (preview of where the caster will stand),
-`play_card(card, selected)` (**coroutine, `await` it**), `end_player_turn()` (coroutine), `leave_battle()`.
+`play_card(card, selected, aim := NO_AIM)` (**coroutine, `await` it**; `aim` = the mouse position that aims a card push, 4.5e), `end_player_turn()` (coroutine), `leave_battle()`.
+Card push (4.5e): `has_push_aim(card)`, `get_card_push_distance(card)`, `plan_card_push(card, target, aim, from := NO_AIM)`.
 Move action (4.5d): `can_move(character)`, `get_character_at(point)`, `plan_walk(mover, spot)`, `plan_push(mover, victim, aim)` (both return a `MovePlan`), `do_move(plan)` (**coroutine, `await` it**). Walls (4.5c): `is_walkable(at, mover := null)`.
-Fields: `allies`, `enemies` (living only), `deck` (CardDeck), `phase`, `turn`, `actions_left`, `moves_left`, `mana`, `encounter`, `objective`, `spawn_pattern`, `map_layer`.
+Fields: `allies`, `enemies`, `neutrals` (living only; a neutral is in neither of the other two), `deck` (CardDeck), `phase`, `turn`, `actions_left`, `moves_left`, `mana`, `encounter`, `objective`, `spawn_pattern`, `map_layer`.
 
 ### 4.4b `play_card` pipeline
 1. Guard (`can_play_card` + `is_valid_selection`), phase `RESOLVING`.
 2. Pay: one action; mana for MANA cards. **2b. CASTER charges** (`consume_status`, `consume_from = CASTER`): `get_charges_to_spend`, `status_component.consume`, `bonus_damage` computed once. (TARGET charges are spent in step 4.)
 3. If target team is ENEMY: caster walks (`_approach`: face target, tween to the free approach position, face again). Chain: hop by hop (each target: walk → hit → knockback, skipping dead ones); other types: walk to the first pick, then hit all affected targets at once.
 4. `_deal_damage(card, targets, killed, bonus)`: per target: in TARGET mode the target first spends its own charges (`target_bonus`), then `(card.damage + bonus + target_bonus)` times the crit multiplier (a hit of 0 or less is skipped), **`Character.take_hit(amount)`** (evasion check, then armor, then health); kills detected with a "was alive" check (a chain can list a target several times).
-5. `_knock_back` (survivors), `_apply_effects` (ON_PLAY SELF once, TARGET per living target; ON_KILL SELF once per kill).
+5. `_knock_back` (survivors; a one-target card pushes inside the aimed cone and a collision hurts, see 4.5e; AOE, MULTIPLE and CHAINED cards push straight away from the caster), `_apply_effects` (ON_PLAY SELF once, TARGET per living target; ON_KILL SELF once per kill).
 6. Mana gain (non-MANA cards), Quick refund if a kill, discard, `card_played`, free dead, update facings, `_check_battle_end()`; else back to `PLAYER_TURN`.
 
 ### 4.5 Free-position search (placement)
-`_find_free_position(ideal, center, mover)`: starting from the ideal spot around the target, test spots every 15° alternating sides (+15, −15, +30…); if the whole circle is blocked, grow the distance by the mover's radius (`shape.radius`), up to 4 rings; fallback to the ideal spot. Obstacles = every living character except the mover (including the target); a spot inside a wall or outside the map is rejected too (`_is_spot_free` calls `is_walkable`, 4.5c). Used by cards, previews, enemy attacks and the spawn fallback.
+`_find_free_position(ideal, center, mover)`: starting from the ideal spot around the target, test spots every 15° alternating sides (+15, −15, +30…); if the whole circle is blocked, grow the distance by the mover's radius (`shape.radius`), up to 4 rings; fallback to the ideal spot. Obstacles = every living character except the mover (including the target; allies, enemies **and neutrals**); a spot inside a wall or outside the map is rejected too (`_is_spot_free` calls `is_walkable`, 4.5c). Used by cards, previews, enemy attacks and the spawn fallback.
 `_free_position_at(ideal, center, mover)` (cards and enemies) also passes the result through `_clamp_move` so a wall between the mover and the spot stops the walk early, and the approach preview matches the real move.
 
 ### 4.5b Spawn zones (`SpawnZone.gd`, `Battle._get_spawn_position`) [U]
-**`SpawnZone`** (`@tool` Node2D, `class_name SpawnZone`): exports `pattern` (`EncounterData.SpawnPattern`), `size` (Vector2, centered on the node), `elliptic` (ellipse instead of rectangle), `capacity` (1 to 8: how many characters it is meant to hold). `random_point(rng)` returns a uniformly random **global** position inside it (follows the node's position, rotation and scale). It is drawn in the editor only (translucent: blue STANDARD, green AMBUSH, red AMBUSHED).
+**`SpawnZone`** (`@tool` Node2D, `class_name SpawnZone`): exports `pattern` (`EncounterData.SpawnPattern`), `size` (Vector2, centered on the node), `elliptic` (ellipse instead of rectangle), `capacity` (1 to 8: how many characters it is meant to hold), `objects_only` (enemy side only, see below). `random_point(rng)` returns a uniformly random **global** position inside it (follows the node's position, rotation and scale). It is drawn in the editor only (translucent: blue STANDARD, green AMBUSH, red AMBUSHED, **yellow = objects only**).
 
-**Choosing the zones** (`_get_spawn_zones(is_ally)`): the `SpawnZone` children of `%AllySpawns` / `%EnemySpawns` whose `pattern` equals `Battle.spawn_pattern`; a pattern with no zone on that side falls back to the STANDARD zones; no zone at all = the old `Marker2D` layout (`index % count`). Several zones per pattern and side are allowed (e.g. two enemy zones on opposite sides for AMBUSHED). `spawn_pattern` is set from the node's `EncounterData`; it is also an `@export` so a battle scene tested alone can try AMBUSH / AMBUSHED.
+**Choosing the zones** (`_get_spawn_zones(is_ally, objects_only := false)`; a zone is only taken when its `objects_only` equals the argument, so the normal call never returns an object-only zone): the `SpawnZone` children of `%AllySpawns` / `%EnemySpawns` whose `pattern` equals `Battle.spawn_pattern`; a pattern with no zone on that side falls back to the STANDARD zones; no zone at all = the old `Marker2D` layout (`index % count`). Several zones per pattern and side are allowed (e.g. two enemy zones on opposite sides for AMBUSHED). `spawn_pattern` is set from the node's `EncounterData`; it is also an `@export` so a battle scene tested alone can try AMBUSH / AMBUSHED.
+
+**Object-only zones** [U]: a `SpawnZone` with `objects_only` on (any pattern) is used only by enemy-side characters whose `acts` is off (a totem, a hostage), so the object can stand at the back of the map. `_get_spawn_position` tries these zones first for such a character and falls back to the normal enemy zones if the scene has none. Normal enemies never use them and they do not count in `_enemy_capacity()`.
 
 **Placing a character** (`_get_spawn_position(character, is_ally, index)`, called right after `add_child` so `shape.radius` exists):
 1. The zone is the **least filled** one (`_zone_fill[zone] / capacity`), so several zones share the group in proportion to their capacity.
@@ -319,14 +336,24 @@ Fields: `allies`, `enemies` (living only), `deck` (CardDeck), `phase`, `turn`, `
 1. `axis` = from the mover toward the victim. `direction` = from the victim toward `aim`, **clamped to `PUSH_CONE_HALF_ANGLE` (20 degrees) on each side of `axis`**: a 40 degree cone centered on the movement of the mover, like a billiard shot.
 2. `destination` = the contact point behind the victim: `victim position - direction * (mover radius + victim radius)`.
 3. The victim slides `PUSH_DISTANCE` (48 px): first limited by walls (`_clamp_move`), then by the first character it meets (`_find_push_collision`: circle against circle, the mover and the victim excluded; a character already touching in the push direction is hit at distance 0). It stops on contact.
-4. Collision damage: **same team 10 to both** (`COLLISION_DAMAGE_SAME_TEAM`); **different teams 30 to the pushed one only** (`COLLISION_DAMAGE_OPPONENT`), e.g. a hero pushing an enemy into a hero. The other character is only damaged, not pushed.
-5. `valid` = `can_move`, victim alive and not the mover, `destination` free and reachable, and the push goes somewhere (slide of at least 1 px or a collision).
+4. Collision damage: **same team 10 to both** (`COLLISION_DAMAGE_SAME_TEAM`); **different teams 30 to the pushed one only** (`COLLISION_DAMAGE_OPPONENT`), e.g. a hero pushing an enemy into a hero. The other character is only damaged, not pushed. **A neutral (the hostage) is a solid obstacle that is never hurt**: the pushed character takes `COLLISION_DAMAGE_OPPONENT` and the neutral nothing. A character with `can_be_moved` off does not slide (`_slide_victim` returns 0 and sets no collision).
+5. `valid` = `can_move`, victim alive, not the mover and `can_be_moved`, `destination` free and reachable, and the push goes somewhere (slide of at least 1 px or a collision).
 
 **`do_move(plan)`** (coroutine): does nothing if the plan is no longer valid. Phase `RESOLVING`, `_set_moves(moves_left - 1)`. WALK: `_move_characters({mover: destination}, MOVE_TIME)`. PUSH: the mover faces the victim and walks to `destination`, then the victim slides to `push_end` (`KNOCKBACK_TIME`), then `_apply_collision`: `take_hit` on the victim and the other character, so **armor absorbs and Evasion can dodge** it. Then `_free_dead`, `_update_facings`, `_check_battle_end()`, back to `PLAYER_TURN`. A kill by collision counts like any other (objective, defeat).
 Input and preview are in `MoveController` (section 6); the rules stay here.
 
+### 4.5e Card push (`has_push_aim`, `plan_card_push`) [U]
+A card with a `knockback` (`STANDARD` 48 px, `FORCEFUL` 96 px: `KNOCKBACK_DISTANCE`) pushes its target inside **the same 40 degree cone as the move action**, aimed with the mouse.
+* **`has_push_aim(card)`**: true for a one-target card (not AOE, MULTIPLE or CHAINED) whose `knockback` is not `NONE`. The other cards keep the automatic push straight away from the caster, with no collision and no damage.
+* **`plan_card_push(card, target, aim, from := NO_AIM) -> MovePlan`** (kind PUSH, mover = the caster, victim = the target). `from` is where the cone starts: by default where the caster will stand after its approach (`find_approach_position`, for ENEMY-team cards), otherwise its position. `_aim_push(plan, from, aim)` fills `axis` (from to victim) and `direction` (toward `aim`, clamped to `PUSH_CONE_HALF_ANGLE` on each side; the axis itself for `NO_AIM`), then `_slide_victim(plan, get_card_push_distance(card))` fills `push_end`, `collided` and the damage with the same rules as 4.5d (walls, characters, neutrals, immovable targets). `valid` = the target is alive: **a push that goes nowhere never blocks the card**.
+* **Playing**: `play_card(card, selected, aim)` hands `aim` to `_knock_back`. For each surviving target it plans the push again from the caster's real position (the caster has already walked), slides the target (`_move_characters`, `KNOCKBACK_TIME`) and applies `_apply_collision(plan)` (`take_hit`: armor absorbs, Evasion can dodge).
+* `_aim_push`, `_slide_victim`, `_find_push_collision` and `_apply_collision` are shared by the move action and the cards.
+* The aiming input and the preview of a card push are in `TargetingController` / `TargetingOverlay`, which were not shared with the documentation author: this section is written from `battle.gd` alone.
+
 ### 4.6 Enemy turn and intents [T, reported by the developer]
 **Flow.** `end_player_turn()` → `_end_of_turn_statuses(allies)` → `await _run_enemy_turn()`: phase `ENEMY_TURN` → `_start_of_turn_statuses(enemies)` (Bleeding; deaths freed; battle end checked) → for each enemy still alive (`enemies.duplicate()`): `await _enemy_act(enemy)`, `_check_battle_end()`, wait `ENEMY_ACTION_DELAY` (0.4 s, `create_timer(delay, false)`: **frozen by the pause menu**) → `_end_of_turn_statuses(enemies)` → `_start_player_turn()`.
+
+**Characters that do not act (`CharacterData.acts` off)** [U]: `_plan_intent` returns at once for them (so they have no intent and no icon, and never fall back to the basic melee attack), `_run_enemy_turn` skips them without the `ENEMY_ACTION_DELAY`, `_enemy_act` returns, and `_update_facings` leaves them alone (their sprite never flips). Their statuses still tick (a Bleeding totem takes damage). Enemy BUFF actions can still target them (`_candidates_for` is unchanged): "shield the totem" works.
 
 **`_enemy_act(enemy)`**
 1. **Stunned: nothing happens.** The intent is kept, a wind-up does not progress, and the stun loses a stack at the end of the enemy phase.
@@ -345,7 +372,7 @@ Input and preview are in `MoveController` (section 6); the rules stay here.
 * **Choosing the action:** `_get_actions(enemy)` = `data.actions`, or `{fallback: 1}` when empty (the fallback is `EnemyAction.new()` with its defaults: MELEE, damage 5, distance 32, named "Attack"; one warning per enemy id). Actions with **no possible candidate are excluded** (`_candidates_for`: all heroes, or for a BUFF the other enemies plus itself if `can_target_self`). Weights: a negative weight counts as 0; if all are 0 the choice is uniform; otherwise a weighted roll, so an action with weight 0 next to positive ones is never picked.
 * Randomness (`randi_range`, `pick_random`) is the **global, unseeded** generator: intents are not reproducible, unlike generated encounters (3.8).
 
-**When someone dies (`_on_character_died`)**: removed from `allies` / `enemies`, hidden, freed later (`_dead`, `_free_dead`). A hero: its health is written as 0 in the run and its cards leave the deck. Every enemy whose `intent.target` was the fallen character calls `_retarget_intent`: **same action and same wind-up on a new random candidate**, or a full `_plan_intent` if the action has no candidate left. An AOE spot is never re-aimed. `intents_changed` is emitted (this also hides the circle of a dead enemy).
+**When someone dies (`_on_character_died`)**: removed from `allies` / `enemies` / `neutrals`, hidden, freed later (`_dead`, `_free_dead`). A hero: its health is written as 0 in the run and its cards leave the deck. Every enemy whose `intent.target` was the fallen character calls `_retarget_intent`: **same action and same wind-up on a new random candidate**, or a full `_plan_intent` if the action has no candidate left. An AOE spot is never re-aimed. `intents_changed` is emitted (this also hides the circle of a dead enemy). Last, **`objective.on_character_died(character)`** is called if the objective has started (4.9).
 
 **Facing**: `_update_facings()` makes allies look at the closest enemy; each enemy looks at its intent (target, or the AOE spot) when it is valid, otherwise at the closest ally.
 
@@ -370,15 +397,27 @@ Known limit: a status applied to a character during **its own side's phase** als
 **No save is made in a battle.**
 
 ### 4.8 Facing
-Characters are never rotated. `Character.face_towards(pos)` flips `sprite.flip_h` (art faces left). `_update_facings()`: allies → closest enemy; enemies → their intent (the target, or the AOE spot; fallback closest ally). Attackers face their real target while walking/striking.
+Characters are never rotated. `Character.face_towards(pos)` flips `sprite.flip_h` (art faces left). `_update_facings()`: allies → closest enemy; enemies → their intent (the target, or the AOE spot; fallback closest ally). Attackers face their real target while walking/striking. Characters with `acts` off and neutrals are never turned.
 
-### 4.9 Objectives
-`BattleObjective` (Node): `description`, `start(battle)`, `_on_start()`, `is_started()`, `is_complete()`, `is_failed()`, `get_progress_text()`. `KillAllObjective` is the default (created when `objective` is null).
-To add one: extend `BattleObjective` (it may `@export` scene nodes), make a scene with it as root, reference it from `EncounterData.objective_scene`.
-Anything outside the objective that reads it must check `is_started()` first (it is null-safe only after `start()`).
+### 4.9 Objectives [U for boss, destroy object and rescue]
+**Base.** `BattleObjective` (Node): `description`, `start(battle)`, `_on_start()`, `is_started()`, `is_complete()`, `is_failed()`, `get_progress_text()` and the hook **`on_character_died(character)`** (empty by default). `Battle._check_battle_end()` asks `is_complete()` / `is_failed()` after every action (polling); the hook is called by `Battle._on_character_died` once the character has left its team and a hero's cards have left the deck. **The hook runs in the middle of an action: change state there (give a card, spawn a wave...), never end the battle; the polling does that right after.** `KillAllObjective` is the default (created when `objective` is null, i.e. `EncounterData.objective_scene` is empty). Anything outside the objective that reads it must check `is_started()` first.
+
+**To add an objective**: extend `BattleObjective`, make a scene with it as root (it may `@export` resources or nodes), reference it from `EncounterData.objective_scene`. A node of type BOSS does not force any objective: the objective always comes from the encounter.
+
+**`KillRoleObjective`** (base, usable alone): `role` (`CharacterData.Role`), `verb` ("Defeat" / "Destroy"), `progress_label`, `require_all` (default on). `_on_start()` captures the enemies of `battle.enemies` that have `role` in `data.roles`, calls the hook `_on_target_found(target)` for each and sets `description = "<verb> <names>"`. `is_complete()`: no target left (a target is alive while it is in `battle.enemies`, which `Battle` updates at once, so Bleeding and collision kills count); with `require_all` off, the first dead target is enough. `get_progress_text()`: "<progress_label>: N" only when there are several targets. **Fallback**: no enemy has the role (data error) → `push_error` and the objective behaves like kill-all ("Defeat all enemies"), so a fight can never end at once or be unwinnable.
+* **`BossObjective`**: role `BOSS`, "Defeat", "Bosses left". The boss is an enemy with `BOSS` in its roles, placed in `EncounterData.enemies` (escorts fill the rest of the budget with `fill_with_pool`). Killing it wins even if the escorts are alive.
+* **`DestroyObjectObjective`**: role `OBJECT`, "Destroy", "Objects left". The object is a `CharacterData` on the ENEMY team with `roles = [OBJECT]`, `acts` off and `can_be_moved` off (the objective warns if `acts` is on). It is a normal target for cards, AOE, chains and statuses, and an obstacle that can be damaged by pushing an *enemy* into it (same team: 10 to both). A hero pushed into it takes 30 and the object nothing. Destroying it wins even if the boss and the escorts are alive.
+
+**`RescueObjective`**: export `rescue_card: CardData`. The hostage is a `CharacterData` with `team = NEUTRAL`, `roles = [HOSTAGE]`, `acts` and `can_be_moved` off; the captors are enemies with `roles = [CAPTOR]` (a captor can also be a boss).
+1. `_on_start()`: hostages = neutrals with `HOSTAGE`, captors = enemies with `CAPTOR`. No hostage or no `rescue_card` → `push_error` and kill-all fallback. No captor → `push_warning` and the card is given right away. Connects `battle.card_played`. HUD: "Rescue <hostage>", then "Defeat <captors still alive>".
+2. `on_character_died`: when the **last captor** is dead (several captors: all of them) the card is given: `CardInstance.new(rescue_card, holder)` is added with `CardDeck.add_to_hand` (even above `MAX_HAND_SIZE`; `draw_to_full()` never discards, so it stays until played). The holder is the first hero that is not incapacitated, else the first hero (a stunned or sleeping caster cannot play it). HUD: `Play "<card name>" to free them`.
+3. **If the holder dies** with the card still in hand, the deck drops it with `remove_cards_of`; the hook notices (`character == card.caster`) and gives a new card to another living hero, so the fight cannot become unwinnable.
+4. `_on_card_played(card)`: playing that card sets `_rescued`; `play_card` emits `card_played` before `_check_battle_end()`, so the victory is immediate. `is_complete()` = rescued.
+5. The card is an ordinary `CardData` made by hand: `card_type` SUPPORT, `target_team` SELF, **`damage` 0** (a damage left at the default 5 would hurt the caster), no knockback, no mana. It costs one action like any card. Nothing in `CardData` is special.
+6. The hostage is never hurt (no targeting, no collision damage) and nothing in the code ever "frees" it visually: the battle just ends in victory.
 
 ### 4.10 `CardDeck` (RefCounted)
-`draw_pile`, `hand`, `discard_pile`, `MAX_HAND_SIZE = 6`, signal `hand_changed`; `build_from(heroes)`, `draw_to_full()`, `discard(card)`, `remove_cards_of(hero)`; reshuffles discard when empty.
+`draw_pile`, `hand`, `discard_pile`, `MAX_HAND_SIZE = 6`, signal `hand_changed`; `build_from(heroes)`, `draw_to_full()`, `add_to_hand(card)` (puts a card straight into the hand, even above `MAX_HAND_SIZE`, and emits `hand_changed`; used by `RescueObjective`; `Hand` rebuilds all its views on that signal), `discard(card)`, `remove_cards_of(hero)`; reshuffles discard when empty. The hand is never discarded at the end of a turn.
 
 ---
 
@@ -576,9 +615,18 @@ Scene: `NewGameButton`, `ContinueButton`, `LoadButton`, `QuitButton` (unique nam
 
 ## 11. Editor tools (EditorScripts, run with File > Run)
 
-* `tools/make_test_expedition.gd`: builds `data/expeditions/test_expedition.tres` (start → fight_1 → {fight_hard | camp} → fight_2 → boss → end, with loot and `completion_bonus`) and registers it in `data/expedition_catalog.tres`. Needs `res://data/character/enemies/goblin.tres`. Id: `first_expedition`.
+* **`tools/expedition_test_kit.gd`** (`@tool`, `class_name ExpeditionTestKit`, static helpers, nothing to run): the single place that lists the **paths of the test assets** (constants at the top) and the helpers shared by the two expedition tools: `load_character`, `load_boss`, `check_boss` / `check_totem` / `check_captor` / `check_hostage` (warnings when a role or a flag is missing), `shared_fight(path, pattern)`, `make_fight(enemies, objective, pattern)`, `boss_objective()` / `destroy_objective()` / `rescue_objective()` (the objective scene is **loaded if its file exists, otherwise created**: a node of the class packed and saved), `make_expedition`, `add_node`, `save_expedition` (removes the old file, saves, reads it back, prints `validate()` as warnings, registers it in `data/expedition_catalog.tres`).
+  Current paths: shared fights `res://data/EncounterData/{standard,ambush,ambushed}_fight.tres`; objective scenes `res://scenes/battle/objective/{boss,destroy_object,rescue}_objective.tscn`; `BOSS_PATH` hobgoblin (fallback goblin), `CATACOMB_BOSS_PATH` `res://data/character/enemies/living_armor.tres`, `TOTEM_PATH` `res://data/character/object/totem.tres`, `CAPTOR_PATH` `res://data/character/enemies/goblin_captor.tres`, `HOSTAGE_PATH` `res://data/character/neutral/hostage.tres`, `RESCUE_CARD_PATH` `res://data/cards/hostage/unlock.tres`. A missing character or card is **never replaced by something else**: the expedition that needs it is skipped with an error naming the file.
+* **`tools/make_test_expedition.gd`**: builds three fixed debug expeditions (always unlocked) and registers them. Run `tools/make_enemy_catalog.gd` first. Needs `ExpeditionTestKit`.
+  1. **`first_expedition`** (file `data/expeditions/test_expedition.tres`, the id the gate menu launches): default objective only (defeat all enemies), every spawn layout: `start → fight_1 (STANDARD) → {fight_hard (AMBUSHED, +3 budget) | camp} → fight_2 (AMBUSH) → boss (STANDARD) → end`. Tags `forest`.
+  2. **`test_objectives`** ("Objective trials"): `start → totem (destroy) → camp_1 → prisoner (rescue: captor + hostage) → camp_2 → boss (BossObjective, hobgoblin) → end`. No defeat-all; the boss fight is last. Tags `forest`, `base_budget` 3, `budget_per_depth` 1.
+  3. **`test_catacomb`** ("The Catacombs"): 16 nodes, two branches around an event, camps, all three spawn layouts, two destroy-object fights (AMBUSHED and AMBUSH), one rescue and the **Living Armor** as the BOSS node (`BossObjective`). Tags **`catacomb`** (must match the tags of the catacomb enemies exactly; the `ExpeditionData` comment says "catacombs"), `base_budget` 3, `budget_per_depth` 1. Until some catalog enemy has the tag, `validate()` warns that the pool is empty.
+  The tool warns when the boss has no `BOSS` role, or has tags (it could then be picked as an escort if it is in the `EnemyCatalog`).
+* **`tools/make_test_location.gd`**: the two expeditions that test the three looks of a world-map location: `hollow_crypt` (TEASED until `first_expedition` is completed) and `sunken_watchtower` (HIDDEN until the carpentry is level 2). Simple graph, generated fights (tags `forest`), boss fight with the `BossObjective`. Not for debugging objectives.
+* **Each new expedition id needs an `ExpeditionSite`** on the gate map (see 7.4) to be launched from the game.
+* Tool scripts cannot call methods of scripts that are not `@tool` (they are placeholders in the editor: **properties and constants work, methods do not**). `CharacterData` is such a script, so the tools read `data.roles`, never `data.has_role()`.
 * `tools/make_test_buildings.gd`: creates `data/buildings/{gate,carpentry,tavern,forge}.tres` + `data/building_catalog.tres` (gate and carpentry built at start; carpentry level 2 allows the forge; tavern needs carpentry 1).
-Both overwrite their outputs when re-run.
+All of them overwrite their outputs when re-run.
 
 ---
 
@@ -624,6 +672,10 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 * **New building**: `BuildingData.tres` (+ `BuildingLevel`s) in `data/building_catalog.tres`, and a `HubLocation` with the **same id** placed in the hub scene (fixed position), with a `menu_scene` extending `HubMenu`. Hub warns in Output when one side is missing.
 * **New hub menu**: scene with a script `extends HubMenu`, call `super._ready()` if overriding `_ready`, call `close()` when done.
 * **New objective**: see 4.9.
+* **New boss**: `CharacterData` with `roles = [BOSS]` (keep it out of the `EnemyCatalog`, or without tags), put it in `EncounterData.enemies` of a BATTLE/BOSS node and set `objective_scene` to a scene whose root is a `BossObjective` (without an objective scene the fight is plain kill-all).
+* **New destroyable object** (totem, casket): `CharacterData` on the ENEMY team with `roles = [OBJECT]`, `acts` off, `can_be_moved` off, empty `tags`; in `EncounterData.enemies` with a `DestroyObjectObjective` scene. Optional: an `objects_only` `SpawnZone` at the back of the map.
+* **New hostage fight**: a hostage `CharacterData` (`team = NEUTRAL`, `roles = [HOSTAGE]`, `acts` and `can_be_moved` off), a captor (`roles = [CAPTOR]`), a rescue card (`CardData`: SUPPORT, SELF, damage 0), a scene whose root is a `RescueObjective` with `rescue_card` assigned; captor and hostage go in `EncounterData.enemies`.
+* **Regenerate the debug expeditions**: run `tools/make_test_expedition.gd` (and `tools/make_test_location.gd`), see 11.
 
 ---
 
@@ -640,6 +692,11 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 * Tavern (buffs) and Forge menus are not written. Hero health upgrades are a TODO in `RunState.start()`.
 * Placeholder UI: text buttons for map nodes, code-built rows in lists, default font (blurry with pixel art), no audio, no settings menu. The health bar shows a number only (chunks every 10 points are planned).
 * Gate map: see 7.4 (unlock conditions not evaluated, debug prints left in on purpose, second test site reuses `first_expedition`).
+* **Objectives** (4.9) are new and not confirmed yet. A destroyable object needs three settings on its data (role + `acts` off + `can_be_moved` off); only `acts` is warned about. There is no `ExpeditionData.validate()` rule checking that a node using a boss / destroy / rescue objective really contains the matching character (the objectives log an error and fall back to kill-all at runtime; a validation would need the objective classes to be `@tool`).
+* **Hostage**: a neutral is invulnerable and untargetable by design (a push collision never hurts it); there is no animation or sprite change when it is freed; the captor is not placed near the hostage (spawn zones decide; use an `objects_only` zone for the hostage and a normal zone for the captor); a neutral still shows its health bar. `Team.NEUTRAL` is only handled by `Battle`: any code outside `battle.gd` that does a `match` on `CharacterData.Team` must handle the third value (`EncounterGenerator.gd` was not shared).
+* **Rescue card**: it is given to one hero (not stunned if possible) and moves to another if that hero dies; the hand can hold 7 cards while it is there (the layout of `Hand` with more than `MAX_HAND_SIZE` cards was not checked); it costs one action; the objective cannot be completed by anything else than playing that card.
+* **Enemy catalog**: nothing stops a boss or an object that has tags from being picked as an ordinary escort if it is listed in the `EnemyCatalog`.
+* **Card push** (4.5e) is documented from `battle.gd` only; its aiming input and preview (`TargetingController`, `TargetingOverlay`) were not shared with the documentation author.
 * Developer's local differences from the delivered files (see `PROJECT_CONTEXT.md` section 2): always ask for current files before editing `battle.gd`, `character.gd`, `CardInstance.gd`, `card_view.gd`, `main_menu.gd`, `HeroSlot.gd`, `CharacterData.gd`.
 
 ---
@@ -654,18 +711,26 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 | Character data & scene | `character_data.gd`, `character.gd`, `health_component.gd` |
 | Cards | `card_data.gd`, `card_instance.gd`, `card_deck.gd`, `status_application.gd` |
 | Statuses | `status_data.gd`, `status_component.gd` (new), `status_application.gd` |
-| Battle | `battle.gd`, `BattleObjective.gd`, `KillAllObjective.gd`, `BattleUI.gd`, `Hand.gd`, `TargetingController.gd`, `TargetingOverlay.gd`, `SpawnZone.gd`, `MovePlan.gd`, `MoveController.gd` |
+| Battle | `battle.gd`, `BattleObjective.gd`, `KillAllObjective.gd`, `KillRoleObjective.gd`, `BossObjective.gd`, `DestroyObjectObjective.gd`, `RescueObjective.gd`, `BattleUI.gd`, `Hand.gd`, `TargetingController.gd`, `TargetingOverlay.gd`, `SpawnZone.gd`, `MovePlan.gd`, `MoveController.gd` |
 | Enemy actions | `EnemyAction.gd`, `EnemyIntent.gd`, `IntentOverlay.gd` (created by `battle.gd`) |
 | Encounters | `EncounterData.gd`, `EnemyCatalog.gd`, `EncounterGenerator.gd` (+ `tools/make_enemy_catalog.gd`, not shared) |
 | Expedition | `ExpeditionNode.gd`, `ExpeditionData.gd`, `EncounterData.gd`, `ExpeditionMap.gd`, `ExpeditionNodeButton.gd`, `expedition.gd` |
 | Hub | `Hub.gd`, `HubLocation.gd`, `HubMenu.gd`, `menu_gate_map.gd` (+ `.tscn`), `ExpeditionSite.gd` (+ `expedition_site.tscn`), `menu_gate.gd`, `HeroPortrait.gd`, `HeroSlot.gd`, `menu_carpentry.gd`, `ResourceBar.gd`, `BuildingData.gd`, `BuildingLevel.gd` |
 | Unlock conditions | `UnlockCondition.gd`, `UnlockBuildingLevel.gd`, `UnlockCompletedExpedition.gd` |
 | Menus | `main_menu.gd` |
-| Editor tools | `tools/make_test_expedition.gd`, `tools/make_test_buildings.gd` |
+| Editor tools | `tools/expedition_test_kit.gd`, `tools/make_test_expedition.gd`, `tools/make_test_location.gd`, `tools/make_test_buildings.gd` |
 
 ---
 
 ## 16. Manual test checklist for what is still unverified
+
+**Objectives (to verify), with the debug expeditions `test_objectives` and `test_catacomb`**
+1. *Boss*: the HUD shows "Defeat <boss>"; killing a minion does not end the fight; killing the boss wins even with minions alive; a boss killed by Bleeding or a collision also wins. A BOSS fight whose boss lacks the `BOSS` role logs an error and plays as kill-all.
+2. *Destroy object*: the HUD shows "Destroy <object>"; the object has no intent icon, never attacks, never moves in the enemy phase and the enemy phase has no pause for it. Clicking it with the move action gives a red arrow and spends nothing; a card with a push damages it but does not move it. Destroying it wins with the boss alive. Pushing an enemy into it deals 10 to both; a hero pushed into it takes 30 and the object nothing. If `acts` is left on, a warning appears. It appears in the yellow `objects_only` zone if the scene has one, otherwise in an enemy zone.
+3. *Rescue*: the HUD shows "Rescue <hostage>" then "Defeat <captor>"; the hostage cannot be clicked or targeted, blocks walking and pushes, and is never damaged. Killing the captor (by a card, Bleeding or a collision) puts the card in a hero's hand at once, even with a full hand, and the HUD asks to play it; the card stays through end of turn; playing it wins immediately. If the holder dies first, the card moves to another hero. Removing the `HOSTAGE` role logs an error and plays as kill-all.
+4. *Generator*: running `tools/make_test_expedition.gd` creates the three expeditions with no unexpected warning (missing assets are named in an error), `first_expedition` still launches from the gate, and its fights use the three layouts (`fight_1` standard, `fight_hard` ambushed, `fight_2` ambush).
+5. *Catacomb*: `test_catacomb` is long (16 nodes), its fights contain `catacomb` enemies, and its last node is the Living Armor with the boss objective.
+6. *Card push*: a one-target card with a knockback pushes inside the 40 degree cone toward the mouse; an AOE or chain card pushes straight away from the caster; a collision hurts like in the move action.
 
 **Move action (to verify)**
 1. `moves_counter` (if assigned) shows "Moves: 1" at the start of each player turn; after one walk or push it shows 0 and **no hero** can start another move until the next turn.

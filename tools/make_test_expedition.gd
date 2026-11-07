@@ -12,7 +12,8 @@ extends EditorScript
 ##                                    '-> camp ---------------------------'
 ##  2. test_objectives   : one fight per objective, the boss fight last. No defeat-all.
 ##       start -> totem (destroy) -> camp_1 -> prisoner (rescue) -> camp_2 -> boss (boss) -> end
-##  3. test_catacomb     : 16 nodes with a bit of everything, enemies tagged `catacomb`.
+##  3. test_catacomb     : 16 nodes with a bit of everything, enemies tagged `catacomb`, the Living Armor
+##                         (living_armor.tres, roles BOSS) as its boss.
 ##
 ## Expedition 2 is skipped (with an error naming what is missing) if a character or the rescue
 ## card doesn't exist yet. Put an ExpeditionSite on the world map for each id to launch them.
@@ -47,7 +48,7 @@ func _run() -> void:
 	if objectives != null:
 		ExpeditionTestKit.save_expedition(objectives)
 
-	var catacomb := _build_catacomb(boss)
+	var catacomb := _build_catacomb()
 	if catacomb != null:
 		ExpeditionTestKit.save_expedition(catacomb)
 
@@ -129,7 +130,7 @@ func _build_objectives(boss: CharacterData) -> ExpeditionData:
 
 ## 3. The long one: branches, every layout, every objective, camps and events.
 ## Like expedition 2, nothing is built if a character or an objective scene is missing.
-func _build_catacomb(boss: CharacterData) -> ExpeditionData:
+func _build_catacomb() -> ExpeditionData:
 	var kit := ExpeditionTestKit
 	var standard := kit.shared_fight(kit.STANDARD_FIGHT_PATH, STANDARD)
 	var ambush := kit.shared_fight(kit.AMBUSH_FIGHT_PATH, AMBUSH)
@@ -140,9 +141,24 @@ func _build_catacomb(boss: CharacterData) -> ExpeditionData:
 	var totem := kit.load_character(kit.TOTEM_PATH)
 	var captor := kit.load_character(kit.CAPTOR_PATH)
 	var hostage := kit.load_character(kit.HOSTAGE_PATH)
-	if totem == null or captor == null or hostage == null:
-		push_error("make_test_expedition: '%s' skipped, the totem, captor or hostage doesn't exist (see tools/expedition_test_kit.gd)." % CATACOMB_ID)
+	var armor := kit.load_character(kit.CATACOMB_BOSS_PATH)
+	var missing: Array[String] = []
+	if totem == null:
+		missing.append(kit.TOTEM_PATH)
+	if captor == null:
+		missing.append(kit.CAPTOR_PATH)
+	if hostage == null:
+		missing.append(kit.HOSTAGE_PATH)
+	if armor == null:
+		missing.append(kit.CATACOMB_BOSS_PATH)
+	if not missing.is_empty():
+		push_error("make_test_expedition: '%s' skipped, these characters don't exist: %s (set the paths in tools/expedition_test_kit.gd)." % [
+			CATACOMB_ID, ", ".join(missing)])
 		return null
+	kit.check_totem(totem)
+	kit.check_captor(captor)
+	kit.check_hostage(hostage)
+	kit.check_boss(armor)
 	var destroy_scene := kit.destroy_objective()
 	var rescue_scene := kit.rescue_objective()
 	var boss_scene := kit.boss_objective()
@@ -180,7 +196,7 @@ func _build_catacomb(boss: CharacterData) -> ExpeditionData:
 		[&"last_stand"], kit.make_fight([totem], destroy_scene, AMBUSH), {&"iron": 2})
 	kit.add_node(e, &"last_stand", ExpeditionNode.Type.BATTLE, "The last stand", 0.0,
 		[&"boss"], ambushed, {&"stone": 3}, 1)
-	kit.add_node(e, &"boss", ExpeditionNode.Type.BOSS, "The catacomb lord", 0.0,
-		[&"end"], kit.make_fight([boss], boss_scene, STANDARD), {&"iron": 4})
+	kit.add_node(e, &"boss", ExpeditionNode.Type.BOSS, "The living armor", 0.0,
+		[&"end"], kit.make_fight([armor], boss_scene, STANDARD), {&"iron": 4})
 	kit.add_node(e, &"end", ExpeditionNode.Type.END, "The heart of the catacombs", 0.0, [])
 	return e
