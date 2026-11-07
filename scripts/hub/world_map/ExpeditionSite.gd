@@ -1,8 +1,9 @@
 @tool
 class_name ExpeditionSite
 extends Area2D
-## One location of the world map. Instance expedition_site.tscn once per expedition, set its
-## `expedition_id` and `texture`, and move it where you want on the map.
+## One location of the world map. Instance expedition_site.tscn once per expedition, drag the
+## expedition file (e.g. test_expedition.tres) into its `expedition` slot, set its `texture`, and
+## move it where you want on the map. In the editor the label shows the name of the expedition.
 ##
 ## WorldMap tells it how to look (configure):
 ##   UNLOCKED : the sprite as it is, hover tint, name label
@@ -20,8 +21,13 @@ const HOVER_COLOR := Color(1.25, 1.25, 1.25)
 const TEASED_COLOR := Color(0.0, 0.0, 0.0, 1.0)
 const SELECTED_SCALE := 1.1
 
-## The id of the ExpeditionData this location stands for.
-@export var expedition_id: StringName
+## The expedition this location stands for: drag the ExpeditionData file here.
+## A run is started and saved by the expedition's id and looked up in the expedition catalog, so
+## the same expedition must also be registered in data/expedition_catalog.tres (WorldMap warns).
+@export var expedition: ExpeditionData:
+	set(value):
+		expedition = value
+		_apply_editor_preview()
 ## The picture of the location.
 @export var texture: Texture2D:
 	set(value):
@@ -34,7 +40,11 @@ const SELECTED_SCALE := 1.1
 @onready var collision: CollisionShape2D = %Collision
 @onready var name_label: Label = %NameLabel
 
-var expedition: ExpeditionData
+## Read-only: the id of `expedition` (empty without one).
+var expedition_id: StringName:
+	get:
+		return expedition.id if expedition != null else &""
+
 var state := State.UNLOCKED
 var _hovered := false
 var _selected := false
@@ -47,6 +57,7 @@ func _ready() -> void:
 	_apply_texture()
 	name_label.hide()
 	if Engine.is_editor_hint():
+		_apply_editor_preview()
 		return
 	add_to_group(&"expedition_sites")
 	mouse_entered.connect(_on_mouse_entered)
@@ -91,6 +102,15 @@ func _refresh() -> void:
 	visual.modulate = HOVER_COLOR if (_hovered and state == State.UNLOCKED) else Color.WHITE
 
 	name_label.visible = true if state != State.HIDDEN else false
+
+
+## Editor only: shows which expedition the site holds.
+func _apply_editor_preview() -> void:
+	if not Engine.is_editor_hint() or not is_node_ready():
+		return
+	name_label.text = expedition.display_name if expedition != null else "(no expedition)"
+	name_label.position = label_offset + Vector2(-name_label.get_minimum_size().x / 2.0, 0.0)
+	name_label.show()
 
 
 func _apply_texture() -> void:

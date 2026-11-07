@@ -13,7 +13,9 @@ extends Node2D
 ##   │   └── (optional) ResourceBar
 ##   └── %MenuLayer (CanvasLayer, layer above UI): the team selection menu is added here
 ##
-## Each site is shown according to GameState.get_expedition_access: unlocked, teased or hidden.
+## Each site holds its own expedition (its `expedition` export) and is shown according to
+## GameState.get_expedition_access: unlocked, teased or hidden. The expedition must also be in the
+## expedition catalog, because a run is started and saved by id.
 
 ## The team selection menu (the existing gate menu, menu_gate.tscn). It must have an
 ## `expedition_id` variable: it is set before the menu enters the tree.
@@ -37,7 +39,6 @@ var _menu: Node  # the team selection while it is open
 func _ready() -> void:
 	for node in get_tree().get_nodes_in_group(&"expedition_sites"):
 		var site := node as ExpeditionSite
-		print("_ready site.expedition_id ", site.expedition_id)
 		if site != null:
 			_sites.append(site)
 			site.selected.connect(_on_site_selected)
@@ -53,10 +54,9 @@ func _ready() -> void:
 ## Applies the unlock state of every expedition to its site.
 func _refresh_sites() -> void:
 	for site in _sites:
-		print(" site.expedition_id ", site.expedition_id)
-		var expedition := GameState.expeditions.get_expedition(site.expedition_id)
+		var expedition := site.expedition
 		if expedition == null:
-			site.visible = false  # unknown id: _check_scene reports it
+			site.visible = false  # no expedition assigned: _check_scene reports it
 			site.input_pickable = false
 			continue
 		var state := ExpeditionSite.State.HIDDEN
@@ -113,6 +113,9 @@ func _on_choose_team_pressed() -> void:
 	if team_menu_scene == null:
 		push_error("WorldMap: assign team_menu_scene (menu_gate.tscn) in the inspector.")
 		return
+	if GameState.expeditions.get_expedition(_selected.expedition.id) == null:
+		push_error("WorldMap: '%s' is not in the expedition catalog, a run cannot start without it (it is started and saved by id). Add it to data/expedition_catalog.tres." % _selected.expedition.id)
+		return
 
 	_menu = team_menu_scene.instantiate()
 	if "expedition_id" in _menu:
@@ -150,16 +153,21 @@ func _on_back_pressed() -> void:
 		SceneManager.go_to(back_route)
 
 
-## Warns in the Output about a site without a matching expedition, or an expedition without a site.
+## Warns in the Output about a site without an expedition, a site whose expedition is not the one
+## registered in the catalog, or a catalog expedition without a site.
 func _check_scene() -> void:
 	var placed := {}
 	for site in _sites:
-		if site.expedition_id == &"":
-			push_warning("WorldMap: the site '%s' has no expedition_id." % site.name)
-		elif GameState.expeditions.get_expedition(site.expedition_id) == null:
-			push_warning("WorldMap: the site '%s' uses an unknown expedition '%s'." % [site.name, site.expedition_id])
-		else:
-			placed[site.expedition_id] = true
+		if site.expedition == null:
+			push_warning("WorldMap: the site '%s' has no expedition assigned." % site.name)
+			continue
+		var registered := GameState.expeditions.get_expedition(site.expedition.id)
+		if registered == null:
+			push_warning("WorldMap: the site '%s' uses '%s', which is not in the expedition catalog: it cannot be launched (a run is started and saved by id). Add it to data/expedition_catalog.tres." % [site.name, site.expedition.id])
+		elif registered.resource_path != site.expedition.resource_path:
+			push_warning("WorldMap: the site '%s' uses %s but the catalog holds %s for the id '%s': the run will use the catalog's." % [
+				site.name, site.expedition.resource_path, registered.resource_path, site.expedition.id])
+		placed[site.expedition.id] = true
 	for expedition in GameState.expeditions.expeditions:
 		if not placed.has(expedition.id):
 			push_warning("WorldMap: the expedition '%s' has no site on the map." % expedition.id)

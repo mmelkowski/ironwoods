@@ -3,13 +3,15 @@
 [ext_resource type="PackedScene" uid="uid://bd0ccgd6tot86" path="res://scenes/world_map/expedition_site.tscn" id="1_0n84a"]
 [ext_resource type="Script" uid="uid://dt0fyrmwlbcmj" path="res://scripts/hub/world_map/WorldMap.gd" id="1_xlrej"]
 [ext_resource type="Texture2D" uid="uid://bsijwp2ugnec1" path="res://assets/1-bit_pixel/Sprites_Cropped/Map/Map_Markers_Tree_Forest_Decidous_2.png" id="2_xvbel"]
+[ext_resource type="Resource" uid="uid://drsuciagschsy" path="res://data/expeditions/test_expedition.tres" id="3_0gg30"]
 [ext_resource type="Texture2D" uid="uid://cgin1stlud5s7" path="res://assets/1-bit_pixel/Sprites_Cropped/Map/Map_Markers_Tree_Forest_Decidous_Branches.png" id="3_f5vdt"]
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_ixh7n"]
-size = Vector2(12, 15)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_llt4e"]
-size = Vector2(12, 15)
+[ext_resource type="Resource" uid="uid://cb3wa4rfmcpsh" path="res://data/expeditions/test_objectives.tres" id="5_cbbp4"]
+[ext_resource type="Resource" uid="uid://bxioc2dn441jj" path="res://data/expeditions/test_catacomb.tres" id="7_x5fjh"]
+[ext_resource type="Texture2D" uid="uid://cysh4tfqdjtv1" path="res://assets/1-bit_pixel/Sprites_Cropped/Map/Map_Markers_Graveyard_Gravestone_Death_3.png" id="8_qa53x"]
+[ext_resource type="Resource" uid="uid://tm57smf67pek" path="res://data/expeditions/hollow_crypt.tres" id="9_4ex5v"]
+[ext_resource type="Texture2D" uid="uid://b6n51j04g33ai" path="res://assets/1-bit_pixel/Sprites_Cropped/Map/Map_Markers_Graveyard_Gravestone_Death_5.png" id="10_11dq7"]
+[ext_resource type="Resource" uid="uid://bkpws2x6h0alv" path="res://data/expeditions/sunken_watchtower.tres" id="11_4ex5v"]
+[ext_resource type="Texture2D" uid="uid://bxx1luqqnh866" path="res://assets/1-bit_pixel/Sprites_Cropped/Map/Map_Markers_Building_Outpost_Tower_Lookout.png" id="12_11dq7"]
 
 [node name="WorldMap" type="Node2D" unique_id=961563117]
 script = ExtResource("1_xlrej")
@@ -63,33 +65,36 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Choose Team"
 
-[node name="ExpeditionSite" parent="UI" unique_id=291695258 groups=["expedition_sites"] instance=ExtResource("1_0n84a")]
+[node name="ExpeditionSite_test_exp" parent="UI" unique_id=291695258 groups=["expedition_sites"] instance=ExtResource("1_0n84a")]
 position = Vector2(653, 482)
 scale = Vector2(5, 5)
-expedition_id = &"forest_1"
+expedition = ExtResource("3_0gg30")
 texture = ExtResource("2_xvbel")
 
-[node name="Visual" parent="UI/ExpeditionSite" index="0" unique_id=1729658679]
-texture = ExtResource("2_xvbel")
-
-[node name="Collision" parent="UI/ExpeditionSite" index="1" unique_id=481209631]
-shape = SubResource("RectangleShape2D_ixh7n")
-
-[node name="ExpeditionSite2" parent="UI" unique_id=361871073 groups=["expedition_sites"] instance=ExtResource("1_0n84a")]
+[node name="ExpeditionSite_test_obj" parent="UI" unique_id=361871073 groups=["expedition_sites"] instance=ExtResource("1_0n84a")]
 position = Vector2(766, 344)
 scale = Vector2(5, 5)
-expedition_id = &"test_objectives"
+expedition = ExtResource("5_cbbp4")
 texture = ExtResource("3_f5vdt")
 
-[node name="Visual" parent="UI/ExpeditionSite2" index="0" unique_id=1729658679]
-texture = ExtResource("3_f5vdt")
+[node name="ExpeditionSite_catacomb" parent="UI" unique_id=197603130 groups=["expedition_sites"] instance=ExtResource("1_0n84a")]
+position = Vector2(963.00006, 430)
+scale = Vector2(5, 5)
+expedition = ExtResource("7_x5fjh")
+texture = ExtResource("8_qa53x")
 
-[node name="Collision" parent="UI/ExpeditionSite2" index="1" unique_id=481209631]
-shape = SubResource("RectangleShape2D_llt4e")
+[node name="ExpeditionSite_hollow_crypt" parent="UI" unique_id=422402378 groups=["expedition_sites"] instance=ExtResource("1_0n84a")]
+position = Vector2(1148, 320)
+scale = Vector2(5, 5)
+expedition = ExtResource("9_4ex5v")
+texture = ExtResource("10_11dq7")
+
+[node name="ExpeditionSite_sunken_watchtower" parent="UI" unique_id=1635333335 groups=["expedition_sites"] instance=ExtResource("1_0n84a")]
+position = Vector2(1316.0001, 389)
+scale = Vector2(5, 5)
+expedition = ExtResource("11_4ex5v")
+texture = ExtResource("12_11dq7")
 
 [node name="MenuLayer" type="CanvasLayer" parent="." unique_id=898947447]
 unique_name_in_owner = true
 layer = 2
-
-[editable path="UI/ExpeditionSite"]
-[editable path="UI/ExpeditionSite2"]

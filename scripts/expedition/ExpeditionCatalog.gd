@@ -9,7 +9,6 @@ extends Resource
 func get_expedition(id: StringName) -> ExpeditionData:
 	for expedition in expeditions:
 		if expedition.id == id:
-			print("[DEBUG] ", expedition.id)
 			return expedition
 	return null
 
