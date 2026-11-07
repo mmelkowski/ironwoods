@@ -1,0 +1,81 @@
+[gd_resource type="Resource" script_class="ExpeditionData" format=3 uid="uid://tm57smf67pek"]
+
+[ext_resource type="Script" uid="uid://dsg3xmy0citai" path="res://scripts/expedition/ExpeditionNode.gd" id="1_umwp1"]
+[ext_resource type="Resource" uid="uid://cgor2n06prub1" path="res://data/EncounterData/standard_fight.tres" id="2_2hiad"]
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="3_q1tq4"]
+[ext_resource type="Resource" uid="uid://cqyo7amo8xapq" path="res://data/character/enemies/hobgoblin.tres" id="4_1u2hy"]
+[ext_resource type="PackedScene" uid="uid://ba8ljhqmi7rk7" path="res://scenes/battle/objective/boss_objective.tscn" id="5_jibbn"]
+[ext_resource type="Script" uid="uid://c0pdfac1nyf65" path="res://scripts/expedition/encounter/EncounterData.gd" id="6_6vx6u"]
+[ext_resource type="Script" uid="uid://djuxvwgpk5gw6" path="res://scripts/expedition/ExpeditionData.gd" id="7_bpjat"]
+[ext_resource type="Script" uid="uid://dbpd0aei4mb8t" path="res://scripts/hub/world_map/UnlockCondition.gd" id="8_mp05v"]
+[ext_resource type="Script" uid="uid://ci0d3uh22srpt" path="res://scripts/hub/world_map/UnlockCompletedExpedition.gd" id="9_8yfh3"]
+
+[sub_resource type="Resource" id="Resource_umwp1"]
+script = ExtResource("1_umwp1")
+id = &"start"
+type = 0
+title = "Departure"
+next_nodes = Array[StringName]([&"fight_1"])
+
+[sub_resource type="Resource" id="Resource_2hiad"]
+script = ExtResource("1_umwp1")
+id = &"fight_1"
+title = "First encounter"
+next_nodes = Array[StringName]([&"fight_2"])
+encounter = ExtResource("2_2hiad")
+loot = Dictionary[StringName, int]({
+&"wood": 3
+})
+
+[sub_resource type="Resource" id="Resource_q1tq4"]
+script = ExtResource("1_umwp1")
+id = &"fight_2"
+title = "Second encounter"
+next_nodes = Array[StringName]([&"boss"])
+encounter = ExtResource("2_2hiad")
+loot = Dictionary[StringName, int]({
+&"stone": 3
+})
+
+[sub_resource type="Resource" id="Resource_1u2hy"]
+script = ExtResource("6_6vx6u")
+enemies = Array[ExtResource("3_q1tq4")]([ExtResource("4_1u2hy")])
+fill_with_pool = true
+objective_scene = ExtResource("5_jibbn")
+
+[sub_resource type="Resource" id="Resource_jibbn"]
+script = ExtResource("1_umwp1")
+id = &"boss"
+type = 2
+title = "The guardian"
+next_nodes = Array[StringName]([&"end"])
+encounter = SubResource("Resource_1u2hy")
+loot = Dictionary[StringName, int]({
+&"iron": 3
+})
+
+[sub_resource type="Resource" id="Resource_6vx6u"]
+script = ExtResource("1_umwp1")
+id = &"end"
+type = 5
+title = "The end"
+
+[sub_resource type="Resource" id="Resource_bpjat"]
+script = ExtResource("9_8yfh3")
+expedition_id = &"first_expedition"
+
+[resource]
+script = ExtResource("7_bpjat")
+id = &"hollow_crypt"
+display_name = "The Hollow Crypt"
+description = "An old crypt under the hills. Something stirs in the dark."
+goal = "Reach the crypt's heart."
+completion_bonus = Dictionary[StringName, int]({
+&"stone": 5,
+&"wood": 8
+})
+unlock_conditions = Array[ExtResource("8_mp05v")]([SubResource("Resource_bpjat")])
+enemy_tags = Array[StringName]([&"forest"])
+base_budget = 4
+budget_per_depth = 3
+nodes = Array[ExtResource("1_umwp1")]([SubResource("Resource_umwp1"), SubResource("Resource_2hiad"), SubResource("Resource_q1tq4"), SubResource("Resource_jibbn"), SubResource("Resource_6vx6u")])

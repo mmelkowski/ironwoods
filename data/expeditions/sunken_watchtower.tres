@@ -1,0 +1,83 @@
+[gd_resource type="Resource" script_class="ExpeditionData" format=3 uid="uid://bkpws2x6h0alv"]
+
+[ext_resource type="Script" uid="uid://dsg3xmy0citai" path="res://scripts/expedition/ExpeditionNode.gd" id="1_u0tpa"]
+[ext_resource type="Resource" uid="uid://cgor2n06prub1" path="res://data/EncounterData/standard_fight.tres" id="2_j7j0j"]
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="3_lc5h8"]
+[ext_resource type="Resource" uid="uid://cqyo7amo8xapq" path="res://data/character/enemies/hobgoblin.tres" id="4_0t0xi"]
+[ext_resource type="PackedScene" uid="uid://ba8ljhqmi7rk7" path="res://scenes/battle/objective/boss_objective.tscn" id="5_6d253"]
+[ext_resource type="Script" uid="uid://c0pdfac1nyf65" path="res://scripts/expedition/encounter/EncounterData.gd" id="6_yrtsq"]
+[ext_resource type="Script" uid="uid://djuxvwgpk5gw6" path="res://scripts/expedition/ExpeditionData.gd" id="7_6j8o3"]
+[ext_resource type="Script" uid="uid://dbpd0aei4mb8t" path="res://scripts/hub/world_map/UnlockCondition.gd" id="8_v0rlt"]
+[ext_resource type="Script" uid="uid://cwnootnjf8bud" path="res://scripts/hub/world_map/UnlockBuildingLevel.gd" id="9_wt3bp"]
+
+[sub_resource type="Resource" id="Resource_u0tpa"]
+script = ExtResource("1_u0tpa")
+id = &"start"
+type = 0
+title = "Departure"
+next_nodes = Array[StringName]([&"fight_1"])
+
+[sub_resource type="Resource" id="Resource_j7j0j"]
+script = ExtResource("1_u0tpa")
+id = &"fight_1"
+title = "First encounter"
+next_nodes = Array[StringName]([&"fight_2"])
+encounter = ExtResource("2_j7j0j")
+loot = Dictionary[StringName, int]({
+&"wood": 3
+})
+
+[sub_resource type="Resource" id="Resource_lc5h8"]
+script = ExtResource("1_u0tpa")
+id = &"fight_2"
+title = "Second encounter"
+next_nodes = Array[StringName]([&"boss"])
+encounter = ExtResource("2_j7j0j")
+loot = Dictionary[StringName, int]({
+&"stone": 3
+})
+
+[sub_resource type="Resource" id="Resource_0t0xi"]
+script = ExtResource("6_yrtsq")
+enemies = Array[ExtResource("3_lc5h8")]([ExtResource("4_0t0xi")])
+fill_with_pool = true
+objective_scene = ExtResource("5_6d253")
+
+[sub_resource type="Resource" id="Resource_6d253"]
+script = ExtResource("1_u0tpa")
+id = &"boss"
+type = 2
+title = "The guardian"
+next_nodes = Array[StringName]([&"end"])
+encounter = SubResource("Resource_0t0xi")
+loot = Dictionary[StringName, int]({
+&"iron": 3
+})
+
+[sub_resource type="Resource" id="Resource_yrtsq"]
+script = ExtResource("1_u0tpa")
+id = &"end"
+type = 5
+title = "The end"
+
+[sub_resource type="Resource" id="Resource_6j8o3"]
+script = ExtResource("9_wt3bp")
+building_id = &"carpentry"
+level = 2
+
+[resource]
+script = ExtResource("7_6j8o3")
+id = &"sunken_watchtower"
+display_name = "The Sunken Watchtower"
+description = "A watchtower half swallowed by the marsh."
+goal = "Climb to the top of the tower."
+completion_bonus = Dictionary[StringName, int]({
+&"stone": 5,
+&"wood": 8
+})
+unlock_conditions = Array[ExtResource("8_v0rlt")]([SubResource("Resource_6j8o3")])
+locked_display = 0
+enemy_tags = Array[StringName]([&"forest"])
+base_budget = 6
+budget_per_depth = 3
+nodes = Array[ExtResource("1_u0tpa")]([SubResource("Resource_u0tpa"), SubResource("Resource_j7j0j"), SubResource("Resource_lc5h8"), SubResource("Resource_6d253"), SubResource("Resource_yrtsq")])

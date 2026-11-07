@@ -37,6 +37,7 @@ var _menu: Node  # the team selection while it is open
 func _ready() -> void:
 	for node in get_tree().get_nodes_in_group(&"expedition_sites"):
 		var site := node as ExpeditionSite
+		print("_ready site.expedition_id ", site.expedition_id)
 		if site != null:
 			_sites.append(site)
 			site.selected.connect(_on_site_selected)
@@ -52,6 +53,7 @@ func _ready() -> void:
 ## Applies the unlock state of every expedition to its site.
 func _refresh_sites() -> void:
 	for site in _sites:
+		print(" site.expedition_id ", site.expedition_id)
 		var expedition := GameState.expeditions.get_expedition(site.expedition_id)
 		if expedition == null:
 			site.visible = false  # unknown id: _check_scene reports it

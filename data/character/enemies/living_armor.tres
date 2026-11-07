@@ -14,6 +14,7 @@ id = &"living_armor"
 display_name = "Living Armor"
 tileset = ExtResource("7_g3ltd")
 tile_coords = Vector2i(3, 4)
+roles = Array[int]([0])
 actions = Dictionary[ExtResource("1_6q5dc"), int]({
 ExtResource("2_6q5dc"): 2,
 ExtResource("3_docu8"): 1

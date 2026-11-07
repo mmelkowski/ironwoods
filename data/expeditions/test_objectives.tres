@@ -1,0 +1,104 @@
+[gd_resource type="Resource" script_class="ExpeditionData" format=3 uid="uid://cb3wa4rfmcpsh"]
+
+[ext_resource type="Script" uid="uid://dsg3xmy0citai" path="res://scripts/expedition/ExpeditionNode.gd" id="1_mdymr"]
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="2_1rkcr"]
+[ext_resource type="Resource" uid="uid://50jnfwkby1yt" path="res://data/character/object/totem.tres" id="3_muplo"]
+[ext_resource type="PackedScene" uid="uid://dcamuyhbyovrx" path="res://scenes/battle/objective/destroy_object_objective.tscn" id="4_anfat"]
+[ext_resource type="Script" uid="uid://c0pdfac1nyf65" path="res://scripts/expedition/encounter/EncounterData.gd" id="5_04pwc"]
+[ext_resource type="Resource" uid="uid://bvq8mjv352uwb" path="res://data/character/enemies/goblin_captor.tres" id="6_xxrlm"]
+[ext_resource type="Resource" uid="uid://bqeh4tgvia1fe" path="res://data/character/neutral/hostage.tres" id="7_snu2l"]
+[ext_resource type="PackedScene" uid="uid://bqqnrvxkp1rne" path="res://scenes/battle/objective/rescue_objective.tscn" id="8_afpp0"]
+[ext_resource type="Resource" uid="uid://cqyo7amo8xapq" path="res://data/character/enemies/hobgoblin.tres" id="9_xlekq"]
+[ext_resource type="PackedScene" uid="uid://ba8ljhqmi7rk7" path="res://scenes/battle/objective/boss_objective.tscn" id="10_dtxmb"]
+[ext_resource type="Script" uid="uid://djuxvwgpk5gw6" path="res://scripts/expedition/ExpeditionData.gd" id="11_t563j"]
+[ext_resource type="Script" uid="uid://dbpd0aei4mb8t" path="res://scripts/hub/world_map/UnlockCondition.gd" id="12_yclp4"]
+
+[sub_resource type="Resource" id="Resource_mdymr"]
+script = ExtResource("1_mdymr")
+id = &"start"
+type = 0
+title = "Departure"
+next_nodes = Array[StringName]([&"totem"])
+
+[sub_resource type="Resource" id="Resource_1rkcr"]
+script = ExtResource("5_04pwc")
+enemies = Array[ExtResource("2_1rkcr")]([ExtResource("3_muplo")])
+fill_with_pool = true
+objective_scene = ExtResource("4_anfat")
+
+[sub_resource type="Resource" id="Resource_muplo"]
+script = ExtResource("1_mdymr")
+id = &"totem"
+title = "The goblin totem"
+next_nodes = Array[StringName]([&"camp_1"])
+encounter = SubResource("Resource_1rkcr")
+loot = Dictionary[StringName, int]({
+&"wood": 2
+})
+
+[sub_resource type="Resource" id="Resource_anfat"]
+script = ExtResource("1_mdymr")
+id = &"camp_1"
+type = 3
+title = "A short rest"
+next_nodes = Array[StringName]([&"prisoner"])
+
+[sub_resource type="Resource" id="Resource_04pwc"]
+script = ExtResource("5_04pwc")
+enemies = Array[ExtResource("2_1rkcr")]([ExtResource("6_xxrlm"), ExtResource("7_snu2l")])
+fill_with_pool = true
+objective_scene = ExtResource("8_afpp0")
+
+[sub_resource type="Resource" id="Resource_xxrlm"]
+script = ExtResource("1_mdymr")
+id = &"prisoner"
+title = "The prisoner"
+next_nodes = Array[StringName]([&"camp_2"])
+encounter = SubResource("Resource_04pwc")
+loot = Dictionary[StringName, int]({
+&"stone": 2
+})
+
+[sub_resource type="Resource" id="Resource_snu2l"]
+script = ExtResource("1_mdymr")
+id = &"camp_2"
+type = 3
+title = "Another rest"
+next_nodes = Array[StringName]([&"boss"])
+
+[sub_resource type="Resource" id="Resource_afpp0"]
+script = ExtResource("5_04pwc")
+enemies = Array[ExtResource("2_1rkcr")]([ExtResource("9_xlekq")])
+fill_with_pool = true
+objective_scene = ExtResource("10_dtxmb")
+
+[sub_resource type="Resource" id="Resource_xlekq"]
+script = ExtResource("1_mdymr")
+id = &"boss"
+type = 2
+title = "The goblin chief"
+next_nodes = Array[StringName]([&"end"])
+encounter = SubResource("Resource_afpp0")
+loot = Dictionary[StringName, int]({
+&"iron": 2
+})
+
+[sub_resource type="Resource" id="Resource_dtxmb"]
+script = ExtResource("1_mdymr")
+id = &"end"
+type = 5
+title = "The end"
+
+[resource]
+script = ExtResource("11_t563j")
+id = &"test_objectives"
+display_name = "Objective trials"
+description = "Debug: one fight for each objective, the boss last."
+goal = "Pass the three trials."
+completion_bonus = Dictionary[StringName, int]({
+&"wood": 5
+})
+enemy_tags = Array[StringName]([&"forest"])
+base_budget = 3
+budget_per_depth = 1
+nodes = Array[ExtResource("1_mdymr")]([SubResource("Resource_mdymr"), SubResource("Resource_muplo"), SubResource("Resource_anfat"), SubResource("Resource_xxrlm"), SubResource("Resource_snu2l"), SubResource("Resource_xlekq"), SubResource("Resource_dtxmb")])

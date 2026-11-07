@@ -3,7 +3,11 @@
 [ext_resource type="Script" uid="uid://djuxvwgpk5gw6" path="res://scripts/expedition/ExpeditionData.gd" id="1_3oh7p"]
 [ext_resource type="Resource" uid="uid://drsuciagschsy" path="res://data/expeditions/test_expedition.tres" id="2_o8ckr"]
 [ext_resource type="Script" uid="uid://cu3bk0l3v0mmb" path="res://scripts/expedition/ExpeditionCatalog.gd" id="3_b8trg"]
+[ext_resource type="Resource" uid="uid://cb3wa4rfmcpsh" path="res://data/expeditions/test_objectives.tres" id="3_o8ckr"]
+[ext_resource type="Resource" uid="uid://bxioc2dn441jj" path="res://data/expeditions/test_catacomb.tres" id="4_b8trg"]
+[ext_resource type="Resource" uid="uid://tm57smf67pek" path="res://data/expeditions/hollow_crypt.tres" id="5_ykae7"]
+[ext_resource type="Resource" uid="uid://bkpws2x6h0alv" path="res://data/expeditions/sunken_watchtower.tres" id="6_mop4s"]
 
 [resource]
 script = ExtResource("3_b8trg")
-expeditions = Array[ExtResource("1_3oh7p")]([ExtResource("2_o8ckr")])
+expeditions = Array[ExtResource("1_3oh7p")]([ExtResource("2_o8ckr"), ExtResource("3_o8ckr"), ExtResource("4_b8trg"), ExtResource("5_ykae7"), ExtResource("6_mop4s")])
