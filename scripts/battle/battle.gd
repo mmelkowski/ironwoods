@@ -92,6 +92,7 @@ const WALL_BODY_SAMPLES := 8    # points tested around the body (plus its centre
 ## Living characters only. Dead ones are removed as soon as they die.
 var allies: Array[Character] = []
 var enemies: Array[Character] = []
+var neutrals: Array[Character] = []  # hostages: not targetable, not an enemy, but they block movement
 var deck := CardDeck.new()
 
 ## Set when the battle comes from an expedition node.
@@ -212,14 +213,18 @@ func _spawn_roster(characters: Array[CharacterData]) -> void:
 	_zone_fill.clear()
 	for data in characters:
 		var is_ally := data.team == CharacterData.Team.ALLY
-		var team := allies if is_ally else enemies
+		var is_neutral := data.team == CharacterData.Team.NEUTRAL
+		var team := allies if is_ally else (neutrals if is_neutral else enemies)
 
 		var character: Character = character_scene.instantiate()
 		character.setup(data, _starting_health(data))
 		(allies_root if is_ally else enemies_root).add_child(character)
 		character.global_position = _get_spawn_position(character, is_ally, team.size())
 		character.died.connect(_on_character_died)
-		character.clicked.connect(character_clicked.emit)
+		if is_neutral:
+			character.click_area.input_pickable = false  # non interactable
+		else:
+			character.clicked.connect(character_clicked.emit)
 		team.append(character)
 
 
@@ -294,7 +299,7 @@ func _get_spawn_position(character: Character, is_ally: bool, index: int) -> Vec
 func _is_spawn_spot_free(spot: Vector2, mover: Character) -> bool:
 	if not is_walkable(spot, mover):
 		return false
-	for team in [allies, enemies]:
+	for team in [allies, enemies, neutrals]:
 		for other in team:
 			var min_gap: float = mover.shape.radius + other.shape.radius + SPAWN_GAP
 			if spot.distance_to(other.global_position) < min_gap:
@@ -576,7 +581,7 @@ func _find_free_position(ideal: Vector2, center: Vector2, mover: Character) -> V
 func _is_spot_free(spot: Vector2, mover: Character) -> bool:
 	if not is_walkable(spot, mover):
 		return false
-	for team in [allies, enemies]:
+	for team in [allies, enemies, neutrals]:
 		for other in team:
 			if other == mover:
 				continue
@@ -902,6 +907,7 @@ func _end_of_turn_statuses(team: Array[Character]) -> void:
 func _on_character_died(character: Character) -> void:
 	allies.erase(character)
 	enemies.erase(character)
+	neutrals.erase(character)
 	character.hide()
 	_dead.append(character)  # freed later, awaiting code may still hold a reference
 
@@ -915,6 +921,9 @@ func _on_character_died(character: Character) -> void:
 		if enemy.intent != null and enemy.intent.target == character:
 			_retarget_intent(enemy)
 	intents_changed.emit()  # also hides the AOE circle of a dead enemy
+
+	if objective != null and objective.is_started():
+		objective.on_character_died(character)
 
 
 func _free_dead() -> void:
@@ -1079,7 +1088,9 @@ func _slide_victim(plan: MovePlan, distance: float) -> float:
 	if not hit.is_empty():
 		plan.collided = hit["who"]
 		slide = hit["at"]
-		if plan.collided.is_ally() == plan.victim.is_ally():
+		if plan.collided.data.team == CharacterData.Team.NEUTRAL:
+			plan.damage_to_victim = COLLISION_DAMAGE_OPPONENT  # a hostage is never hurt
+		elif plan.collided.is_ally() == plan.victim.is_ally():
 			plan.damage_to_victim = COLLISION_DAMAGE_SAME_TEAM
 			plan.damage_to_other = COLLISION_DAMAGE_SAME_TEAM
 		else:
@@ -1128,7 +1139,7 @@ func plan_card_push(card: CardInstance, target: Character, aim: Vector2, from: V
 func _find_push_collision(plan: MovePlan, start: Vector2, reach: float) -> Dictionary:
 	var best := {}
 	var best_distance := INF
-	for team in [allies, enemies]:
+	for team in [allies, enemies, neutrals]:
 		for other in team:
 			if other == plan.mover or other == plan.victim:
 				continue

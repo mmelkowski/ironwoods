@@ -24,6 +24,7 @@ id = &"fight_1"
 title = "Ambush on the road"
 next_nodes = Array[StringName]([&"fight_hard", &"camp"])
 encounter = ExtResource("2_olven")
+difficulty_bonus = 2
 loot = Dictionary[StringName, int]({
 &"wood": 3
 })

@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://bqqnrvxkp1rne"]
+
+[ext_resource type="Script" uid="uid://dq4epwy74ci8e" path="res://scripts/battle/objectives/RescueObjective.gd" id="1_q6wg4"]
+[ext_resource type="Resource" uid="uid://b080vdpkh3ihd" path="res://data/cards/hostage/unlock.tres" id="2_if0jl"]
+
+[node name="RescueObjective" type="Node" unique_id=984419127]
+script = ExtResource("1_q6wg4")
+rescue_card = ExtResource("2_if0jl")

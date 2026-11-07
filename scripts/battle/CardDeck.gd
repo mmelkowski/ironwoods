@@ -32,6 +32,13 @@ func draw_to_full() -> void:
 	hand_changed.emit()
 
 
+## Puts a card straight into the hand, even if the hand is full (a card given by an objective).
+## It stays there until played: draw_to_full() never discards the hand.
+func add_to_hand(card: CardInstance) -> void:
+	hand.append(card)
+	hand_changed.emit()
+
+
 func discard(card: CardInstance) -> void:
 	hand.erase(card)
 	discard_pile.append(card)

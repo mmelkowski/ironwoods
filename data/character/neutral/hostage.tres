@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CharacterData" format=3 uid="uid://bqeh4tgvia1fe"]
+
+[ext_resource type="Script" uid="uid://cyiubihrnsefw" path="res://scripts/battle/enemy_action/EnemyAction.gd" id="1_wuacc"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_23nj3"]
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="3_p4c26"]
+[ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="4_xomcx"]
+[ext_resource type="Texture2D" uid="uid://lo8hamvapv4i" path="res://assets/32rogues/rogues.png" id="5_23nj3"]
+
+[resource]
+script = ExtResource("3_p4c26")
+id = &"hostage"
+display_name = "Hostage"
+team = 2
+unlocked_by_default = false
+tileset = ExtResource("5_23nj3")
+tile_coords = Vector2i(1, 6)
+roles = Array[int]([3])
+acts = false
+can_be_moved = false
+metadata/_custom_type_script = "uid://y7hn1ijwr8yv"

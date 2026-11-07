@@ -35,6 +35,14 @@ func _on_start() -> void:
 	pass
 
 
+## Called by the Battle every time a character dies (hero, enemy...), once it has left its team
+## and a hero's cards have left the deck. Use it to react to a death (give a card, spawn a
+## wave...). It runs in the middle of an action: change state here, but do not end the battle,
+## the Battle asks is_complete() / is_failed() right after the action.
+func on_character_died(_character: Character) -> void:
+	pass
+
+
 ## Victory condition.
 func is_complete() -> bool:
 	return false

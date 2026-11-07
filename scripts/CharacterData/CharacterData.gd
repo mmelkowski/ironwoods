@@ -3,7 +3,9 @@ extends Resource
 ## Describes one hero or enemy. Create a .tres per character in the inspector
 ## (right click in FileSystem > New Resource > CharacterData).
 
-enum Team { ALLY, ENEMY }
+## NEUTRAL: neither side (a hostage). Not in Battle.allies / enemies, so cards, enemies and the
+## defeat check ignore it, but it still blocks movement. Append new values at the END.
+enum Team { ALLY, ENEMY, NEUTRAL }
 
 ## What a character means for the battle objective. Append new values at the END (saved as integers).
 ## BOSS: BossObjective is won by killing it. The other three are reserved for the

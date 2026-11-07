@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://b080vdpkh3ihd"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_uyode"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_h0d3l"]
+
+[resource]
+script = ExtResource("2_h0d3l")
+id = &"unlock"
+display_name = "Unlock Hostage"
+description = "Unlock Hostage"
+card_type = 1
+mana_generation = 2
+target_team = 2
+metadata/_custom_type_script = "uid://j0prpwx7b06d"
