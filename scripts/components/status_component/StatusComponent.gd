@@ -12,6 +12,9 @@ extends Node
 ##   end_of_turn()    -> TURNS statuses lose their decay
 
 signal changed
+## The form of the owner started, was replaced or ended (null = no form). Not sent when the same form
+## is only refreshed. Character uses it to swap the sprite.
+signal form_changed(form: StatusData)
 
 ## StatusData -> stacks (always > 0)
 var stacks: Dictionary = {}
@@ -26,8 +29,71 @@ func _init(health_component: HealthComponent = null) -> void:
 func add(status: StatusData, amount: int) -> void:
 	if status == null or amount <= 0:
 		return
+	if status.is_form():
+		_add_form(status, amount)
+		return
 	stacks[status] = stacks.get(status, 0) + amount
 	changed.emit()
+
+
+## The form the owner is in (the one status with effect FORM), or null.
+func get_form() -> StatusData:
+	for status: StatusData in stacks:
+		if status.is_form():
+			return status
+	return null
+
+
+## A form lasts `turns` turns. One form at a time: a new form replaces the old one (whose grants are
+## taken back first). Casting the form that is already up only refreshes its duration (the longer of
+## the two), with no second grant.
+func _add_form(form: StatusData, turns: int) -> void:
+	var current := get_form()
+	if current == form:
+		stacks[form] = maxi(stacks[form], turns)
+		changed.emit()
+		return
+	if current != null:
+		stacks.erase(current)
+		_revoke_grants(current)
+	stacks[form] = turns
+	_give_grants(form)
+	changed.emit()
+	form_changed.emit(form)
+
+
+func _give_grants(form: StatusData) -> void:
+	for granted: StatusData in form.form_grants:
+		var amount: int = form.form_grants[granted]
+		if granted == null or amount <= 0 or granted.is_form():
+			continue
+		match granted.get_effect():
+			StatusData.Effect.ARMOR:
+				if _health != null:
+					_health.add_armor(amount)
+			StatusData.Effect.HEAL:
+				if _health != null:
+					_health.heal(amount)
+			StatusData.Effect.CLEANSE:
+				remove_debuffs()
+			_:
+				add(granted, amount)
+
+
+## Takes back what the form gave, up to the amount it gave: armor and stacks already spent are gone.
+func _revoke_grants(form: StatusData) -> void:
+	for granted: StatusData in form.form_grants:
+		var amount: int = form.form_grants[granted]
+		if granted == null or amount <= 0 or granted.is_form():
+			continue
+		match granted.get_effect():
+			StatusData.Effect.ARMOR:
+				if _health != null:
+					_health.remove_armor(amount)  # clamped at 0
+			StatusData.Effect.HEAL, StatusData.Effect.CLEANSE:
+				pass  # instant effects: nothing to take back
+			_:
+				consume(granted, mini(amount, get_stacks(granted)))
 
 
 func get_stacks(status: StatusData) -> int:
@@ -126,17 +192,25 @@ func start_of_turn() -> void:
 ## TURNS statuses lose `decay_per_turn` stacks and disappear at 0.
 func end_of_turn() -> void:
 	var touched := false
+	var ended_forms: Array[StatusData] = []
 	for status: StatusData in stacks.keys():
 		if status.duration_type != StatusData.DurationType.TURNS or status.decay_per_turn <= 0:
 			continue
 		var left: int = stacks[status] - status.decay_per_turn
 		if left <= 0:
 			stacks.erase(status)
+			if status.is_form():
+				ended_forms.append(status)
 		else:
 			stacks[status] = left
 		touched = true
+	# After the loop: taking the grants back may consume other statuses (Evasion)
+	for form in ended_forms:
+		_revoke_grants(form)
 	if touched:
 		changed.emit()
+	if not ended_forms.is_empty():
+		form_changed.emit(null)
 
 
 ## "Bleeding 3  Stunned 1", for the status label above the character.

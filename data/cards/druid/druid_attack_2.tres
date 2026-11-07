@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://1m5uf6vrimhc"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_k6d7y"]
+[ext_resource type="Resource" uid="uid://crd6dhmi30a6x" path="res://data/status_data/form_snake.tres" id="2_k6d7y"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="3_ovlyx"]
+
+[sub_resource type="Resource" id="Resource_py4tk"]
+script = ExtResource("1_k6d7y")
+recipient = 1
+status = ExtResource("2_k6d7y")
+stacks = 2
+metadata/_custom_type_script = "uid://1s4n8vmvkar7"
+
+[resource]
+script = ExtResource("3_ovlyx")
+id = &"druid_attack_2"
+display_name = "druid_attack_2"
+description = "Turn into a Snake (Add poison to all attacks)"
+damage = 20
+effects = Array[ExtResource("1_k6d7y")]([SubResource("Resource_py4tk")])
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

@@ -15,7 +15,7 @@ font_size = 14
 font_size = 14
 
 [sub_resource type="LabelSettings" id="LabelSettings_njqwk"]
-font_size = 14
+font_size = 10
 
 [sub_resource type="LabelSettings" id="LabelSettings_7f2x3"]
 font_size = 14
@@ -45,6 +45,10 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 color = Color(0.556953, 0.556953, 0.556953, 1)
+
+[node name="CharIcon" type="Sprite2D" parent="." unique_id=361038596]
+unique_name_in_owner = true
+position = Vector2(130, 0.5)
 
 [node name="Artwork" type="ColorRect" parent="." unique_id=1393141127]
 unique_name_in_owner = true
@@ -102,8 +106,8 @@ anchors_preset = 14
 anchor_top = 0.5
 anchor_right = 1.0
 anchor_bottom = 0.5
-offset_top = -20.0
-offset_bottom = -6.0
+offset_top = -7.0
+offset_bottom = 13.0
 grow_horizontal = 2
 grow_vertical = 2
 text = "Card Type"
@@ -120,9 +124,9 @@ anchor_top = 0.469
 anchor_right = 0.94900006
 anchor_bottom = 0.823
 offset_left = -1.750001
-offset_top = 0.04499817
+offset_top = 16.044998
 offset_right = 1.6499939
-offset_bottom = 0.01499939
+offset_bottom = 16.015
 grow_horizontal = 2
 grow_vertical = 2
 text = "Card description"

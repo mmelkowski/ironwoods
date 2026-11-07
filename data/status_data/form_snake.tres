@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="StatusData" format=3 uid="uid://crd6dhmi30a6x"]
+
+[ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="1_hrdeb"]
+[ext_resource type="Resource" uid="uid://cmjbsu8wg1w5q" path="res://data/status_data/poison.tres" id="2_hrdeb"]
+[ext_resource type="Texture2D" uid="uid://c6cjqu0ylbctq" path="res://assets/32rogues/animals.png" id="3_rtplc"]
+
+[resource]
+script = ExtResource("1_hrdeb")
+id = &"form_snake"
+display_name = "form_snake"
+description = "form_snake"
+effect = 9
+attack_statuses = Dictionary[ExtResource("1_hrdeb"), int]({
+ExtResource("2_hrdeb"): 1
+})
+form_tileset = ExtResource("3_rtplc")
+form_tile_coords = Vector2i(1, 7)
+form_head_position = Vector2(16, 16)
+metadata/_custom_type_script = "uid://cf8nrmcbw5y70"

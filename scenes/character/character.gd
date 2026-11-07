@@ -10,6 +10,7 @@ const STATUS_FONT_SIZE := 40
 signal clicked(character: Character)  # for card targeting
 signal died(character: Character)
 signal statuses_changed
+signal form_changed(form: StatusData)  # the animal form started, changed or ended (null = none)
 
 const TILE_SIZE := 32
 const GROUP_ALLIES := &"allies"
@@ -31,6 +32,7 @@ const CLICK_RADIUS_FACTOR := 1.0
 @export var data: CharacterData
 
 var _start_health := -1
+var _form: StatusData  # the animal form that is up (its sprite replaces the character's), or null
 var _ui_bottom_target := 0.0  # where the bottom of the health bar must be (character space)
 
 ## Enemies only: what this enemy will do on its next turn (see EnemyIntent).
@@ -85,6 +87,7 @@ func _ready() -> void:
 	status_component.name = "StatusComponent"
 	add_child(status_component)
 	status_component.changed.connect(_on_statuses_changed)
+	status_component.form_changed.connect(_on_form_changed)
 	_on_statuses_changed()
 	click_area.input_event.connect(_on_click_area_input_event)
 	# The bars move inside the UI when the armor bar appears/disappears: keep the bottom in place.
@@ -199,13 +202,13 @@ func _update_intent_icon() -> void:
 
 	var source: AtlasTexture = null
 	if intent_target != null:
-		source = intent_target.sprite.texture as AtlasTexture
+		source = intent_target.sprite.texture as AtlasTexture  # the form's sprite while a form is up
 	if source == null:
 		intent_icon.hide()
 		return
 
 	var crop := Rect2(
-		source.region.position + intent_target.data.head_position - INTENT_CUTOUT_SIZE / 2.0,
+		source.region.position + intent_target.get_head_position() - INTENT_CUTOUT_SIZE / 2.0,
 		INTENT_CUTOUT_SIZE)
 	var icon := AtlasTexture.new()
 	icon.atlas = source.atlas
@@ -221,14 +224,7 @@ func _apply_data() -> void:
 	add_to_group(GROUP_ALLIES if is_ally() else GROUP_ENEMIES)
 
 	# Sprite cut out of the tileset
-	var atlas := AtlasTexture.new()
-	atlas.atlas = data.tileset
-	atlas.region = Rect2(
-		Vector2(data.tile_coords * TILE_SIZE),
-		Vector2(data.size_in_tiles * TILE_SIZE))
-	sprite.texture = atlas
-	shape.radius = (atlas.region.size.x * CLICK_RADIUS_FACTOR ) + 5
-	_place_ui(atlas.region.size)
+	_apply_sprite()
 
 	# Stats
 	health.initialize(data.max_health, _start_health)
@@ -241,6 +237,40 @@ func _apply_data() -> void:
 	_refresh_status_icons()
 
 
+## The sprite of the character, or of its animal form while one is up (cut the same way from a
+## 32x32 tile sheet; both are drawn facing left, so the flip of face_towards stays as it is).
+## Also resizes the click circle and moves the UI to the head of the sprite that is shown.
+func _apply_sprite() -> void:
+	if data == null:
+		return
+	var atlas: AtlasTexture = null
+	if _form != null:
+		atlas = _form.get_form_sprite()
+	if atlas == null:
+		atlas = AtlasTexture.new()
+		atlas.atlas = data.tileset
+		atlas.region = Rect2(
+			Vector2(data.tile_coords * TILE_SIZE),
+			Vector2(data.size_in_tiles * TILE_SIZE))
+	sprite.texture = atlas
+	shape.radius = (atlas.region.size.x * CLICK_RADIUS_FACTOR ) + 5
+	_place_ui(atlas.region.size)
+
+
+## Where the head is on the sprite that is shown (pixels from its top-left): the form's while a form
+## with a sprite is up, otherwise CharacterData.head_position.
+func get_head_position() -> Vector2:
+	if _form != null and _form.form_tileset != null:
+		return _form.form_head_position
+	return data.head_position
+
+
+func _on_form_changed(form: StatusData) -> void:
+	_form = form
+	_apply_sprite()
+	form_changed.emit(form)
+
+
 ## Computes where the bottom of the health bar must be (y in the character's space):
 ## UI_HEIGHT_ABOVE_HEAD above the head. The head is data.head_position, measured in texture
 ## pixels from the top-left corner of the sprite.
@@ -248,7 +278,7 @@ func _place_ui(sprite_size: Vector2) -> void:
 	var top := sprite.position.y + sprite.offset.y * sprite.scale.y
 	if sprite.centered:
 		top -= sprite_size.y * sprite.scale.y / 2.0
-	var head_y := top + data.head_position.y * sprite.scale.y
+	var head_y := top + get_head_position().y * sprite.scale.y
 	_ui_bottom_target = head_y - UI_HEIGHT_ABOVE_HEAD
 	_update_ui_position()
 	_update_ui_position_later()

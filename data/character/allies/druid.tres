@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CharacterData" format=3 uid="uid://c2xjtutulhiom"]
+
+[ext_resource type="Script" uid="uid://cyiubihrnsefw" path="res://scripts/battle/enemy_action/EnemyAction.gd" id="1_vyhxf"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_jsvwe"]
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="3_mdsri"]
+[ext_resource type="Resource" uid="uid://dijriidao0syw" path="res://data/cards/druid/druid_attack_1.tres" id="3_qvven"]
+[ext_resource type="Resource" uid="uid://1m5uf6vrimhc" path="res://data/cards/druid/druid_attack_2.tres" id="4_0uq0b"]
+[ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="4_kkiqp"]
+[ext_resource type="Resource" uid="uid://5bw0yx72n6st" path="res://data/cards/druid/druid_support_1.tres" id="5_0tyus"]
+[ext_resource type="Texture2D" uid="uid://lo8hamvapv4i" path="res://assets/32rogues/rogues.png" id="5_jsvwe"]
+[ext_resource type="Resource" uid="uid://bhnjsf2auyfjh" path="res://data/cards/druid/druid_support_2.tres" id="6_fy8h1"]
+[ext_resource type="Resource" uid="uid://csmoy2aerue4e" path="res://data/cards/druid/druid_mana_1.tres" id="7_dwdoc"]
+
+[resource]
+script = ExtResource("3_mdsri")
+id = &"druid"
+display_name = "Druid"
+team = 0
+tileset = ExtResource("5_jsvwe")
+tile_coords = Vector2i(2, 4)
+deck = Array[ExtResource("2_jsvwe")]([ExtResource("3_qvven"), ExtResource("4_0uq0b"), ExtResource("5_0tyus"), ExtResource("6_fy8h1"), ExtResource("7_dwdoc")])
+metadata/_custom_type_script = "uid://y7hn1ijwr8yv"

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="StatusData" format=3 uid="uid://b7ah1vjyoo7h7"]
+
+[ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="1_hwmbd"]
+[ext_resource type="Resource" uid="uid://cbxpdh006otqk" path="res://data/status_data/evasion.tres" id="2_hwmbd"]
+[ext_resource type="Texture2D" uid="uid://c6cjqu0ylbctq" path="res://assets/32rogues/animals.png" id="3_6ik46"]
+
+[resource]
+script = ExtResource("1_hwmbd")
+id = &"form_ferret"
+display_name = "form_ferret"
+description = "form_ferret"
+effect = 9
+form_grants = Dictionary[ExtResource("1_hwmbd"), int]({
+ExtResource("2_hwmbd"): 2
+})
+form_tileset = ExtResource("3_6ik46")
+form_tile_coords = Vector2i(3, 5)
+form_head_position = Vector2(16, 16)
+metadata/_custom_type_script = "uid://cf8nrmcbw5y70"

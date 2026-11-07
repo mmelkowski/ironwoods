@@ -20,6 +20,8 @@ This file documents **the code as delivered**: architecture, scripts, APIs, sign
 * **`CardDeck.add_to_hand(card)`** (4.10): a card given by an objective.
 * **Editor tools** (11): `tools/make_test_expedition.gd` now builds three fixed debug expeditions (`first_expedition`, `test_objectives`, `test_catacomb`) through the new shared `tools/expedition_test_kit.gd`; `tools/make_test_location.gd` keeps the locked-location tests.
 
+* **Animal forms (druid)** (3.3c, 4.4b, 5.1, 5.3): new status effect `FORM`. A card puts its caster in a form for X turns; the form swaps the sprite, can give armor / evasion that is taken back when it ends, adds statuses to every attack (Snake, Wolf) and adds a push to every attack (Ibex). New `StatusComponent.get_form()` / `form_changed`, `Character.form_changed` / `get_head_position()`, and in `battle.gd` `is_attack_card`, `get_card_knockback`, `get_move_push_distance`, `_apply_form_effects`, `_apply_form_riders`.
+
 **Changes in the previous revisions**
 * New **gate map** (section 7.4): the gate building now opens `menu_gate_map`, where the player picks an expedition on a map of `ExpeditionSite`s, then `menu_gate` for the team.
 * New `ExpeditionSite` (Area2D), `expedition_site.tscn` and the **unlock conditions** (`UnlockCondition` and subclasses, section 3.6). `ExpeditionData` has the matching `unlock_conditions` / `locked_display` / `unlock_hint` (3.4) and `PlayerProfile` the `completed_expeditions` list (2.3, saved). The gate map applies them when it opens (7.4).
@@ -160,7 +162,7 @@ Helpers: `get_sprite_texture()`, `get_head_texture(size := 16x16)` (AtlasTexture
 | Field | Notes |
 |---|---|
 | `id`, `display_name`, `description`, `icon` | The icon is shown in the character's status row. |
-| `effect: Effect` | `NONE, ARMOR, HEAL, EVASION, BLEED, STUN, CLEANSE, POISON, SLEEP`. **Append only** (saved as integers). Decides the behaviour (below). |
+| `effect: Effect` | `NONE, ARMOR, HEAL, EVASION, BLEED, STUN, CLEANSE, POISON, SLEEP, FORM`. **Append only** (saved as integers). Decides the behaviour (below). |
 | `debuff: bool` | Marks a negative status so `CLEANSE` removes it. `BLEED`, `POISON`, `STUN` and `SLEEP` are always debuffs. |
 | `duration_type: DurationType` | `TURNS` (decays at the end of the owner's side phase) or `USES` (only consumed). Hidden for instant effects. |
 | `decay_per_turn` | TURNS only, default 1 (0 = never expires). |
@@ -179,6 +181,7 @@ What `stacks` means per effect:
 | `STUN` | turns skipped, `- decay_per_turn` per turn | `StatusComponent` |
 | `SLEEP` | same as STUN (cannot act, `- decay_per_turn` per turn) **but removed at once when the owner is hit**: any hit that is not dodged (even if armor absorbs it) wakes it. Bleeding / Poison ticks do not wake it. Cleanse removes it | `StatusComponent` |
 | `EVASION` | `USES`: each stack dodges one hit (consumed); `TURNS`: dodges every hit while it lasts | `StatusComponent` |
+| `FORM` | the turns the form lasts (use `TURNS`, `decay_per_turn` 1); a character has one form at a time (3.3c) | `StatusComponent` |
 | `NONE` | plain marker; with `USES` duration it is also how a **stack that cards consume** (arcane charges) is authored: it never decays | `StatusComponent` |
 
 Helpers: `get_effect()` (an old resource with effect `NONE` and id `&"evasion"` still counts as EVASION), `is_value_effect()` (ARMOR/HEAL), `is_debuff()` (BLEED, POISON, STUN, SLEEP or the `debuff` box), `is_tick_effect()` (BLEED or POISON), `get_tick_damage(stacks)` (0 for other effects),
@@ -193,6 +196,18 @@ Resources to author: `armor`, `heal`, `cleanse` (instant), `bleeding` (BLEED, TU
   * **Arcane charges (wizard)**: cards **put** charges **on the enemy** (`StatusApplication`, recipient `TARGET`, trigger `ON_PLAY`); other cards with `consume_from = TARGET` **spend** them. Each target hit spends its own stacks (`min(held, consume_amount)`, 0 = all) and takes `bonus_damage_per_stack x spent` extra damage **on that hit only**: in an AOE or a chain, every enemy converts its own charges. The charges are spent even if the hit is dodged. `consume_required` limits the pickable targets to those holding enough charges.
   * **Rage (barbarian)**: cards give charges to the caster (recipient `SELF`); cards with `consume_from = CASTER` spend them once and every hit gets the same bonus; the caster's spending happens before the card's own statuses, so a card can spend charges and give new ones.
   `get_charges_to_spend(card, target)` and `get_charge_bonus_damage(card, target)` are public for previews (pass the enemy under the cursor in TARGET mode); the card UI does not use them yet. A card with 0 base damage and a bonus still hits. Only damage uses the charges for now; other consumers (healing, a status consumed on hit, extra effects per charge) can reuse `get_charges_to_spend`.
+
+### 3.3c Animal forms (the druid) [U]
+A **form** is a `StatusData` with effect `FORM`, duration `TURNS`, `decay_per_turn` 1; its stacks are the turns it lasts. Any card (attack, support, mana) transforms its caster with an ordinary `StatusApplication`: trigger `ON_PLAY`, recipient `SELF`, the form status, `stacks` = X turns. Nothing in `CardData` is special.
+Fields of `StatusData` (group "Form", visible only for `FORM`):
+| Field | Meaning |
+|---|---|
+| `form_grants: Dictionary[StatusData, int]` | Given when the form starts, **taken back when it ends** (up to that amount: what is left of it). Armor (`ARMOR` status) and Evasion work; HEAL and CLEANSE are given but cannot be taken back. |
+| `attack_statuses: Dictionary[StatusData, int]` | Put on **every living enemy hit by an attack card** of the owner (a dodged hit counts). |
+| `attack_knockback` (0 none, 1 standard, 2 forceful) | Every attack card of the owner has **at least** this knockback, and so does its move-action push. A card without knockback gets one: a one-target attack gets the aimed cone push with its preview and collision damage, AOE / multi / chain attacks push straight away. |
+| `form_tileset`, `form_tile_coords` (tiles), `form_size_in_tiles` (default 1x1), `form_head_position` (px, default (16, 8)) | The sprite of the form, cut from a 32x32 tile sheet exactly like a character's, drawn facing left. Without `form_tileset` the sprite does not change. |
+The five forms of the druid: **Bear** `form_grants = {armor: 20}`; **Ferret** `form_grants = {evasion: 2}` (the Evasion status with `USES` duration); **Snake** `attack_statuses = {poison: 1}`; **Wolf** `attack_statuses = {bleeding: 1}`; **Ibex** `attack_knockback = 2`.
+Rules: **one form at a time** (a new form removes the old one, taking its grants back, then gives its own); casting the form that is already up **refreshes the duration** (the longer of the two) with no second grant; the cast turn counts as one of the X turns (the status decays at the end of the same phase, see the known limit in 4.6b); a form is not a debuff, so Cleanse leaves it; statuses reset every battle, so a form ends with the fight. An **attack card** (`Battle.is_attack_card`) targets enemies and has `damage > 0`. Forms work for **hero cards only** (`Battle.play_card`): an enemy with a form would get the sprite and the grants (they live in `StatusComponent` / `Character`), but not the attack bonuses (riders and knockback live in `Battle.play_card` and the move action).
 
 ### 3.4 Expedition data
 * `ExpeditionNode` (`@tool`): `id`, `type` (`START, BATTLE, BOSS, CAMP, EVENT, END`), `title`, `description`, `next_nodes: Array[StringName]`, `encounter` (BATTLE/BOSS), `loot: Dictionary[StringName,int]`, `lane` (-1 top … 1 bottom, map layout hint). `has_encounter()`.
@@ -294,9 +309,10 @@ Fields: `allies`, `enemies`, `neutrals` (living only; a neutral is in neither of
 ### 4.4b `play_card` pipeline
 1. Guard (`can_play_card` + `is_valid_selection`), phase `RESOLVING`.
 2. Pay: one action; mana for MANA cards. **2b. CASTER charges** (`consume_status`, `consume_from = CASTER`): `get_charges_to_spend`, `status_component.consume`, `bonus_damage` computed once. (TARGET charges are spent in step 4.)
+2c. **Forms first** [U]: `_apply_form_effects(card)` applies the card's ON_PLAY SELF `FORM` effects before the hit (so a "become Wolf and strike" card bleeds on that same hit; `_apply_effects` skips them later). After each `_deal_damage` (per hit in a chain) `_apply_form_riders(card, hit targets)` puts the form's `attack_statuses` on the living targets of an attack card.
 3. If target team is ENEMY: caster walks (`_approach`: face target, tween to the free approach position, face again). Chain: hop by hop (each target: walk → hit → knockback, skipping dead ones); other types: walk to the first pick, then hit all affected targets at once.
 4. `_deal_damage(card, targets, killed, bonus)`: per target: in TARGET mode the target first spends its own charges (`target_bonus`), then `(card.damage + bonus + target_bonus)` times the crit multiplier (a hit of 0 or less is skipped), **`Character.take_hit(amount)`** (evasion check, then armor, then health); kills detected with a "was alive" check (a chain can list a target several times).
-5. `_knock_back` (survivors; a one-target card pushes inside the aimed cone and a collision hurts, see 4.5e; AOE, MULTIPLE and CHAINED cards push straight away from the caster), `_apply_effects` (ON_PLAY SELF once, TARGET per living target; ON_KILL SELF once per kill).
+5. `_knock_back` (its knockback is `get_card_knockback(card)`: the card's own, raised to the form's `attack_knockback` for attack cards; survivors; a one-target card pushes inside the aimed cone and a collision hurts, see 4.5e; AOE, MULTIPLE and CHAINED cards push straight away from the caster), `_apply_effects` (ON_PLAY SELF once, TARGET per living target; ON_KILL SELF once per kill).
 6. Mana gain (non-MANA cards), Quick refund if a kill, discard, `card_played`, free dead, update facings, `_check_battle_end()`; else back to `PLAYER_TURN`.
 
 ### 4.5 Free-position search (placement)
@@ -335,7 +351,7 @@ Fields: `allies`, `enemies`, `neutrals` (living only; a neutral is in neither of
 **`plan_push(mover, victim, aim)`** (`aim` = the mouse position):
 1. `axis` = from the mover toward the victim. `direction` = from the victim toward `aim`, **clamped to `PUSH_CONE_HALF_ANGLE` (20 degrees) on each side of `axis`**: a 40 degree cone centered on the movement of the mover, like a billiard shot.
 2. `destination` = the contact point behind the victim: `victim position - direction * (mover radius + victim radius)`.
-3. The victim slides `PUSH_DISTANCE` (48 px): first limited by walls (`_clamp_move`), then by the first character it meets (`_find_push_collision`: circle against circle, the mover and the victim excluded; a character already touching in the push direction is hit at distance 0). It stops on contact.
+3. The victim slides `get_move_push_distance(mover)` (`PUSH_DISTANCE` 48 px, or 96 px while the mover's form gives a forceful knockback): first limited by walls (`_clamp_move`), then by the first character it meets (`_find_push_collision`: circle against circle, the mover and the victim excluded; a character already touching in the push direction is hit at distance 0). It stops on contact.
 4. Collision damage: **same team 10 to both** (`COLLISION_DAMAGE_SAME_TEAM`); **different teams 30 to the pushed one only** (`COLLISION_DAMAGE_OPPONENT`), e.g. a hero pushing an enemy into a hero. The other character is only damaged, not pushed. **A neutral (the hostage) is a solid obstacle that is never hurt**: the pushed character takes `COLLISION_DAMAGE_OPPONENT` and the neutral nothing. A character with `can_be_moved` off does not slide (`_slide_victim` returns 0 and sets no collision).
 5. `valid` = `can_move`, victim alive, not the mover and `can_be_moved`, `destination` free and reachable, and the push goes somewhere (slide of at least 1 px or a collision).
 
@@ -344,7 +360,7 @@ Input and preview are in `MoveController` (section 6); the rules stay here.
 
 ### 4.5e Card push (`has_push_aim`, `plan_card_push`) [U]
 A card with a `knockback` (`STANDARD` 48 px, `FORCEFUL` 96 px: `KNOCKBACK_DISTANCE`) pushes its target inside **the same 40 degree cone as the move action**, aimed with the mouse.
-* **`has_push_aim(card)`**: true for a one-target card (not AOE, MULTIPLE or CHAINED) whose `knockback` is not `NONE`. The other cards keep the automatic push straight away from the caster, with no collision and no damage.
+* **`has_push_aim(card)`**: true for a one-target card (not AOE, MULTIPLE or CHAINED) whose effective knockback (`get_card_knockback`, which includes the caster's form) is not `NONE`. The other cards keep the automatic push straight away from the caster, with no collision and no damage.
 * **`plan_card_push(card, target, aim, from := NO_AIM) -> MovePlan`** (kind PUSH, mover = the caster, victim = the target). `from` is where the cone starts: by default where the caster will stand after its approach (`find_approach_position`, for ENEMY-team cards), otherwise its position. `_aim_push(plan, from, aim)` fills `axis` (from to victim) and `direction` (toward `aim`, clamped to `PUSH_CONE_HALF_ANGLE` on each side; the axis itself for `NO_AIM`), then `_slide_victim(plan, get_card_push_distance(card))` fills `push_end`, `collided` and the damage with the same rules as 4.5d (walls, characters, neutrals, immovable targets). `valid` = the target is alive: **a push that goes nowhere never blocks the card**.
 * **Playing**: `play_card(card, selected, aim)` hands `aim` to `_knock_back`. For each surviving target it plans the push again from the caster's real position (the caster has already walked), slides the target (`_move_characters`, `KNOCKBACK_TIME`) and applies `_apply_collision(plan)` (`take_hit`: armor absorbs, Evasion can dodge).
 * `_aim_push`, `_slide_victim`, `_find_push_collision` and `_apply_collision` are shared by the move action and the cards.
@@ -442,7 +458,8 @@ Constants: `TILE_SIZE` 32, `INTENT_CUTOUT_SIZE` 16x16, `STATUS_ICON_SIZE` and `S
 `setup(data, start_health := -1)`; `_apply_data()`: joins group `allies`/`enemies`, builds the AtlasTexture sprite, sets the click circle radius, `_place_ui()`, `health.initialize(max, start_health)`, `add_armor(starting_armor)`, applies every `starting_statuses` entry through `apply_status`.
 Click radius: delivered formula `size.x * |sprite.scale.x| / 2 * CLICK_RADIUS_FACTOR`; **the developer uses `size.x * CLICK_RADIUS_FACTOR + 5`** (their own tweak). `shape.radius` is also the character radius used by the placement search (4.5). The circle size comes from `CharacterData.size_in_tiles`.
 
-Signals: `clicked(character)`, `died(character)`, `statuses_changed`.
+Signals: `clicked(character)`, `died(character)`, `statuses_changed`, `form_changed(form)` [U].
+**Animal form sprite** [U]: `status_component.form_changed` → `_on_form_changed(form)` stores the form, calls `_apply_sprite()` and re-emits `form_changed`. `_apply_sprite()` (also used by `_apply_data`) cuts the sprite from `data.tileset` or, while a form with a `form_tileset` is up, from the form (`StatusData.get_form_sprite()`), then resizes the click circle and replaces the UI with `_place_ui`. The flip of `face_towards` is untouched (both sprites face left). `get_head_position()` returns the form's head position while a form is up, otherwise `data.head_position`; `_place_ui` and `_update_intent_icon` use it, so the bars and the intent icon of the enemies follow the shown sprite. `Battle` refreshes the intents of all enemies on `form_changed`. Hero portraits (selection, hand) keep the normal sprite.
 Members: `intent: EnemyIntent` (enemies only; its setter calls `refresh_intent()`: head cutout + action label), `intent_target` (**read-only**, derived from `intent`), `refresh_intent()` (public, see 4.6), `status_component: StatusComponent` (created in `_ready()`, no scene node), `statuses` (read-only view of `status_component.stacks`), `health`, `sprite`, `ui`.
 Methods: `apply_status(status, stacks)` (ARMOR → `health.add_armor`, HEAL → `health.heal`, CLEANSE → `status_component.remove_debuffs()`, everything else → `status_component.add`; ignores `stacks <= 0` and dead characters),
 `take_hit(amount) -> int` (**the one place damage enters a character**: `status_component.try_dodge()` returns 0, else `health.take_damage(amount, false)`, then **`status_component.wake_up()` if `amount > 0`**: a hit wakes a sleeper, damage over time never comes through here), `is_stunned()` (STUN only), `is_incapacitated()` (stunned or asleep: what Battle checks), `set_highlighted(on)`, `face_towards(pos)`, `is_ally()`, `is_dead()`.
@@ -462,7 +479,7 @@ Signals: `health_changed(current, max)`, `armor_changed`, `evasion_changed`, `da
 **Leftover:** `evasion`, `add_evasion/remove_evasion`, `evasion_changed` and `dodged` still exist in the file but nothing uses them anymore (evasion is a `StatusComponent` status). The file has not been seen since: to be removed.
 
 ### 5.3 `StatusComponent` (Node, `status_component.gd`)
-Created by `Character._ready()` with `StatusComponent.new(health)` and added as a child. Holds `stacks: Dictionary` (StatusData → stacks > 0). Signal `changed`.
+Created by `Character._ready()` with `StatusComponent.new(health)` and added as a child. Holds `stacks: Dictionary` (StatusData → stacks > 0). Signals `changed` and `form_changed(form)` [U] (a form started, was replaced or ended; null = none; not sent when the same form is only refreshed).
 `add(status, amount)`, `get_stacks(status)`, `has_effect(effect)`, `is_stunned()`, `is_asleep()`, `is_incapacitated()`, `wake_up() -> bool` (removes every SLEEP status), `consume(status, amount := 1)` (for USES statuses),
 `try_dodge() -> bool` (finds an EVASION status; USES loses one stack per dodge, TURNS does not lose any),
 `remove_debuffs() -> bool` (removes every status whose `is_debuff()` is true),
@@ -470,6 +487,7 @@ Created by `Character._ready()` with `StatusComponent.new(health)` and added as 
 `end_of_turn()` (TURNS statuses lose `decay_per_turn`, removed at 0),
 `get_summary()` (text such as "Bleeding 3  Stunned 1", currently unused by the UI).
 Instant value effects (armor, heal) never reach this component.
+**Forms** [U]: `get_form()` returns the status with effect `FORM`, or null. `add(form, turns)` goes through `_add_form`: the same form is refreshed (`maxi` of the two durations, no new grant); otherwise the old form is erased and `_revoke_grants(old)` runs, then the new one is stored and `_give_grants(new)` runs (ARMOR → `health.add_armor`, HEAL → `health.heal`, CLEANSE → `remove_debuffs`, anything else → `add`). `end_of_turn()` collects the forms that reach 0, and **after its loop** calls `_revoke_grants` (ARMOR → `health.remove_armor(amount)`, clamped at 0; stored statuses such as Evasion → `consume(status, min(amount, stacks))`) and emits `form_changed(null)`. Revoking after the loop matters because it can consume other statuses.
 
 ---
 
@@ -665,6 +683,7 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
   Armor card: SUPPORT, target SELF/ALLY, one `StatusApplication` with the `armor` status. Bleed attack: `StatusApplication` (TARGET) with `bleeding`. Cleanse: ALLY target, `cleanse` with stacks 1.
 * **New status**: `StatusData.tres` with an `effect`, `duration_type`, icon, and the `debuff` box if it is negative. A genuinely new behaviour needs a new `Effect` value (appended at the end) handled in `Character.apply_status` / `StatusComponent`.
 * **Starting statuses on a character**: `CharacterData.starting_statuses` (status → stacks).
+* **New animal form**: a `StatusData` with effect `FORM`, duration `TURNS`, `decay_per_turn` 1, an icon, and in the "Form" group the bonuses (`form_grants`, `attack_statuses`, `attack_knockback`) and the sprite (`form_tileset` + `form_tile_coords`, adjust `form_head_position`). A card gives it with a `StatusApplication` (ON_PLAY, SELF, the form, stacks = turns). The druid is an ordinary ALLY `CharacterData`; unlock it like any hero.
 * **New expedition**: `ExpeditionData.tres` with nodes (ids, types, `next_nodes`, lanes, encounters, `loot`), press **Validate graph**, add it to `data/expedition_catalog.tres`.
 * **New enemy action**: right click > New Resource > `EnemyAction`, pick the `kind` (the inspector shows only the fields that matter), set `damage` / `approach_distance` / `aoe_radius` / `windup_turns` / `effects`, then add it to `CharacterData.actions` of the enemy with a weight. A DEBUFF needs `damage` 0.
 * **New enemy**: `CharacterData.tres` with `team = ENEMY`, stats, `actions` (weights), `tags` and `threat` for generated fights.
@@ -693,6 +712,7 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 * Tavern (buffs) and Forge menus are not written. Hero health upgrades are a TODO in `RunState.start()`.
 * Placeholder UI: text buttons for map nodes, code-built rows in lists, default font (blurry with pixel art), no audio, no settings menu. The health bar shows a number only (chunks every 10 points are planned).
 * Gate map: see 7.4 (the state is computed when the map opens; a second test site may still reuse `first_expedition`: give each site its own expedition file).
+* **Animal forms** (3.3c) are new and not confirmed yet. Forms work for hero cards only. Armor that a form gave is taken back as `min(amount, armor left)` whatever its source, so armor from other sources can be removed with it. The cast turn counts as one of the form's turns. The form's turns shown on the icon use the usual status number. Portraits keep the normal sprite. The sprite swap resizes the click circle and moves the UI, but a form sprite much bigger than the character may need a different `form_head_position`.
 * **Objectives** (4.9) are new and not confirmed yet. A destroyable object needs three settings on its data (role + `acts` off + `can_be_moved` off); only `acts` is warned about. There is no `ExpeditionData.validate()` rule checking that a node using a boss / destroy / rescue objective really contains the matching character (the objectives log an error and fall back to kill-all at runtime; a validation would need the objective classes to be `@tool`).
 * **Hostage**: a neutral is invulnerable and untargetable by design (a push collision never hurts it); there is no animation or sprite change when it is freed; the captor is not placed near the hostage (spawn zones decide; use an `objects_only` zone for the hostage and a normal zone for the captor); a neutral still shows its health bar. `Team.NEUTRAL` is only handled by `Battle`: any code outside `battle.gd` that does a `match` on `CharacterData.Team` must handle the third value (`EncounterGenerator.gd` was not shared).
 * **Rescue card**: it is given to one hero (not stunned if possible) and moves to another if that hero dies; the hand can hold 7 cards while it is there (the layout of `Hand` with more than `MAX_HAND_SIZE` cards was not checked); it costs one action; the objective cannot be completed by anything else than playing that card.
@@ -724,6 +744,15 @@ Integration steps (**all done**, the developer confirmed the pause menu works):
 ---
 
 ## 16. Manual test checklist for what is still unverified
+
+**Animal forms (to verify), with the druid**
+1. A card with a `FORM` application changes the sprite to the animal (facing left, flipping like the normal one), the health bar and the intent icons of enemies follow the new head position, and the status icon shows the turns left. The sprite goes back when the form ends.
+2. Duration: X = 3 lasts the cast turn and two more (the form disappears at the end of the third player turn).
+3. Swapping to another form drops the old bonus at once and gives the new one; recasting the same form only refreshes the duration (no second armor).
+4. Bear: +20 armor on entering; on leaving the remaining armor of those 20 is removed (spend some first: only what is left goes). Ferret: 2 Evasion, taken back if unused.
+5. Snake / Wolf: every attack puts Poison / Bleeding 1 on each living enemy hit (AOE: each one; chain: each hop; a kill gets nothing). A "become Wolf and attack" card bleeds on its own hit.
+6. Ibex: every attack pushes the target forcefully (96 px), aimed with the cone for a one-target attack, with collision damage; the move-action push is also 96 px. Leaving the form restores the normal pushes.
+7. A stunned druid keeps the form and it keeps decaying; Cleanse does not remove it; the form is gone in the next battle.
 
 **Objectives (to verify), with the debug expeditions `test_objectives` and `test_catacomb`**
 1. *Boss*: the HUD shows "Defeat <boss>"; killing a minion does not end the fight; killing the boss wins even with minions alive; a boss killed by Bleeding or a collision also wins. A BOSS fight whose boss lacks the `BOSS` role logs an error and plays as kill-all.

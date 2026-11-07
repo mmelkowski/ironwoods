@@ -221,6 +221,7 @@ func _spawn_roster(characters: Array[CharacterData]) -> void:
 		(allies_root if is_ally else enemies_root).add_child(character)
 		character.global_position = _get_spawn_position(character, is_ally, team.size())
 		character.died.connect(_on_character_died)
+		character.form_changed.connect(_on_form_changed)
 		if is_neutral:
 			character.click_area.input_pickable = false  # non interactable
 		else:
@@ -483,6 +484,10 @@ func play_card(card: CardInstance, selected: Array[Character], aim: Vector2 = NO
 			caster.status_component.consume(data.consume_status, spent)
 		bonus_damage = data.bonus_damage_per_stack * spent
 
+	# 1c. The forms of the card come first, so the bonuses of the new form already count for this card
+	# ("become Wolf and strike" makes the bleeding on that hit).
+	_apply_form_effects(card)
+
 	# 2. Move, hit and knock back
 	var killed: Array[Character] = []
 	var attacks := data.target_team == CardData.TargetTeam.ENEMY
@@ -495,12 +500,14 @@ func play_card(card: CardInstance, selected: Array[Character], aim: Vector2 = NO
 				await _approach(card, target)
 			var hit: Array[Character] = [target]
 			_deal_damage(card, hit, killed, bonus_damage)
+			_apply_form_riders(card, hit)
 			await _knock_back(card, hit)
 	else:
 		# Attack cards walk to the first pick, then every target is hit at once
 		if attacks:
 			await _approach(card, selected[0])
 		_deal_damage(card, targets, killed, bonus_damage)
+		_apply_form_riders(card, targets)
 		await _knock_back(card, targets, aim)
 
 	# 5. Statuses, then mana, Quick refund and cleanup
@@ -645,7 +652,8 @@ func _deal_damage(card: CardInstance, targets: Array[Character], killed: Array[C
 ## A card with has_push_aim() (one target) pushes inside the aimed cone and a collision deals damage
 ## (see plan_card_push); the other cards (AOE, several targets, chains) push straight away, no collision.
 func _knock_back(card: CardInstance, targets: Array[Character], aim: Vector2 = NO_AIM) -> void:
-	if card.data.knockback == CardData.Knockback.NONE:
+	var knockback := get_card_knockback(card)
+	if knockback == CardData.Knockback.NONE:
 		return
 	if has_push_aim(card):
 		for target in targets:
@@ -659,12 +667,14 @@ func _knock_back(card: CardInstance, targets: Array[Character], aim: Vector2 = N
 	for target in targets:
 		if not target.is_dead():
 			var direction := card.caster.global_position.direction_to(target.global_position)
-			pushes[target] = target.global_position + direction * KNOCKBACK_DISTANCE[card.data.knockback]
+			pushes[target] = target.global_position + direction * KNOCKBACK_DISTANCE[knockback]
 	await _move_characters(pushes, KNOCKBACK_TIME)
 
 
 func _apply_effects(card: CardInstance, targets: Array[Character], killed: Array[Character]) -> void:
 	for effect in card.get_effects(StatusApplication.Trigger.ON_PLAY):
+		if _is_form_effect(effect):
+			continue  # already applied before the hit, see _apply_form_effects
 		if effect.recipient == StatusApplication.Recipient.SELF:
 			card.caster.apply_status(effect.status, effect.stacks)  # once per card
 		else:
@@ -677,6 +687,41 @@ func _apply_effects(card: CardInstance, targets: Array[Character], killed: Array
 		if effect.recipient == StatusApplication.Recipient.SELF:
 			for _kill in killed:
 				card.caster.apply_status(effect.status, effect.stacks)
+
+
+## Animal forms (StatusData effect FORM): a card puts its caster in a form with an ON_PLAY SELF
+## StatusApplication (stacks = turns). Applied before the hit so the new form counts for the card.
+func _apply_form_effects(card: CardInstance) -> void:
+	for effect in card.get_effects(StatusApplication.Trigger.ON_PLAY):
+		if _is_form_effect(effect):
+			card.caster.apply_status(effect.status, effect.stacks)
+
+
+func _is_form_effect(effect: StatusApplication) -> bool:
+	return effect.recipient == StatusApplication.Recipient.SELF \
+		and effect.status != null and effect.status.is_form()
+
+
+## While the owner is in a form with attack_statuses (Snake: Poison, Wolf: Bleeding), every attack card
+## puts them on each enemy it hit that is still alive (a dodged hit counts, like the card's own statuses).
+func _apply_form_riders(card: CardInstance, targets: Array[Character]) -> void:
+	if not is_attack_card(card) or card.caster.status_component == null:
+		return
+	var form := card.caster.status_component.get_form()
+	if form == null or form.attack_statuses.is_empty():
+		return
+	for target in targets:
+		if target.is_dead():
+			continue
+		for status: StatusData in form.attack_statuses:
+			target.apply_status(status, form.attack_statuses[status])
+
+
+## A form started or ended: the enemies' intent icons show a cut of their target's head, which
+## changes with the sprite.
+func _on_form_changed(_form: StatusData) -> void:
+	for enemy in enemies:
+		enemy.refresh_intent()
 
 
 # ---------------------------------------------------------------------------
@@ -1049,7 +1094,7 @@ func plan_push(mover: Character, victim: Character, aim: Vector2) -> MovePlan:
 	# The mover ends touching the victim, on the side opposite to the push
 	plan.destination = start - plan.direction * (mover.shape.radius + victim.shape.radius)
 
-	var slide := _slide_victim(plan, PUSH_DISTANCE)
+	var slide := _slide_victim(plan, get_move_push_distance(mover))
 
 	plan.valid = (
 		can_move(mover)
@@ -1105,12 +1150,57 @@ func has_push_aim(card: CardInstance) -> bool:
 	match card.data.target_type:
 		CardData.TargetType.AOE, CardData.TargetType.MULTIPLE, CardData.TargetType.CHAINED:
 			return false
-	return card.data.knockback != CardData.Knockback.NONE
+	return get_card_knockback(card) != CardData.Knockback.NONE
 
 
 ## How far the card pushes its target: 48 px (standard) or 96 px (forceful), see KNOCKBACK_DISTANCE.
 func get_card_push_distance(card: CardInstance) -> float:
-	return KNOCKBACK_DISTANCE.get(card.data.knockback, 0.0)
+	return KNOCKBACK_DISTANCE.get(get_card_knockback(card), 0.0)
+
+
+## The knockback the card really has: its own, raised to the one of the caster's form for attack
+## cards (Ibex: every attack pushes, forcefully; the aimed cone and the preview follow from it).
+func get_card_knockback(card: CardInstance) -> CardData.Knockback:
+	var own := card.data.knockback
+	if not is_attack_card(card) or card.caster.status_component == null:
+		return own
+	var from_form := _form_knockback(card.caster.status_component.get_form())
+	return from_form if _knockback_rank(from_form) > _knockback_rank(own) else own
+
+
+## An attack card: it targets enemies and deals damage. Form riders and form knockback apply to these.
+func is_attack_card(card: CardInstance) -> bool:
+	return card.data.target_team == CardData.TargetTeam.ENEMY and card.damage > 0
+
+
+## StatusData.attack_knockback (0 none, 1 standard, 2 forceful) as a CardData.Knockback.
+func _form_knockback(form: StatusData) -> CardData.Knockback:
+	if form == null:
+		return CardData.Knockback.NONE
+	match form.attack_knockback:
+		1:
+			return CardData.Knockback.STANDARD
+		2:
+			return CardData.Knockback.FORCEFUL
+	return CardData.Knockback.NONE
+
+
+func _knockback_rank(knockback: CardData.Knockback) -> int:
+	match knockback:
+		CardData.Knockback.STANDARD:
+			return 1
+		CardData.Knockback.FORCEFUL:
+			return 2
+	return 0
+
+
+## How far the move action pushes: PUSH_DISTANCE, or more if the mover's form gives a stronger
+## knockback (Ibex: 96 px).
+func get_move_push_distance(mover: Character) -> float:
+	if mover.status_component == null:
+		return PUSH_DISTANCE
+	var from_form := _form_knockback(mover.status_component.get_form())
+	return maxf(PUSH_DISTANCE, KNOCKBACK_DISTANCE.get(from_form, 0.0))
 
 
 ## The push of a card (has_push_aim) on `target`, for the preview and for the real push.

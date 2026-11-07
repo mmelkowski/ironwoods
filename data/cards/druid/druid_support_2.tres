@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://bhnjsf2auyfjh"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_astie"]
+[ext_resource type="Resource" uid="uid://b7ah1vjyoo7h7" path="res://data/status_data/form_ferret.tres" id="2_astie"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="3_3jdfk"]
+
+[sub_resource type="Resource" id="Resource_py4tk"]
+script = ExtResource("1_astie")
+recipient = 1
+status = ExtResource("2_astie")
+stacks = 3
+metadata/_custom_type_script = "uid://1s4n8vmvkar7"
+
+[resource]
+script = ExtResource("3_3jdfk")
+id = &"druid_support_2"
+display_name = "druid_support_2"
+description = "Turn into a Ferret (Add 2 stack of Evasion)"
+card_type = 1
+mana_generation = 2
+mana_cost = 2
+target_team = 2
+effects = Array[ExtResource("1_astie")]([SubResource("Resource_py4tk")])
+metadata/_custom_type_script = "uid://j0prpwx7b06d"

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="StatusData" format=3 uid="uid://cp412nj6kgrxw"]
+
+[ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="1_24bkh"]
+[ext_resource type="Resource" uid="uid://cr2gvf33lhnjk" path="res://data/status_data/bleed.tres" id="2_24bkh"]
+[ext_resource type="Texture2D" uid="uid://c6cjqu0ylbctq" path="res://assets/32rogues/animals.png" id="3_n1h50"]
+
+[resource]
+script = ExtResource("1_24bkh")
+id = &"form_wolf"
+display_name = "form_wolf"
+description = "form_wolf"
+effect = 9
+attack_statuses = Dictionary[ExtResource("1_24bkh"), int]({
+ExtResource("2_24bkh"): 1
+})
+form_tileset = ExtResource("3_n1h50")
+form_tile_coords = Vector2i(6, 4)
+form_head_position = Vector2(16, 16)
+metadata/_custom_type_script = "uid://cf8nrmcbw5y70"

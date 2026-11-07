@@ -18,12 +18,20 @@ extends Resource
 ##             that damages the owner wakes it up at once: the status is removed (see Character.take_hit).
 ##             Bleeding / Poison ticks do not wake it.
 ##   CLEANSE : removes every debuff from the target at once (`stacks` is ignored, use 1). Instant.
+##   FORM    : an animal form of a character (the druid). `stacks` = the number of turns it lasts (use TURNS
+##             duration with decay 1). A character has ONE form at a time: a new form replaces the old one.
+##             While it is up: its sprite replaces the character's (form_tileset...), `form_grants` were given
+##             when it started and are taken back when it ends (what is left of them), the owner's attack cards
+##             also put `attack_statuses` on every enemy they hit, and give at least `attack_knockback`.
+##             See StatusComponent._add_form. Forms work for hero cards (Battle.play_card) only.
 ##   NONE    : a plain marker, stored on the character (for future effects/relics). With duration USES
 ##             it is also the way to build a stack that cards consume (arcane charges, rage): it never decays
 ##             and StatusComponent.consume / consume_all take stacks away.
 
 enum DurationType { TURNS, USES }
-enum Effect { NONE, ARMOR, HEAL, EVASION, BLEED, STUN, CLEANSE, POISON, SLEEP }  # append only: saved as integers
+enum Effect { NONE, ARMOR, HEAL, EVASION, BLEED, STUN, CLEANSE, POISON, SLEEP, FORM }  # append only: saved as integers
+
+const TILE_SIZE := 32
 
 @export var id: StringName
 @export var display_name := ""
@@ -50,12 +58,45 @@ enum Effect { NONE, ARMOR, HEAL, EVASION, BLEED, STUN, CLEANSE, POISON, SLEEP } 
 ## BLEED / POISON: damage ignores armor (it goes straight to health).
 @export var bypass_armor := true
 
+@export_group("Form")
+## FORM: given when the form starts, taken back when it ends: status -> stacks. Armor (Bear 20) and
+## Evasion (Ferret 2) work; what is left of them is taken back (armor already spent is not).
+@export var form_grants: Dictionary[StatusData, int] = {}
+## FORM: put on every living enemy hit by an attack card of the owner: status -> stacks
+## (Snake: Poison 1, Wolf: Bleeding 1).
+@export var attack_statuses: Dictionary[StatusData, int] = {}
+## FORM: every attack card of the owner has at least this knockback (and so does its move-action push):
+## 0 none, 1 standard (48 px), 2 forceful (96 px). Ibex: 2.
+@export_enum("None:0", "Standard:1", "Forceful:2") var attack_knockback := 0
+## FORM: the sprite of the form, cut like a character's (32x32 tiles, drawn facing left).
+@export var form_tileset: Texture2D
+## FORM: tile position in form_tileset, in tiles (not pixels).
+@export var form_tile_coords := Vector2i.ZERO
+## FORM: size in tiles (1, 1 = 32x32).
+@export var form_size_in_tiles := Vector2i.ONE
+## FORM: where the head is, in pixels from the top-left of the form sprite (health bar and intent icon).
+@export var form_head_position := Vector2(16, 8)
+
 
 ## Older Evasion resources have effect NONE and the id "evasion": still handled.
 func get_effect() -> Effect:
 	if effect == Effect.NONE and id == &"evasion":
 		return Effect.EVASION
 	return effect
+
+
+func is_form() -> bool:
+	return get_effect() == Effect.FORM
+
+
+## FORM: the sprite of the form (null without form_tileset).
+func get_form_sprite() -> AtlasTexture:
+	if form_tileset == null:
+		return null
+	var atlas := AtlasTexture.new()
+	atlas.atlas = form_tileset
+	atlas.region = Rect2(Vector2(form_tile_coords * TILE_SIZE), Vector2(form_size_in_tiles * TILE_SIZE))
+	return atlas
 
 
 ## The number shown on the status icon: for BLEED its stacks (the intensity: damage = tick_damage x stacks),
@@ -101,4 +142,7 @@ func _validate_property(property: Dictionary) -> void:
 		property.usage = PROPERTY_USAGE_NO_EDITOR
 	var ticks := effect == Effect.BLEED or effect == Effect.POISON
 	if not ticks and property.name in ["tick_damage", "bypass_armor"]:
+		property.usage = PROPERTY_USAGE_NO_EDITOR
+	if not is_form() and property.name in ["Form", "form_grants", "attack_statuses", "attack_knockback",
+			"form_tileset", "form_tile_coords", "form_size_in_tiles", "form_head_position"]:
 		property.usage = PROPERTY_USAGE_NO_EDITOR

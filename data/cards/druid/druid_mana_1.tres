@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://csmoy2aerue4e"]
+
+[ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_80tdy"]
+[ext_resource type="Resource" uid="uid://ba1yxph0lx6vf" path="res://data/status_data/form_ibex.tres" id="2_80tdy"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="3_0ejuf"]
+
+[sub_resource type="Resource" id="Resource_py4tk"]
+script = ExtResource("1_80tdy")
+recipient = 1
+status = ExtResource("2_80tdy")
+stacks = 2
+metadata/_custom_type_script = "uid://1s4n8vmvkar7"
+
+[resource]
+script = ExtResource("3_0ejuf")
+id = &"druid_mana_1"
+display_name = "druid_mana_1"
+description = "Turn into a Ibex (Add Forcefull to all push) and push the enemy"
+card_type = 2
+mana_cost = 2
+damage = 20
+knockback = 2
+effects = Array[ExtResource("1_80tdy")]([SubResource("Resource_py4tk")])
+metadata/_custom_type_script = "uid://j0prpwx7b06d"
