@@ -14,7 +14,7 @@ metadata/_custom_type_script = "uid://1s4n8vmvkar7"
 [resource]
 script = ExtResource("3_jm8cq")
 id = &"druid_support_1"
-display_name = "druid_support_1"
+display_name = "Bear Form"
 description = "Turn into a Bear (Add 20 Armor)"
 card_type = 1
 mana_generation = 2

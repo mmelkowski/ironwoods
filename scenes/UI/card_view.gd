@@ -8,10 +8,13 @@ extends Control
 @onready var card_description: Label = %CardDescription
 @onready var mana_cost: Label = %ManaCost
 @onready var mana_generation: Label = %ManaGeneration
+@onready var char_icon: Sprite2D = %CharIcon
 
 const RAISE_HEIGHT := 24.0
 const RAISE_TIME := 0.12
 const UNPLAYABLE_TINT := Color(0.3, 0.3, 0.3, 1.0)
+## On-screen size (px) of the owner's head icon, whatever the size of the cut.
+const CHAR_ICON_SIZE := 32.0
 
 var _raise_tween: Tween
 
@@ -59,6 +62,23 @@ func _update_display():
 	else:
 		mana_cost.text = str(card.mana_cost)
 	mana_generation.text = str(card.mana_generation)
+	_update_char_icon()
+
+
+## Shows the head of the hero who owns the card (hidden if there is none).
+func _update_char_icon() -> void:
+	var owner_hero: Character = card.caster
+	if owner_hero == null or not is_instance_valid(owner_hero) or owner_hero.data == null:
+		char_icon.visible = false
+		return
+	var head: Texture2D = owner_hero.data.get_head_texture()
+	char_icon.texture = head
+	char_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # keep pixel art sharp
+	var head_size := head.get_size()
+	var biggest := maxf(head_size.x, head_size.y)
+	if biggest > 0.0:
+		char_icon.scale = Vector2.ONE * (CHAR_ICON_SIZE / biggest)
+	char_icon.visible = true
 
 
 # Potential signal to connect for updating UI after card buff

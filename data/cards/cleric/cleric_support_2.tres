@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_iqx10")
 id = &"cleric_support_2"
-display_name = "cleric_support_2"
+display_name = "Mana generation"
 description = "Generate 3 Mana"
 card_type = 1
 mana_generation = 3

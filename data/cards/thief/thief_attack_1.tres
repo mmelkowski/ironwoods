@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("2_ml7f3")
 id = &"thief_attack_1"
-display_name = "thief_attack_1 Bleed"
+display_name = "Slash"
 description = "Add 1 stack of Bleeding"
 damage = 10
 effects = Array[ExtResource("1_wqdl8")]([ExtResource("2_f7phj")])

@@ -7,8 +7,7 @@
 [resource]
 script = ExtResource("2_tidh0")
 id = &"cleric_attack_2"
-display_name = "cleric_attack_2 Stun"
-description = "Stun 1 turncleric_attack_2"
-damage = 10
+display_name = "Stun"
+description = "Stun for 1 turn"
 effects = Array[ExtResource("1_bclwo")]([ExtResource("2_qs6s7")])
 metadata/_custom_type_script = "uid://j0prpwx7b06d"

@@ -1,21 +1,21 @@
 [gd_scene format=3 uid="uid://bd0ccgd6tot86"]
 
-[ext_resource type="Script" uid="uid://dsqy26iugs7eo" path="res://scripts/hub/world_map/ExpeditionSite.gd" id="1_badfi"]
+[ext_resource type="Script" uid="uid://dsqy26iugs7eo" path="res://scripts/hub/world_map/ExpeditionSite.gd" id="1_j3326"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_kl11w"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_w7hnc"]
 size = Vector2(64, 64)
 
 [sub_resource type="LabelSettings" id="LabelSettings_onbg1"]
 
 [node name="ExpeditionSite" type="Area2D" unique_id=291695258]
-script = ExtResource("1_badfi")
+script = ExtResource("1_j3326")
 
 [node name="Visual" type="Sprite2D" parent="." unique_id=1729658679]
 unique_name_in_owner = true
 
 [node name="Collision" type="CollisionShape2D" parent="." unique_id=481209631]
 unique_name_in_owner = true
-shape = SubResource("RectangleShape2D_kl11w")
+shape = SubResource("RectangleShape2D_w7hnc")
 
 [node name="NameLabel" type="Label" parent="." unique_id=1524148418]
 unique_name_in_owner = true

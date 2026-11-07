@@ -7,8 +7,8 @@
 [resource]
 script = ExtResource("2_fas1q")
 id = &"cleric_mana_2"
-display_name = "cleric_mana_2"
-description = "cleric_mana_2"
+display_name = "Heal"
+description = "Heal selected ally"
 card_type = 2
 mana_cost = 4
 target_team = 1

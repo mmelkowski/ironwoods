@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("2_2qbh4")
 id = &"barbarian_support_1"
-display_name = "barbarian_support_1"
+display_name = "Enrage !!"
 description = "Generate 2 mana.
 Add 2 rage stacks."
 art = ExtResource("1_nvn7b")

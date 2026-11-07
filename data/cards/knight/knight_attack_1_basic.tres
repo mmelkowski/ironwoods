@@ -6,6 +6,6 @@
 [resource]
 script = ExtResource("2_kny8b")
 id = &"knight_attack_basic_1"
-display_name = "Knight Attack 1"
-damage = 20
+display_name = "Attack"
+damage = 25
 metadata/_custom_type_script = "uid://j0prpwx7b06d"

@@ -14,7 +14,7 @@ metadata/_custom_type_script = "uid://1s4n8vmvkar7"
 [resource]
 script = ExtResource("3_ovlyx")
 id = &"druid_attack_2"
-display_name = "druid_attack_2"
+display_name = "Snake Form"
 description = "Turn into a Snake (Add poison to all attacks)"
 damage = 20
 effects = Array[ExtResource("1_k6d7y")]([SubResource("Resource_py4tk")])

@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("2_13o2c")
 id = &"knight_mana_1"
-display_name = "knight_mana_1"
-description = "knight_mana_1"
+display_name = "Hit'em Hard"
+description = "Forcefull push attack"
 card_type = 2
 mana_cost = 3
 damage = 35

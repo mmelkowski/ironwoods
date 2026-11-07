@@ -14,7 +14,7 @@ metadata/_custom_type_script = "uid://1s4n8vmvkar7"
 [resource]
 script = ExtResource("3_0ejuf")
 id = &"druid_mana_1"
-display_name = "druid_mana_1"
+display_name = "Ibex Form"
 description = "Turn into a Ibex (Add Forcefull to all push) and push the enemy"
 card_type = 2
 mana_cost = 2

@@ -7,8 +7,8 @@
 [resource]
 script = ExtResource("2_d7kt5")
 id = &"wizard_mana_1"
-display_name = "Target Sleep 2 turn"
-description = "wizard_mana_1 Sleep 2 turn"
+display_name = "Sleep 2 turn"
+description = "Give sleep for 2 turn"
 card_type = 2
 mana_cost = 4
 damage = 20

@@ -7,8 +7,8 @@
 [resource]
 script = ExtResource("2_cvyci")
 id = &"barbarian_attack_1"
-display_name = "barbarian_attack_1 push"
-description = "barbarian_attack_1 push.
+display_name = "Push"
+description = "Push Attack.
 Generate 1 rage stack."
 damage = 20
 knockback = 1

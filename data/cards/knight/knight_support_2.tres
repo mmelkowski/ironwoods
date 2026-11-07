@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("2_l7dhn")
 id = &"knight_support_2"
-display_name = "knight_support_2 "
+display_name = "Shield Up"
 description = "Add 20 defense to yourself"
 card_type = 1
 mana_generation = 2

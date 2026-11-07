@@ -9,10 +9,10 @@ script = ExtResource("2_7rq85")
 id = &"wizard_mana_2"
 display_name = "Consume Arcane chages"
 description = "Consume Arcane chages.
-Deal 10 damage per stack."
+Deal 20 damage per stack."
 card_type = 2
 mana_cost = 2
 consume_status = ExtResource("1_7rq85")
 consume_from = 1
-bonus_damage_per_stack = 10
+bonus_damage_per_stack = 20
 metadata/_custom_type_script = "uid://j0prpwx7b06d"

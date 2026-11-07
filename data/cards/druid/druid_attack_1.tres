@@ -14,7 +14,7 @@ metadata/_custom_type_script = "uid://1s4n8vmvkar7"
 [resource]
 script = ExtResource("3_80u7e")
 id = &"druid_attack_1"
-display_name = "druid_attack_1"
+display_name = "Wolf Form"
 description = "Turn into a Wolf (Add bleed to all attacks)"
 damage = 20
 effects = Array[ExtResource("1_21u5k")]([SubResource("Resource_py4tk")])

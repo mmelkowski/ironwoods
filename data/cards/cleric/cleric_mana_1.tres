@@ -7,10 +7,10 @@
 [resource]
 script = ExtResource("2_72ysj")
 id = &"cleric_mana_1"
-display_name = "cleric_mana_1 Stun"
-description = "cleric_mana_1 Stun"
+display_name = "Mana Stun"
+description = "Attack and apply stun for 1 turn"
 card_type = 2
-mana_cost = 3
-damage = 40
+mana_cost = 2
+damage = 30
 effects = Array[ExtResource("1_y3qfo")]([ExtResource("2_ls1vp")])
 metadata/_custom_type_script = "uid://j0prpwx7b06d"

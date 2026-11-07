@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("2_j4gfy")
 id = &"cleric_support_3"
-display_name = "cleric_support_3 Cleansing"
+display_name = "Cleanse"
 description = "Cleanse an ally of all debuff"
 card_type = 1
 mana_generation = 2

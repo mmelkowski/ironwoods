@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("2_l76xm")
 id = &"barbarian_mana_1"
-display_name = "barbarian_mana_1"
+display_name = "Give everything"
 description = "Consume all rage to hit an enemy.
 Add 10 damage per rage token.
 Require a least 1 stack."

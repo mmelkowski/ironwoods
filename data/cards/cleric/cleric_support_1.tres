@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("2_w3i0r")
 id = &"cleric_support_1"
-display_name = "cleric_support_1 Heal"
+display_name = "Heal"
 description = "Heal 20 healthpoint"
 card_type = 1
 target_team = 1

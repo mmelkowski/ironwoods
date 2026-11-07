@@ -1,17 +1,19 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cc0a21jjjsj06"]
 
 [ext_resource type="Script" uid="uid://1s4n8vmvkar7" path="res://scripts/cards/StatusApplication.gd" id="1_j3tv6"]
+[ext_resource type="Resource" uid="uid://d3slx1heu8tkh" path="res://data/status_application/poison.tres" id="2_1oxox"]
 [ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="2_pw3cw"]
 
 [resource]
 script = ExtResource("2_pw3cw")
 id = &"thief_mana_1"
-display_name = "thief_mana_1"
-description = "thief_mana_1"
+display_name = "Poisonous Chain"
+description = "Attack 4 enemies within a distance of each other and apply poison to them."
 card_type = 2
 mana_cost = 2
 damage = 20
 target_type = 2
 max_targets = 4
-chain_radius = 98.0
+chain_radius = 200.0
+effects = Array[ExtResource("1_j3tv6")]([ExtResource("2_1oxox")])
 metadata/_custom_type_script = "uid://j0prpwx7b06d"

@@ -6,7 +6,8 @@
 [resource]
 script = ExtResource("2_gf1hl")
 id = &"knight_attack_3_quick"
-display_name = "knight_attack_3_quick"
+display_name = "Quick"
+description = "Action refunded on kill"
 damage = 10
 quick = true
 metadata/_custom_type_script = "uid://j0prpwx7b06d"

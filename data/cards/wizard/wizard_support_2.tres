@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("2_xjori")
 id = &"wizard_support_2"
-display_name = "wizard_support_2"
+display_name = "Mirror Image"
 description = "Add evasion to an Ally"
 card_type = 1
 mana_generation = 2

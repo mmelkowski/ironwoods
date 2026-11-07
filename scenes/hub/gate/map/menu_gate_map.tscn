@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://blyv5ew3agiqe"]
 
 [ext_resource type="Script" uid="uid://dnascf2cyf1ro" path="res://scenes/hub/gate/map/menu_gate_map.gd" id="1_60vea"]
-[ext_resource type="PackedScene" uid="uid://bd0ccgd6tot86" path="res://scenes/world_map/expedition_site.tscn" id="1_i64je"]
+[ext_resource type="PackedScene" uid="uid://bd0ccgd6tot86" path="res://scenes/expedition_site/expedition_site.tscn" id="1_i64je"]
 [ext_resource type="Texture2D" uid="uid://1m7nhheba5ti" path="res://assets/1-bit_pixel/Sprites_Cropped/Map/Map_Markers_Buildings_Houses_Homes_Village_Town.png" id="2_o1s0j"]
 [ext_resource type="Texture2D" uid="uid://cgin1stlud5s7" path="res://assets/1-bit_pixel/Sprites_Cropped/Map/Map_Markers_Tree_Forest_Decidous_Branches.png" id="3_o1s0j"]
 [ext_resource type="Resource" uid="uid://drsuciagschsy" path="res://data/expeditions/test_expedition.tres" id="4_u6pxe"]
@@ -15,19 +15,19 @@
 [ext_resource type="Texture2D" uid="uid://bxx1luqqnh866" path="res://assets/1-bit_pixel/Sprites_Cropped/Map/Map_Markers_Building_Outpost_Tower_Lookout.png" id="13_7o4at"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_u6pxe"]
-size = Vector2(12, 15)
+size = Vector2(60, 75)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_6akwg"]
-size = Vector2(12, 15)
+size = Vector2(60, 75)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_8r0p6"]
-size = Vector2(11, 15)
+size = Vector2(55, 75)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_flq7q"]
-size = Vector2(11, 15)
+size = Vector2(55, 75)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_6yln8"]
-size = Vector2(9, 16)
+size = Vector2(45, 80)
 
 [node name="map" type="Control" unique_id=2136784914 node_paths=PackedStringArray("close_button")]
 layout_mode = 3
@@ -127,7 +127,6 @@ scale = Vector2(5, 5)
 texture = ExtResource("5_6akwg")
 
 [node name="Collision" parent="ExpeditionSiteNodes/ExpeditionSite_test_exp" index="1" unique_id=481209631]
-scale = Vector2(5, 5)
 shape = SubResource("RectangleShape2D_u6pxe")
 
 [node name="NameLabel" parent="ExpeditionSiteNodes/ExpeditionSite_test_exp" index="2" unique_id=1524148418]
@@ -145,11 +144,9 @@ scale = Vector2(5, 5)
 texture = ExtResource("3_o1s0j")
 
 [node name="Collision" parent="ExpeditionSiteNodes/ExpeditionSite_test_obj" index="1" unique_id=481209631]
-scale = Vector2(5, 5)
 shape = SubResource("RectangleShape2D_6akwg")
 
 [node name="NameLabel" parent="ExpeditionSiteNodes/ExpeditionSite_test_obj" index="2" unique_id=1524148418]
-offset_right = 58.5
 text = "Objective trials"
 
 [node name="ExpeditionSite_catacomb" parent="ExpeditionSiteNodes" unique_id=490355271 groups=["expedition_sites"] instance=ExtResource("1_i64je")]
@@ -162,12 +159,11 @@ scale = Vector2(5, 5)
 texture = ExtResource("9_6yln8")
 
 [node name="Collision" parent="ExpeditionSiteNodes/ExpeditionSite_catacomb" index="1" unique_id=481209631]
-scale = Vector2(5, 5)
 shape = SubResource("RectangleShape2D_8r0p6")
 
 [node name="NameLabel" parent="ExpeditionSiteNodes/ExpeditionSite_catacomb" index="2" unique_id=1524148418]
 offset_left = -59.5
-offset_right = 57.5
+offset_right = 59.5
 text = "The Catacombs"
 
 [node name="ExpeditionSite_hollow_crypt" parent="ExpeditionSiteNodes" unique_id=1407400821 groups=["expedition_sites"] instance=ExtResource("1_i64je")]
@@ -180,12 +176,11 @@ scale = Vector2(5, 5)
 texture = ExtResource("11_ghp2w")
 
 [node name="Collision" parent="ExpeditionSiteNodes/ExpeditionSite_hollow_crypt" index="1" unique_id=481209631]
-scale = Vector2(5, 5)
 shape = SubResource("RectangleShape2D_flq7q")
 
 [node name="NameLabel" parent="ExpeditionSiteNodes/ExpeditionSite_hollow_crypt" index="2" unique_id=1524148418]
 offset_left = -66.5
-offset_right = 50.5
+offset_right = 66.5
 text = "The Hollow Crypt"
 
 [node name="ExpeditionSite_sunken_watchtower" parent="ExpeditionSiteNodes" unique_id=1376124833 groups=["expedition_sites"] instance=ExtResource("1_i64je")]
@@ -198,12 +193,11 @@ scale = Vector2(5, 5)
 texture = ExtResource("13_7o4at")
 
 [node name="Collision" parent="ExpeditionSiteNodes/ExpeditionSite_sunken_watchtower" index="1" unique_id=481209631]
-scale = Vector2(5, 5)
 shape = SubResource("RectangleShape2D_6yln8")
 
 [node name="NameLabel" parent="ExpeditionSiteNodes/ExpeditionSite_sunken_watchtower" index="2" unique_id=1524148418]
 offset_left = -94.5
-offset_right = 22.5
+offset_right = 94.5
 text = "The Sunken Watchtower"
 
 [editable path="ExpeditionSiteNodes/ExpeditionSite_test_exp"]

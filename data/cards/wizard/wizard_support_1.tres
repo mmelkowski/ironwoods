@@ -6,9 +6,9 @@
 [resource]
 script = ExtResource("2_krs2d")
 id = &"wizard_support_1"
-display_name = "wizard_support_1"
-description = "wizard_support_1"
+display_name = "Mana Generation"
+description = "Add massive amount of mana"
 card_type = 1
-mana_generation = 3
+mana_generation = 4
 target_team = 2
 metadata/_custom_type_script = "uid://j0prpwx7b06d"

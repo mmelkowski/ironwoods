@@ -6,10 +6,10 @@
 [resource]
 script = ExtResource("2_d1wef")
 id = &"thief_attack_3"
-display_name = "thief_attack_3_chain"
-description = "thief_attack_3"
-damage = 10
+display_name = "Chain"
+description = "Attack 3 enemies within a distance of each other"
+damage = 15
 target_type = 2
 max_targets = 3
-chain_radius = 180.0
+chain_radius = 200.0
 metadata/_custom_type_script = "uid://j0prpwx7b06d"

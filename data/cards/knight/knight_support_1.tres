@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("2_1enei")
 id = &"knight_support_1"
-display_name = "knight_support_1"
+display_name = "Give Protection"
 description = "Add 20 defense on target"
 card_type = 1
 mana_generation = 2

@@ -46,10 +46,6 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.556953, 0.556953, 0.556953, 1)
 
-[node name="CharIcon" type="Sprite2D" parent="." unique_id=361038596]
-unique_name_in_owner = true
-position = Vector2(130, 0.5)
-
 [node name="Artwork" type="ColorRect" parent="." unique_id=1393141127]
 unique_name_in_owner = true
 layout_mode = 1
@@ -61,8 +57,13 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.556953, 0.556953, 0.556953, 1)
 
+[node name="CharIcon" type="Sprite2D" parent="." unique_id=361038596]
+unique_name_in_owner = true
+position = Vector2(134, 14)
+
 [node name="CardName" type="Label" parent="." unique_id=267122656]
 unique_name_in_owner = true
+custom_maximum_size = Vector2(126, -1)
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.083000004
@@ -70,9 +71,9 @@ anchor_top = 0.128
 anchor_right = 0.91700006
 anchor_bottom = 0.128
 offset_left = 0.049999237
-offset_top = -9.960001
+offset_top = -3.960001
 offset_right = -0.05000305
-offset_bottom = 10.039999
+offset_bottom = 16.039999
 grow_horizontal = 2
 text = "Name placeholder"
 label_settings = SubResource("LabelSettings_xrivr")
@@ -83,9 +84,9 @@ autowrap_mode = 2
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 2.0
-offset_top = -1.0
+offset_top = 1.0
 offset_right = 64.0
-offset_bottom = 16.0
+offset_bottom = 18.0
 text = "Mana Cost"
 label_settings = SubResource("LabelSettings_wi6ju")
 
@@ -93,9 +94,9 @@ label_settings = SubResource("LabelSettings_wi6ju")
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 4.0
-offset_top = 34.0
+offset_top = 40.0
 offset_right = 100.0
-offset_bottom = 54.0
+offset_bottom = 60.0
 text = "AttackValue"
 label_settings = SubResource("LabelSettings_13qdw")
 
