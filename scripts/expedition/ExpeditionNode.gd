@@ -10,7 +10,7 @@ enum Type {
 	BATTLE,
 	BOSS,    ## a battle, shown differently on the map
 	CAMP,    ## rest: the heroes recover health
-	EVENT,   ## a story event (not implemented yet)
+	EVENT,   ## a story event: the fixed `event` of the node, or one drawn from the EventCatalog
 	END,     ## reaching it completes the expedition
 }
 
@@ -21,6 +21,9 @@ enum Type {
 		notify_property_list_changed()
 @export var title: String = ""
 @export_multiline var description: String = ""
+## Event nodes only: a hand-made event. Empty = drawn at random among the events of the
+## EventCatalog that fit the expedition's tags (see EventGenerator).
+@export var event: EventData
 ## The nodes the player can go to after this one (their ids). Several entries = a fork.
 @export var next_nodes: Array[StringName] = []
 ## Battle and boss nodes only.
@@ -42,4 +45,6 @@ func has_encounter() -> bool:
 
 func _validate_property(property: Dictionary) -> void:
 	if property.name in ["encounter", "difficulty_bonus"] and not has_encounter():
+		property.usage = PROPERTY_USAGE_NO_EDITOR
+	if property.name == "event" and type != Type.EVENT:
 		property.usage = PROPERTY_USAGE_NO_EDITOR

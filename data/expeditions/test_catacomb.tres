@@ -207,7 +207,6 @@ script = ExtResource("1_xrssn")
 id = &"end"
 type = 5
 title = "The heart of the catacombs"
-encounter = SubResource("Resource_nfc8x")
 loot = Dictionary[StringName, int]({
 &"iron": 4
 })

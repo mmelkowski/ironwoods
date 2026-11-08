@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EventCatalog" format=3 uid="uid://bn3fsabrtq3o5"]
+
+[ext_resource type="Script" uid="uid://cdw4icstglyjx" path="res://scripts/event/EventData.gd" id="1_cxf2p"]
+[ext_resource type="Resource" uid="uid://sj8jdlx34bw4" path="res://data/events/lumberyard.tres" id="2_elva1"]
+[ext_resource type="Resource" uid="uid://t6gt7qwtgyxa" path="res://data/events/quarry.tres" id="3_0r8ho"]
+[ext_resource type="Resource" uid="uid://b572t1rj2efuk" path="res://data/events/clearing.tres" id="4_f7i2c"]
+[ext_resource type="Resource" uid="uid://c2lcbcvlwuo3n" path="res://data/events/adventurer.tres" id="5_flxeq"]
+[ext_resource type="Resource" uid="uid://e4v6bqimo8ts" path="res://data/events/sarcophagus.tres" id="6_dwkie"]
+[ext_resource type="Script" uid="uid://bunm87ndual5v" path="res://scripts/event/EventCatalog.gd" id="7_ogvqb"]
+
+[resource]
+script = ExtResource("7_ogvqb")
+events = Array[ExtResource("1_cxf2p")]([ExtResource("2_elva1"), ExtResource("3_0r8ho"), ExtResource("4_f7i2c"), ExtResource("5_flxeq"), ExtResource("6_dwkie")])

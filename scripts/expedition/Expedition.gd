@@ -174,10 +174,30 @@ func _rest(node: ExpeditionNode) -> void:
 	_show_dialog(node.title, report.strip_edges(), [{"text": "Continue", "action": _resolve}])
 
 
-## STUB: story events come later.
+## An event node: the fixed event of the node, otherwise one drawn for this node and run
+## (EventGenerator, so a reload shows the same event). The window is built in code.
 func _play_event(node: ExpeditionNode) -> void:
-	_show_dialog(node.title, node.description if node.description != "" else "Nothing happens.",
-		[{"text": "Continue", "action": _resolve}])
+	var event := EventGenerator.pick(_expedition, node, _run)
+	if event == null:
+		push_warning("Expedition: no event can be drawn for '%s' (see ExpeditionData.validate)." % node.id)
+		_show_dialog(node.title, node.description if node.description != "" else "Nothing happens.",
+			[{"text": "Continue", "action": _resolve}])
+		return
+
+	var dialog := EventDialog.new()
+	add_child(dialog)  # last child: drawn over the map and the other dialog
+	dialog.show_event(event, _run)
+	dialog.choice_selected.connect(_on_event_choice.bind(event, node, dialog))
+
+
+## The effects are applied and the node resolved (and saved) right away, then the result is
+## shown: a save made while the result is on screen cannot replay the event and apply it twice.
+func _on_event_choice(choice: EventChoice, event: EventData, node: ExpeditionNode, dialog: EventDialog) -> void:
+	var rng := EventGenerator.make_rng(_run, node, "outcome")
+	var lines := choice.apply(_run, rng)
+	_run.mark_event_seen(event.id)
+	_resolve()
+	dialog.show_result(choice.result_text, lines)
 
 
 func _on_abandon_pressed() -> void:

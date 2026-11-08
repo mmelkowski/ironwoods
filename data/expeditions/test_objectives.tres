@@ -42,7 +42,6 @@ id = &"camp_1"
 type = 3
 title = "A short rest"
 next_nodes = Array[StringName]([&"prisoner"])
-encounter = SubResource("Resource_muplo")
 loot = Dictionary[StringName, int]({
 &"wood": 2
 })
@@ -69,7 +68,6 @@ id = &"camp_2"
 type = 3
 title = "Another rest"
 next_nodes = Array[StringName]([&"boss"])
-encounter = SubResource("Resource_xxrlm")
 loot = Dictionary[StringName, int]({
 &"stone": 2
 })
@@ -96,7 +94,6 @@ script = ExtResource("1_mdymr")
 id = &"end"
 type = 5
 title = "The end"
-encounter = SubResource("Resource_xlekq")
 loot = Dictionary[StringName, int]({
 &"iron": 2
 })

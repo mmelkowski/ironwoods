@@ -59,7 +59,6 @@ script = ExtResource("1_umwp1")
 id = &"end"
 type = 5
 title = "The end"
-encounter = SubResource("Resource_jibbn")
 loot = Dictionary[StringName, int]({
 &"iron": 3
 })

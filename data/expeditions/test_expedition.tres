@@ -89,7 +89,6 @@ script = ExtResource("1_nk4hx")
 id = &"end"
 type = 5
 title = "The end of the road"
-encounter = SubResource("Resource_wa0ft")
 loot = Dictionary[StringName, int]({
 &"iron": 3,
 &"stone": 2

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EventData" format=3 uid="uid://c2lcbcvlwuo3n"]
+
+[ext_resource type="Script" uid="uid://c6qed65xtrj0f" path="res://scripts/event/EventChoice.gd" id="1_wf3a0"]
+[ext_resource type="Script" uid="uid://cd0i4d34ed2ys" path="res://scripts/event/EventEffect.gd" id="2_6uo3t"]
+[ext_resource type="Script" uid="uid://cdw4icstglyjx" path="res://scripts/event/EventData.gd" id="3_djcto"]
+
+[sub_resource type="Resource" id="Resource_36yas"]
+script = ExtResource("1_wf3a0")
+label = "Share a meal and swap stories"
+result_text = "He tells of a collapsed bridge, a talking raven and a debt he never paid. You trade tales of your own and part as friends."
+
+[sub_resource type="Resource" id="Resource_tm10f"]
+script = ExtResource("1_wf3a0")
+label = "Nod and move on"
+result_text = "He shrugs and goes back to his blade."
+
+[resource]
+script = ExtResource("3_djcto")
+id = &"adventurer"
+title = "A Fellow Traveler"
+text = "A lone adventurer sits by a small fire, polishing a worn blade. He looks up and gestures at the empty log next to him."
+choices = Array[ExtResource("1_wf3a0")]([SubResource("Resource_36yas"), SubResource("Resource_tm10f")])

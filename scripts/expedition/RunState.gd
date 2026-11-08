@@ -21,6 +21,8 @@ var loot: Dictionary = {}                  # resource id -> amount (always kept,
 ## Chosen when the run starts. The enemies of each node come from it (see EncounterGenerator), so
 ## they are different in every run but never change within one, even after saving and loading.
 var rng_seed: int = 0
+## Ids of the events already met in this run (EventData.unique_per_run uses it).
+var seen_events: Array[StringName] = []
 
 
 ## Starts a run: the heroes begin at full health.
@@ -64,6 +66,40 @@ func add_loot(resource_id: StringName, amount: int) -> void:
 	loot[resource_id] = loot.get(resource_id, 0) + amount
 
 
+func get_loot(resource_id: StringName) -> int:
+	return loot.get(resource_id, 0)
+
+
+## Can the party pay { resource id: amount } with the loot it carries?
+func can_afford(cost: Dictionary) -> bool:
+	for id in cost:
+		if get_loot(id) < cost[id]:
+			return false
+	return true
+
+
+## Pays with the loot. False (and nothing paid) if the party cannot afford it.
+func spend_loot(cost: Dictionary) -> bool:
+	if not can_afford(cost):
+		return false
+	for id in cost:
+		var left: int = get_loot(id) - cost[id]
+		if left > 0:
+			loot[id] = left
+		else:
+			loot.erase(id)  # no empty entry in the end-of-run summary
+	return true
+
+
+func has_seen_event(event_id: StringName) -> bool:
+	return seen_events.has(event_id)
+
+
+func mark_event_seen(event_id: StringName) -> void:
+	if event_id != &"" and not seen_events.has(event_id):
+		seen_events.append(event_id)
+
+
 # --- Saving ---
 
 func to_dict() -> Dictionary:
@@ -77,6 +113,7 @@ func to_dict() -> Dictionary:
 		"battle_result": int(battle_result),
 		"loot": SaveUtils.dict_to_json(loot),
 		"rng_seed": rng_seed,
+		"seen_events": SaveUtils.to_strings(seen_events),
 	}
 
 
@@ -93,4 +130,6 @@ static func from_dict(data: Dictionary) -> RunState:
 	run.loot = SaveUtils.int_dict_from_json(data.get("loot"))
 	# Runs saved before the seed existed get one now (saved with the next save)
 	run.rng_seed = int(data["rng_seed"]) if data.has("rng_seed") else randi()
+	# Runs saved before the events existed have met none
+	run.seen_events = SaveUtils.to_names(data.get("seen_events", []))
 	return run

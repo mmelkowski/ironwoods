@@ -30,6 +30,7 @@ enum LockedDisplay { HIDDEN, TEASED }
 @export_group("Enemies")
 ## Tags of the enemies that live here ("forest", "catacomb"...). Generated fights (EncounterData.
 ## fill_with_pool) pick enemies of the EnemyCatalog that share at least one of these tags.
+## They are also the biome of the expedition: its random events (EventData.tags) use the same words.
 @export var enemy_tags: Array[StringName] = []
 ## Threat budget of a battle at the start of the map (depth 0). A harder expedition: a higher base.
 @export_range(0, 99) var base_budget: int = 2
@@ -111,6 +112,18 @@ func get_enemy_pool() -> Array[CharacterData]:
 	if not ResourceLoader.exists(EnemyCatalog.PATH):
 		return pool
 	var catalog := load(EnemyCatalog.PATH) as EnemyCatalog
+	if catalog != null:
+		pool.append_array(catalog.get_pool(enemy_tags))
+	return pool
+
+
+## The events of the EventCatalog that can be drawn here: they share a tag with `enemy_tags`
+## (or have no tag). Empty if there is no catalog.
+func get_event_pool() -> Array[EventData]:
+	var pool: Array[EventData] = []
+	if not ResourceLoader.exists(EventCatalog.PATH):
+		return pool
+	var catalog := load(EventCatalog.PATH) as EventCatalog
 	if catalog != null:
 		pool.append_array(catalog.get_pool(enemy_tags))
 	return pool
@@ -205,6 +218,7 @@ func validate() -> Array[String]:
 
 	if problems.is_empty():
 		problems.append_array(_validate_generated_fights())
+		problems.append_array(_validate_events())
 	return problems
 
 
@@ -235,6 +249,31 @@ func _validate_generated_fights() -> Array[String]:
 		if node.encounter.enemies.is_empty() and budget < cheapest:
 			problems.append("the budget of '%s' (%d) can't pay the cheapest enemy (%d): it will be a single enemy." % [
 				node.id, budget, cheapest])
+	return problems
+
+
+## Event nodes: a hand-made event must be valid; a random one needs an event that fits the tags.
+func _validate_events() -> Array[String]:
+	var problems: Array[String] = []
+	var random_nodes: PackedStringArray = []
+	for node in nodes:
+		if node.type != ExpeditionNode.Type.EVENT:
+			continue
+		if node.event == null:
+			random_nodes.append(String(node.id))
+			continue
+		for problem in node.event.validate():
+			problems.append("the event of '%s' %s" % [node.id, problem])
+	if random_nodes.is_empty():
+		return problems
+
+	if not ResourceLoader.exists(EventCatalog.PATH):
+		problems.append("the event nodes %s have no fixed event and there is no event catalog at %s (run tools/make_events.gd)." % [
+			", ".join(random_nodes), EventCatalog.PATH])
+		return problems
+	if get_event_pool().is_empty():
+		problems.append("no event of the catalog fits the tags %s (nodes %s): add a matching tag to an event, or give those nodes a fixed event." % [
+			enemy_tags, ", ".join(random_nodes)])
 	return problems
 
 
