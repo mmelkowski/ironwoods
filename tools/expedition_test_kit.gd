@@ -23,8 +23,8 @@ const DESTROY_OBJECTIVE_PATH := "res://scenes/battle/objective/destroy_object_ob
 const RESCUE_OBJECTIVE_PATH := "res://scenes/battle/objective/rescue_objective.tscn"
 
 # --- Characters and card: you author these, the tool only loads and checks them ---
-const BOSS_PATH := "res://data/character/enemies/hobgoblin.tres"  # roles: BOSS (forest expeditions)
-const CATACOMB_BOSS_PATH := "res://data/character/enemies/living_armor.tres"  # roles: BOSS (catacomb expedition)
+const BOSS_PATH := "res://data/character/boss/hobgoblin.tres"  # roles: BOSS (forest expeditions)
+const CATACOMB_BOSS_PATH := "res://data/character/boss/living_armor.tres"  # roles: BOSS (catacomb expedition)
 const FALLBACK_BOSS_PATH := "res://data/character/enemies/goblin.tres"  # used if there is no hobgoblin
 const TOTEM_PATH := "res://data/character/object/totem.tres"  # roles: OBJECT, acts off, can_be_moved off
 const CAPTOR_PATH := "res://data/character/enemies/goblin_captor.tres"  # roles: CAPTOR  (adjust the path)

@@ -77,7 +77,7 @@ func configure(new_expedition: ExpeditionData, new_state: State, completed: bool
 			name_label.text = "???"
 		State.UNLOCKED:
 			visual.self_modulate = Color.WHITE
-			name_label.text = expedition.display_name + (" (done)" if completed else "")
+			name_label.text = expedition.display_name + (" ✓" if completed else "")
 	name_label.position = label_offset + Vector2(-name_label.get_minimum_size().x / 2.0, 0.0)
 	_refresh()
 

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="CharacterData" format=3 uid="uid://ubotvad6e07b"]
+
+[ext_resource type="Script" uid="uid://cyiubihrnsefw" path="res://scripts/battle/enemy_action/EnemyAction.gd" id="1_7p6b6"]
+[ext_resource type="Resource" uid="uid://c0t4shbf3kyyk" path="res://data/EnemyAction/melee_10.tres" id="2_abfet"]
+[ext_resource type="Resource" uid="uid://lvf4shmiddqx" path="res://data/EnemyAction/heavy_40_2.tres" id="3_ebcrr"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="4_mlkfs"]
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="5_eh77q"]
+[ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="6_p4avf"]
+[ext_resource type="Texture2D" uid="uid://uhqi1oryicdy" path="res://assets/32rogues/monsters.png" id="7_63cdl"]
+
+[resource]
+script = ExtResource("5_eh77q")
+id = &"living_armor"
+display_name = "Living Armor"
+tileset = ExtResource("7_63cdl")
+tile_coords = Vector2i(3, 4)
+roles = Array[int]([0])
+actions = Dictionary[ExtResource("1_7p6b6"), int]({
+ExtResource("2_abfet"): 2,
+ExtResource("3_ebcrr"): 1
+})
+tags = Array[StringName]([&"ghost", &"catacomb"])
+threat = 6
+metadata/_custom_type_script = "uid://y7hn1ijwr8yv"

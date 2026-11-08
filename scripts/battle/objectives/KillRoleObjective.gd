@@ -66,10 +66,12 @@ func get_progress_text() -> String:
 
 
 ## A target is alive while it is in battle.enemies (Battle removes the dead at once,
-## before the character node is freed).
+## before the character node is freed). A dead target is freed after the action, but
+## stays in _targets: it must be checked with is_instance_valid before touching the
+## typed battle.enemies array, which refuses freed instances.
 func _alive_count() -> int:
 	var count := 0
-	for target in _targets:
-		if battle.enemies.has(target):
+	for target: Variant in _targets:
+		if is_instance_valid(target) and battle.enemies.has(target):
 			count += 1
 	return count

@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="CharacterData" format=3 uid="uid://mvf1xgpdffs"]
+
+[ext_resource type="Script" uid="uid://cyiubihrnsefw" path="res://scripts/battle/enemy_action/EnemyAction.gd" id="1_6oam2"]
+[ext_resource type="Resource" uid="uid://c0t4shbf3kyyk" path="res://data/EnemyAction/melee_10.tres" id="2_5j5mg"]
+[ext_resource type="Resource" uid="uid://da1jauqqudfm8" path="res://data/EnemyAction/aoe_20.tres" id="3_3sk6i"]
+[ext_resource type="Resource" uid="uid://c81m1tp12ejgp" path="res://data/EnemyAction/heavy_20_1.tres" id="4_h11vg"]
+[ext_resource type="Script" uid="uid://j0prpwx7b06d" path="res://scripts/cards/CardData.gd" id="5_6nyar"]
+[ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="6_cli5k"]
+[ext_resource type="Script" uid="uid://cf8nrmcbw5y70" path="res://scripts/cards/StatusData.gd" id="7_h78pi"]
+[ext_resource type="Texture2D" uid="uid://uhqi1oryicdy" path="res://assets/32rogues/monsters.png" id="8_2t6hj"]
+
+[resource]
+script = ExtResource("6_cli5k")
+id = &"hobgoblin"
+display_name = "Hobgoblin"
+tileset = ExtResource("8_2t6hj")
+tile_coords = Vector2i(4, 0)
+roles = Array[int]([0])
+actions = Dictionary[ExtResource("1_6oam2"), int]({
+ExtResource("2_5j5mg"): 1,
+ExtResource("3_3sk6i"): 1,
+ExtResource("4_h11vg"): 1
+})
+tags = Array[StringName]([&"forest", &"goblinoid", &"boss"])
+threat = 6
+metadata/_custom_type_script = "uid://y7hn1ijwr8yv"

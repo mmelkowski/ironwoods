@@ -15,7 +15,6 @@ id = &"hobgoblin"
 display_name = "Hobgoblin"
 tileset = ExtResource("5_5dk5r")
 tile_coords = Vector2i(4, 0)
-roles = Array[int]([0])
 actions = Dictionary[ExtResource("1_owikx"), int]({
 ExtResource("2_mrrtl"): 1,
 ExtResource("3_2mcbx"): 1,
