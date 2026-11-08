@@ -11,23 +11,17 @@
 [ext_resource type="Resource" uid="uid://bvq8mjv352uwb" path="res://data/character/enemies/goblin_captor.tres" id="9_nukre"]
 [ext_resource type="Resource" uid="uid://bqeh4tgvia1fe" path="res://data/character/neutral/hostage.tres" id="10_pf144"]
 [ext_resource type="PackedScene" uid="uid://bqqnrvxkp1rne" path="res://scenes/battle/objective/rescue_objective.tscn" id="11_qmcio"]
-[ext_resource type="Resource" uid="uid://b30u7webi0l7d" path="res://data/character/enemies/living_armor.tres" id="12_0f3at"]
+[ext_resource type="Resource" uid="uid://ubotvad6e07b" path="res://data/character/boss/living_armor.tres" id="12_xrssn"]
 [ext_resource type="PackedScene" uid="uid://ba8ljhqmi7rk7" path="res://scenes/battle/objective/boss_objective.tscn" id="13_p6lhf"]
 [ext_resource type="Script" uid="uid://djuxvwgpk5gw6" path="res://scripts/expedition/ExpeditionData.gd" id="14_pdp8w"]
 [ext_resource type="Script" uid="uid://dbpd0aei4mb8t" path="res://scripts/hub/world_map/UnlockCondition.gd" id="15_lxqg3"]
 
-[sub_resource type="Resource" id="Resource_xrssn"]
+[sub_resource type="Resource" id="Resource_1axj7"]
 script = ExtResource("1_xrssn")
 id = &"start"
 type = 0
 title = "Departure"
 next_nodes = Array[StringName]([&"entrance"])
-
-[sub_resource type="Resource" id="Resource_1axj7"]
-script = ExtResource("1_xrssn")
-id = &"entrance"
-title = "The gate of bones"
-next_nodes = Array[StringName]([&"ossuary", &"shrine"])
 encounter = ExtResource("2_1axj7")
 loot = Dictionary[StringName, int]({
 &"wood": 2
@@ -35,7 +29,20 @@ loot = Dictionary[StringName, int]({
 
 [sub_resource type="Resource" id="Resource_inp37"]
 script = ExtResource("1_xrssn")
+id = &"entrance"
+title = "The gate of bones"
+next_nodes = Array[StringName]([&"ossuary", &"shrine"])
+encounter = ExtResource("2_1axj7")
+difficulty_bonus = 1
+loot = Dictionary[StringName, int]({
+&"wood": 2
+})
+lane = -0.7
+
+[sub_resource type="Resource" id="Resource_bnov3"]
+script = ExtResource("1_xrssn")
 id = &"ossuary"
+type = 4
 title = "The ossuary"
 next_nodes = Array[StringName]([&"hall"])
 encounter = ExtResource("3_inp37")
@@ -45,28 +52,31 @@ loot = Dictionary[StringName, int]({
 })
 lane = -0.7
 
-[sub_resource type="Resource" id="Resource_bnov3"]
+[sub_resource type="Resource" id="Resource_reyfm"]
 script = ExtResource("1_xrssn")
 id = &"shrine"
 type = 4
 title = "A forgotten shrine"
 next_nodes = Array[StringName]([&"hall"])
+encounter = ExtResource("4_bnov3")
 loot = Dictionary[StringName, int]({
 &"wood": 1
 })
 lane = 0.7
 
-[sub_resource type="Resource" id="Resource_reyfm"]
+[sub_resource type="Resource" id="Resource_sduiq"]
 script = ExtResource("1_xrssn")
 id = &"hall"
+type = 3
 title = "The grand hall"
 next_nodes = Array[StringName]([&"camp_1", &"totem"])
 encounter = ExtResource("4_bnov3")
 loot = Dictionary[StringName, int]({
 &"stone": 2
 })
+lane = -0.7
 
-[sub_resource type="Resource" id="Resource_sduiq"]
+[sub_resource type="Resource" id="Resource_us30t"]
 script = ExtResource("1_xrssn")
 id = &"camp_1"
 type = 3
@@ -74,43 +84,44 @@ title = "A candlelit alcove"
 next_nodes = Array[StringName]([&"cells"])
 lane = -0.7
 
-[sub_resource type="Resource" id="Resource_us30t"]
+[sub_resource type="Resource" id="Resource_lde1i"]
 script = ExtResource("8_lde1i")
 enemies = Array[ExtResource("5_reyfm")]([ExtResource("6_sduiq")])
 fill_with_pool = true
 objective_scene = ExtResource("7_us30t")
 spawn_pattern = 2
 
-[sub_resource type="Resource" id="Resource_lde1i"]
+[sub_resource type="Resource" id="Resource_nukre"]
 script = ExtResource("1_xrssn")
 id = &"totem"
 title = "The bone totem"
 next_nodes = Array[StringName]([&"cells"])
-encounter = SubResource("Resource_us30t")
+encounter = SubResource("Resource_lde1i")
 loot = Dictionary[StringName, int]({
 &"iron": 1
 })
 lane = 0.7
 
-[sub_resource type="Resource" id="Resource_nukre"]
+[sub_resource type="Resource" id="Resource_pf144"]
 script = ExtResource("8_lde1i")
 enemies = Array[ExtResource("5_reyfm")]([ExtResource("9_nukre"), ExtResource("10_pf144")])
 fill_with_pool = true
 objective_scene = ExtResource("11_qmcio")
 
-[sub_resource type="Resource" id="Resource_pf144"]
+[sub_resource type="Resource" id="Resource_qmcio"]
 script = ExtResource("1_xrssn")
 id = &"cells"
 title = "The cells"
 next_nodes = Array[StringName]([&"bridge"])
-encounter = SubResource("Resource_nukre")
+encounter = SubResource("Resource_pf144")
 loot = Dictionary[StringName, int]({
 &"stone": 2
 })
 
-[sub_resource type="Resource" id="Resource_qmcio"]
+[sub_resource type="Resource" id="Resource_0f3at"]
 script = ExtResource("1_xrssn")
 id = &"bridge"
+type = 3
 title = "The bridge of skulls"
 next_nodes = Array[StringName]([&"camp_2"])
 encounter = ExtResource("2_1axj7")
@@ -118,16 +129,23 @@ loot = Dictionary[StringName, int]({
 &"wood": 2
 })
 
-[sub_resource type="Resource" id="Resource_0f3at"]
+[sub_resource type="Resource" id="Resource_p6lhf"]
 script = ExtResource("1_xrssn")
 id = &"camp_2"
 type = 3
 title = "The last quiet place"
 next_nodes = Array[StringName]([&"vault", &"well"])
+encounter = ExtResource("3_inp37")
+difficulty_bonus = 2
+loot = Dictionary[StringName, int]({
+&"iron": 2
+})
+lane = -0.7
 
-[sub_resource type="Resource" id="Resource_p6lhf"]
+[sub_resource type="Resource" id="Resource_pdp8w"]
 script = ExtResource("1_xrssn")
 id = &"vault"
+type = 4
 title = "The sealed vault"
 next_nodes = Array[StringName]([&"reliquary"])
 encounter = ExtResource("3_inp37")
@@ -137,7 +155,7 @@ loot = Dictionary[StringName, int]({
 })
 lane = -0.7
 
-[sub_resource type="Resource" id="Resource_pdp8w"]
+[sub_resource type="Resource" id="Resource_lxqg3"]
 script = ExtResource("1_xrssn")
 id = &"well"
 type = 4
@@ -148,24 +166,25 @@ loot = Dictionary[StringName, int]({
 })
 lane = 0.7
 
-[sub_resource type="Resource" id="Resource_lxqg3"]
+[sub_resource type="Resource" id="Resource_q1mnl"]
 script = ExtResource("8_lde1i")
 enemies = Array[ExtResource("5_reyfm")]([ExtResource("6_sduiq")])
 fill_with_pool = true
 objective_scene = ExtResource("7_us30t")
 spawn_pattern = 1
 
-[sub_resource type="Resource" id="Resource_q1mnl"]
+[sub_resource type="Resource" id="Resource_2us2m"]
 script = ExtResource("1_xrssn")
 id = &"reliquary"
 title = "The reliquary"
 next_nodes = Array[StringName]([&"last_stand"])
-encounter = SubResource("Resource_lxqg3")
+encounter = SubResource("Resource_q1mnl")
+difficulty_bonus = 1
 loot = Dictionary[StringName, int]({
 &"iron": 2
 })
 
-[sub_resource type="Resource" id="Resource_2us2m"]
+[sub_resource type="Resource" id="Resource_4tn71"]
 script = ExtResource("1_xrssn")
 id = &"last_stand"
 title = "The last stand"
@@ -176,24 +195,24 @@ loot = Dictionary[StringName, int]({
 &"stone": 3
 })
 
-[sub_resource type="Resource" id="Resource_4tn71"]
+[sub_resource type="Resource" id="Resource_nfc8x"]
 script = ExtResource("8_lde1i")
-enemies = Array[ExtResource("5_reyfm")]([ExtResource("12_0f3at")])
+enemies = Array[ExtResource("5_reyfm")]([ExtResource("12_xrssn")])
 fill_with_pool = true
 objective_scene = ExtResource("13_p6lhf")
 
-[sub_resource type="Resource" id="Resource_nfc8x"]
+[sub_resource type="Resource" id="Resource_px7hf"]
 script = ExtResource("1_xrssn")
 id = &"boss"
 type = 2
 title = "The living armor"
 next_nodes = Array[StringName]([&"end"])
-encounter = SubResource("Resource_4tn71")
+encounter = SubResource("Resource_nfc8x")
 loot = Dictionary[StringName, int]({
 &"iron": 4
 })
 
-[sub_resource type="Resource" id="Resource_px7hf"]
+[sub_resource type="Resource" id="Resource_ic8am"]
 script = ExtResource("1_xrssn")
 id = &"end"
 type = 5
@@ -213,4 +232,4 @@ completion_bonus = Dictionary[StringName, int]({
 enemy_tags = Array[StringName]([&"catacomb"])
 base_budget = 3
 budget_per_depth = 1
-nodes = Array[ExtResource("1_xrssn")]([SubResource("Resource_xrssn"), SubResource("Resource_1axj7"), SubResource("Resource_inp37"), SubResource("Resource_bnov3"), SubResource("Resource_reyfm"), SubResource("Resource_sduiq"), SubResource("Resource_lde1i"), SubResource("Resource_pf144"), SubResource("Resource_qmcio"), SubResource("Resource_0f3at"), SubResource("Resource_p6lhf"), SubResource("Resource_pdp8w"), SubResource("Resource_q1mnl"), SubResource("Resource_2us2m"), SubResource("Resource_nfc8x"), SubResource("Resource_px7hf")])
+nodes = Array[ExtResource("1_xrssn")]([SubResource("Resource_1axj7"), SubResource("Resource_inp37"), SubResource("Resource_bnov3"), SubResource("Resource_reyfm"), SubResource("Resource_sduiq"), SubResource("Resource_us30t"), SubResource("Resource_nukre"), SubResource("Resource_qmcio"), SubResource("Resource_0f3at"), SubResource("Resource_p6lhf"), SubResource("Resource_pdp8w"), SubResource("Resource_lxqg3"), SubResource("Resource_2us2m"), SubResource("Resource_4tn71"), SubResource("Resource_px7hf"), SubResource("Resource_ic8am")])
