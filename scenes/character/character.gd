@@ -30,6 +30,10 @@ const CLICK_RADIUS_FACTOR := 1.0
 
 
 @export var data: CharacterData
+## Name of the animation (in %AnimationPlayer) played when the character takes a hit.
+@export var hit_animation: StringName = &"hit"
+## Name of the animation (in %AnimationPlayer) played when the character dodges a hit (Evasion).
+@export var dodge_animation: StringName = &"dodge"
 
 var _start_health := -1
 var _form: StatusData  # the animal form that is up (its sprite replaces the character's), or null
@@ -74,6 +78,7 @@ var statuses: Dictionary:
 ## Optional: a Label in character_ui.tscn (unique name %IntentLabel), next to the intent icon, that shows
 ## the planned action ("Stab", "Heavy 1"). Without it intents work but the name is not displayed.
 @onready var intent_label: Label = get_node_or_null("%UI/%IntentLabel")
+@onready var anim_player: AnimationPlayer = get_node_or_null("%AnimationPlayer")
 @onready var click_area: Area2D = %ClickArea
 @onready var click_shape: CollisionShape2D = %ClickShape
 @onready var shape := click_shape.shape as CircleShape2D
@@ -148,11 +153,23 @@ func apply_status(status: StatusData, stacks: int) -> void:
 ## Returns the health actually lost. Battle uses this instead of health.take_damage().
 func take_hit(amount: int) -> int:
 	if status_component.try_dodge():
+		_play_animation(dodge_animation)
 		return 0
 	var dealt := health.take_damage(amount, false)
 	if amount > 0:
 		status_component.wake_up()
+		_play_animation(hit_animation)
 	return dealt
+
+
+## Plays an animation of %AnimationPlayer from the start (stop() first so that two events in a
+## row restart it). Does nothing if the character has no AnimationPlayer, no animation with
+## that name, or is dead.
+func _play_animation(animation: StringName) -> void:
+	if anim_player == null or is_dead() or not anim_player.has_animation(animation):
+		return
+	anim_player.stop()
+	anim_player.play(animation)
 
 
 ## A stunned character cannot act (heroes: their cards can't be played; enemies skip their attack).
@@ -309,6 +326,7 @@ func _on_statuses_changed() -> void:
 
 ## Rebuilds the status row. A status shows its icon with a number in the bottom-right corner
 ## (turns left, see StatusData.get_display_number), or "Name 3" as text when it has no icon.
+## An animal form that changes the sprite has no icon in the row: the new sprite says it already.
 func _refresh_status_icons() -> void:
 	if status_icons == null or status_component == null:
 		return
@@ -316,10 +334,17 @@ func _refresh_status_icons() -> void:
 		status_icons.remove_child(child)
 		child.queue_free()
 	for status: StatusData in status_component.stacks:
+		if _is_form_with_sprite(status):
+			continue
 		var title := status.display_name if status.display_name != "" else str(status.id)
 		var number := status.get_display_number(status_component.stacks[status])
 		status_icons.add_child(_make_status_entry(status.icon, title, number))
 	status_icons.visible = status_icons.get_child_count() > 0
+
+
+## True for a FORM status whose sprite replaces the character's (no icon needed for it).
+func _is_form_with_sprite(status: StatusData) -> bool:
+	return status.get_effect() == StatusData.Effect.FORM and status.form_tileset != null
 
 
 func _make_status_entry(icon: Texture2D, title: String, number: int) -> Control:

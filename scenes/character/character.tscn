@@ -4,15 +4,88 @@
 [ext_resource type="Script" uid="uid://brlj6tgn046yw" path="res://scripts/components/HealthComponent.gd" id="2_mutn8"]
 [ext_resource type="PackedScene" uid="uid://7mhtpf0y7wek" path="res://scenes/UI/character_ui.tscn" id="3_mutn8"]
 
+[sub_resource type="Animation" id="Animation_mutn8"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("PivotNode/Sprite:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(2.5, 2.5)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("PivotNode:rotation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.0]
+}
+
+[sub_resource type="Animation" id="Animation_f8hpl"]
+resource_name = "dodge"
+length = 0.3
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("PivotNode:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [0.0, -0.17453292519943295, 0.17453292519943295, 0.0]
+}
+
+[sub_resource type="Animation" id="Animation_fgi2k"]
+resource_name = "take_damage"
+length = 0.19999999999999998
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("PivotNode/Sprite:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.10074893, 0.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(2.5, 2.5), Vector2(1.505, 3.5), Vector2(2.5, 2.5)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_f8hpl"]
+_data = {
+&"RESET": SubResource("Animation_mutn8"),
+&"dodge": SubResource("Animation_f8hpl"),
+&"hit": SubResource("Animation_fgi2k")
+}
+
 [sub_resource type="CircleShape2D" id="CircleShape2D_0gch8"]
 resource_local_to_scene = true
 
 [node name="Character" type="Node2D" unique_id=1317330728]
 script = ExtResource("1_cuyo6")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=112222086]
+[node name="PivotNode" type="Marker2D" parent="." unique_id=1643882505]
+
+[node name="Sprite" type="Sprite2D" parent="PivotNode" unique_id=112222086]
 unique_name_in_owner = true
+position = Vector2(0, -16)
 scale = Vector2(2.5, 2.5)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1746539292]
+unique_name_in_owner = true
+libraries/ = SubResource("AnimationLibrary_f8hpl")
 
 [node name="HealthComponent" type="Node" parent="." unique_id=926017751]
 unique_name_in_owner = true
