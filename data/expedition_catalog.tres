@@ -10,4 +10,4 @@
 
 [resource]
 script = ExtResource("3_b8trg")
-expeditions = Array[ExtResource("1_3oh7p")]([ExtResource("5_ykae7"), ExtResource("6_mop4s"), ExtResource("2_o8ckr"), ExtResource("3_o8ckr"), ExtResource("4_b8trg")])
+expeditions = Array[ExtResource("1_3oh7p")]([ExtResource("2_o8ckr"), ExtResource("3_o8ckr"), ExtResource("4_b8trg"), ExtResource("5_ykae7"), ExtResource("6_mop4s")])

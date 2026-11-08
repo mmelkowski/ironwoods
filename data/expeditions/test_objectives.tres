@@ -13,83 +13,93 @@
 [ext_resource type="Script" uid="uid://djuxvwgpk5gw6" path="res://scripts/expedition/ExpeditionData.gd" id="11_t563j"]
 [ext_resource type="Script" uid="uid://dbpd0aei4mb8t" path="res://scripts/hub/world_map/UnlockCondition.gd" id="12_yclp4"]
 
-[sub_resource type="Resource" id="Resource_1rkcr"]
+[sub_resource type="Resource" id="Resource_mdymr"]
 script = ExtResource("1_mdymr")
 id = &"start"
 type = 0
 title = "Departure"
 next_nodes = Array[StringName]([&"totem"])
 
-[sub_resource type="Resource" id="Resource_muplo"]
+[sub_resource type="Resource" id="Resource_1rkcr"]
 script = ExtResource("5_04pwc")
 enemies = Array[ExtResource("2_1rkcr")]([ExtResource("3_muplo")])
 fill_with_pool = true
 objective_scene = ExtResource("4_anfat")
 
-[sub_resource type="Resource" id="Resource_anfat"]
+[sub_resource type="Resource" id="Resource_muplo"]
 script = ExtResource("1_mdymr")
 id = &"totem"
-type = 3
 title = "The goblin totem"
 next_nodes = Array[StringName]([&"camp_1"])
+encounter = SubResource("Resource_1rkcr")
+loot = Dictionary[StringName, int]({
+&"wood": 2
+})
+
+[sub_resource type="Resource" id="Resource_anfat"]
+script = ExtResource("1_mdymr")
+id = &"camp_1"
+type = 3
+title = "A short rest"
+next_nodes = Array[StringName]([&"prisoner"])
 encounter = SubResource("Resource_muplo")
 loot = Dictionary[StringName, int]({
 &"wood": 2
 })
 
 [sub_resource type="Resource" id="Resource_04pwc"]
-script = ExtResource("1_mdymr")
-id = &"camp_1"
-type = 3
-title = "A short rest"
-next_nodes = Array[StringName]([&"prisoner"])
-
-[sub_resource type="Resource" id="Resource_xxrlm"]
 script = ExtResource("5_04pwc")
 enemies = Array[ExtResource("2_1rkcr")]([ExtResource("6_xxrlm"), ExtResource("7_snu2l")])
 fill_with_pool = true
 objective_scene = ExtResource("8_afpp0")
 
-[sub_resource type="Resource" id="Resource_snu2l"]
+[sub_resource type="Resource" id="Resource_xxrlm"]
 script = ExtResource("1_mdymr")
 id = &"prisoner"
-type = 3
 title = "The prisoner"
 next_nodes = Array[StringName]([&"camp_2"])
+encounter = SubResource("Resource_04pwc")
+loot = Dictionary[StringName, int]({
+&"stone": 2
+})
+
+[sub_resource type="Resource" id="Resource_snu2l"]
+script = ExtResource("1_mdymr")
+id = &"camp_2"
+type = 3
+title = "Another rest"
+next_nodes = Array[StringName]([&"boss"])
 encounter = SubResource("Resource_xxrlm")
 loot = Dictionary[StringName, int]({
 &"stone": 2
 })
 
 [sub_resource type="Resource" id="Resource_afpp0"]
-script = ExtResource("1_mdymr")
-id = &"camp_2"
-type = 3
-title = "Another rest"
-next_nodes = Array[StringName]([&"boss"])
-
-[sub_resource type="Resource" id="Resource_xlekq"]
 script = ExtResource("5_04pwc")
 enemies = Array[ExtResource("2_1rkcr")]([ExtResource("9_mdymr")])
 fill_with_pool = true
 objective_scene = ExtResource("10_dtxmb")
 
-[sub_resource type="Resource" id="Resource_dtxmb"]
+[sub_resource type="Resource" id="Resource_xlekq"]
 script = ExtResource("1_mdymr")
 id = &"boss"
 type = 2
 title = "The goblin chief"
 next_nodes = Array[StringName]([&"end"])
-encounter = SubResource("Resource_xlekq")
+encounter = SubResource("Resource_afpp0")
 loot = Dictionary[StringName, int]({
 &"iron": 2
 })
 
-[sub_resource type="Resource" id="Resource_t563j"]
+[sub_resource type="Resource" id="Resource_dtxmb"]
 script = ExtResource("1_mdymr")
 id = &"end"
 type = 5
 title = "The end"
+encounter = SubResource("Resource_xlekq")
+loot = Dictionary[StringName, int]({
+&"iron": 2
+})
 
 [resource]
 script = ExtResource("11_t563j")
@@ -103,4 +113,4 @@ completion_bonus = Dictionary[StringName, int]({
 enemy_tags = Array[StringName]([&"forest"])
 base_budget = 3
 budget_per_depth = 1
-nodes = Array[ExtResource("1_mdymr")]([SubResource("Resource_1rkcr"), SubResource("Resource_anfat"), SubResource("Resource_04pwc"), SubResource("Resource_snu2l"), SubResource("Resource_afpp0"), SubResource("Resource_dtxmb"), SubResource("Resource_t563j")])
+nodes = Array[ExtResource("1_mdymr")]([SubResource("Resource_mdymr"), SubResource("Resource_muplo"), SubResource("Resource_anfat"), SubResource("Resource_xxrlm"), SubResource("Resource_snu2l"), SubResource("Resource_xlekq"), SubResource("Resource_dtxmb")])

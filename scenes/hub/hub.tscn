@@ -12,7 +12,7 @@
 [ext_resource type="Texture2D" uid="uid://7wpstepvtpcp" path="res://assets/Isometric_pixel-art_room_diorama_tileset/isometricroomtileset(5).png" id="9_dhidh"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_xrivr"]
-font_size = 24
+font_size = 20
 outline_size = 2
 outline_color = Color(0, 0, 0, 1)
 
@@ -67,10 +67,10 @@ offset_bottom = 40.0
 script = ExtResource("7_20fyn")
 
 [node name="Label" type="Label" parent="." unique_id=488857447]
-offset_left = 1213.0
-offset_top = 66.0
-offset_right = 1873.0
-offset_bottom = 396.0
+offset_left = 1209.0
+offset_top = 47.0
+offset_right = 1875.0
+offset_bottom = 301.0
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 text = "Explication vite fait: 
 - La main gate permet de partir en expedition chercher des ressources

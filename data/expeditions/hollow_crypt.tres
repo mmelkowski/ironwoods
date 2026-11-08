@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://dsg3xmy0citai" path="res://scripts/expedition/ExpeditionNode.gd" id="1_umwp1"]
 [ext_resource type="Resource" uid="uid://cgor2n06prub1" path="res://data/EncounterData/standard_fight.tres" id="2_2hiad"]
 [ext_resource type="Script" uid="uid://y7hn1ijwr8yv" path="res://scripts/CharacterData/CharacterData.gd" id="3_q1tq4"]
-[ext_resource type="Resource" uid="uid://cqyo7amo8xapq" path="res://data/character/enemies/hobgoblin.tres" id="4_1u2hy"]
+[ext_resource type="Resource" uid="uid://mvf1xgpdffs" path="res://data/character/boss/hobgoblin.tres" id="4_umwp1"]
 [ext_resource type="PackedScene" uid="uid://ba8ljhqmi7rk7" path="res://scenes/battle/objective/boss_objective.tscn" id="5_jibbn"]
 [ext_resource type="Script" uid="uid://c0pdfac1nyf65" path="res://scripts/expedition/encounter/EncounterData.gd" id="6_6vx6u"]
 [ext_resource type="Script" uid="uid://djuxvwgpk5gw6" path="res://scripts/expedition/ExpeditionData.gd" id="7_bpjat"]
@@ -39,7 +39,7 @@ loot = Dictionary[StringName, int]({
 
 [sub_resource type="Resource" id="Resource_1u2hy"]
 script = ExtResource("6_6vx6u")
-enemies = Array[ExtResource("3_q1tq4")]([ExtResource("4_1u2hy")])
+enemies = Array[ExtResource("3_q1tq4")]([ExtResource("4_umwp1")])
 fill_with_pool = true
 objective_scene = ExtResource("5_jibbn")
 
@@ -59,6 +59,10 @@ script = ExtResource("1_umwp1")
 id = &"end"
 type = 5
 title = "The end"
+encounter = SubResource("Resource_jibbn")
+loot = Dictionary[StringName, int]({
+&"iron": 3
+})
 
 [sub_resource type="Resource" id="Resource_bpjat"]
 script = ExtResource("9_8yfh3")
