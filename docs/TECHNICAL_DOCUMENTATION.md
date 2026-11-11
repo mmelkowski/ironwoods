@@ -25,6 +25,9 @@ This file documents **the code as delivered**: architecture, scripts, APIs, sign
 * **`CardDeck.add_to_hand(card)`** (4.10): a card given by an objective.
 * **Editor tools** (11): `tools/make_test_expedition.gd` now builds three fixed debug expeditions (`first_expedition`, `test_objectives`, `test_catacomb`) through the new shared `tools/expedition_test_kit.gd`; `tools/make_test_location.gd` keeps the locked-location tests.
 
+* **Provocation** [U] (3.3d, 4.4b): new status effect `PROVOKE`. A card re-aims the planned action of every enemy it hits at the hero who played it (`Battle._provoke`).
+* **Character animations** [U] (5.1): `Character` plays `%AnimationPlayer` animations `hit_animation` (a hit that is not dodged, in `take_hit`) and `dodge_animation` (Evasion), through `_play_animation`.
+* **Form icon hidden** [U] (5.1): a `FORM` status with a `form_tileset` no longer shows an icon in the status row (the new sprite says it already).
 * **Animal forms (druid)** (3.3c, 4.4b, 5.1, 5.3): new status effect `FORM`. A card puts its caster in a form for X turns; the form swaps the sprite, can give armor / evasion that is taken back when it ends, adds statuses to every attack (Snake, Wolf) and adds a push to every attack (Ibex). New `StatusComponent.get_form()` / `form_changed`, `Character.form_changed` / `get_head_position()`, and in `battle.gd` `is_attack_card`, `get_card_knockback`, `get_move_push_distance`, `_apply_form_effects`, `_apply_form_riders`.
 
 **Changes in the previous revisions**
@@ -168,7 +171,7 @@ Helpers: `get_sprite_texture()`, `get_head_texture(size := 16x16)` (AtlasTexture
 | Field | Notes |
 |---|---|
 | `id`, `display_name`, `description`, `icon` | The icon is shown in the character's status row. |
-| `effect: Effect` | `NONE, ARMOR, HEAL, EVASION, BLEED, STUN, CLEANSE, POISON, SLEEP, FORM`. **Append only** (saved as integers). Decides the behaviour (below). |
+| `effect: Effect` | `NONE, ARMOR, HEAL, EVASION, BLEED, STUN, CLEANSE, POISON, SLEEP, FORM, PROVOKE`. **Append only** (saved as integers). Decides the behaviour (below). |
 | `debuff: bool` | Marks a negative status so `CLEANSE` removes it. `BLEED`, `POISON`, `STUN` and `SLEEP` are always debuffs. |
 | `duration_type: DurationType` | `TURNS` (decays at the end of the owner's side phase) or `USES` (only consumed). Hidden for instant effects. |
 | `decay_per_turn` | TURNS only, default 1 (0 = never expires). |
@@ -188,6 +191,7 @@ What `stacks` means per effect:
 | `SLEEP` | same as STUN (cannot act, `- decay_per_turn` per turn) **but removed at once when the owner is hit**: any hit that is not dodged (even if armor absorbs it) wakes it. Bleeding / Poison ticks do not wake it. Cleanse removes it | `StatusComponent` |
 | `EVASION` | `USES`: each stack dodges one hit (consumed); `TURNS`: dodges every hit while it lasts | `StatusComponent` |
 | `FORM` | the turns the form lasts (use `TURNS`, `decay_per_turn` 1); a character has one form at a time (3.3c) | `StatusComponent` |
+| `PROVOKE` | ignored (use 1); instant: re-aims the planned action of the enemy that is hit at the card's caster (3.3d) | `Battle._provoke` (nothing is stored) |
 | `NONE` | plain marker; with `USES` duration it is also how a **stack that cards consume** (arcane charges) is authored: it never decays | `StatusComponent` |
 
 Helpers: `get_effect()` (an old resource with effect `NONE` and id `&"evasion"` still counts as EVASION), `is_value_effect()` (ARMOR/HEAL), `is_debuff()` (BLEED, POISON, STUN, SLEEP or the `debuff` box), `is_tick_effect()` (BLEED or POISON), `get_tick_damage(stacks)` (0 for other effects),
@@ -214,6 +218,11 @@ Fields of `StatusData` (group "Form", visible only for `FORM`):
 | `form_tileset`, `form_tile_coords` (tiles), `form_size_in_tiles` (default 1x1), `form_head_position` (px, default (16, 8)) | The sprite of the form, cut from a 32x32 tile sheet exactly like a character's, drawn facing left. Without `form_tileset` the sprite does not change. |
 The five forms of the druid: **Bear** `form_grants = {armor: 20}`; **Ferret** `form_grants = {evasion: 2}` (the Evasion status with `USES` duration); **Snake** `attack_statuses = {poison: 1}`; **Wolf** `attack_statuses = {bleeding: 1}`; **Ibex** `attack_knockback = 2`.
 Rules: **one form at a time** (a new form removes the old one, taking its grants back, then gives its own); casting the form that is already up **refreshes the duration** (the longer of the two) with no second grant; the cast turn counts as one of the X turns (the status decays at the end of the same phase, see the known limit in 4.6b); a form is not a debuff, so Cleanse leaves it; statuses reset every battle, so a form ends with the fight. An **attack card** (`Battle.is_attack_card`) targets enemies and has `damage > 0`. Forms work for **hero cards only** (`Battle.play_card`): an enemy with a form would get the sprite and the grants (they live in `StatusComponent` / `Character`), but not the attack bonuses (riders and knockback live in `Battle.play_card` and the move action).
+
+### 3.3d Provocation [U]
+A `StatusData` with effect `PROVOKE` (author `provocation.tres`; duration fields are hidden, it is instant). A card gives it with an ordinary `StatusApplication`: trigger `ON_PLAY`, recipient `TARGET`, the status, `stacks` 1. It works on single, AOE, multiple and chain attack cards. `Battle._apply_effects` intercepts it for each living target and calls `Battle._provoke(enemy, card.caster)` instead of `apply_status`; `StatusComponent.add` also ignores it, so it never stays on a character.
+`_provoke`: only for an enemy of `enemies` and a living hero of `allies`. The enemy's **planned intent** is re-aimed: `intent.target = caster` (same action, same wind-up: a HEAVY keeps charging, now at the provoker), or for an **AOE** intent `intent.spot` moves onto the caster's current position (the caster can still walk out before the strike). Then `refresh_intent()` (the intent icon shows the caster's head), `_face_intent` and `intents_changed`. Nothing happens for an enemy without an intent (`acts` off) or a BUFF intent (aimed at the enemy's own side).
+Rules: **one-shot** (only the current intent; the enemy picks a random target again when it plans its next action, see 4.6); applied even if the hit was dodged, like the other card effects; recipient `SELF` and trigger `ON_KILL` are ignored; hero cards only (an enemy action with a `PROVOKE` effect does nothing). A lasting taunt (forced target for X turns) is not implemented: it would change the target choice in `_plan_intent`.
 
 ### 3.4 Expedition data
 * `ExpeditionNode` (`@tool`): `id`, `type` (`START, BATTLE, BOSS, CAMP, EVENT, END`), `title`, `description`, `next_nodes: Array[StringName]`, `encounter` (BATTLE/BOSS), `event: EventData` (EVENT only: a hand-made event; empty = drawn at random, see 3.10; hidden in the inspector for the other types), `loot: Dictionary[StringName,int]`, `lane` (-1 top … 1 bottom, map layout hint). `has_encounter()`.
@@ -335,7 +344,7 @@ Fields: `allies`, `enemies`, `neutrals` (living only; a neutral is in neither of
 2c. **Forms first** [U]: `_apply_form_effects(card)` applies the card's ON_PLAY SELF `FORM` effects before the hit (so a "become Wolf and strike" card bleeds on that same hit; `_apply_effects` skips them later). After each `_deal_damage` (per hit in a chain) `_apply_form_riders(card, hit targets)` puts the form's `attack_statuses` on the living targets of an attack card.
 3. If target team is ENEMY: caster walks (`_approach`: face target, tween to the free approach position, face again). Chain: hop by hop (each target: walk → hit → knockback, skipping dead ones); other types: walk to the first pick, then hit all affected targets at once.
 4. `_deal_damage(card, targets, killed, bonus)`: per target: in TARGET mode the target first spends its own charges (`target_bonus`), then `(card.damage + bonus + target_bonus)` times the crit multiplier (a hit of 0 or less is skipped), **`Character.take_hit(amount)`** (evasion check, then armor, then health); kills detected with a "was alive" check (a chain can list a target several times).
-5. `_knock_back` (its knockback is `get_card_knockback(card)`: the card's own, raised to the form's `attack_knockback` for attack cards; survivors; a one-target card pushes inside the aimed cone and a collision hurts, see 4.5e; AOE, MULTIPLE and CHAINED cards push straight away from the caster), `_apply_effects` (ON_PLAY SELF once, TARGET per living target; ON_KILL SELF once per kill).
+5. `_knock_back` (its knockback is `get_card_knockback(card)`: the card's own, raised to the form's `attack_knockback` for attack cards; survivors; a one-target card pushes inside the aimed cone and a collision hurts, see 4.5e; AOE, MULTIPLE and CHAINED cards push straight away from the caster), `_apply_effects` (ON_PLAY SELF once, TARGET per living target; ON_KILL SELF once per kill; a `PROVOKE` effect on TARGET calls `_provoke`, see 3.3d).
 6. Mana gain (non-MANA cards), Quick refund if a kill, discard, `card_played`, free dead, update facings, `_check_battle_end()`; else back to `PLAYER_TURN`.
 
 ### 4.5 Free-position search (placement)

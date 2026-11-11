@@ -32,6 +32,8 @@ func add(status: StatusData, amount: int) -> void:
 	if status.is_form():
 		_add_form(status, amount)
 		return
+	if status.is_provoke():
+		return  # instant: Battle re-aims the intent, nothing is stored on the character
 	stacks[status] = stacks.get(status, 0) + amount
 	changed.emit()
 

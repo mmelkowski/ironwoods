@@ -149,6 +149,8 @@ Roadmap that was followed:
 | 14 | **Statuses and druid**: Sleep, Poison, scaling Bleeding, spending stacks (rage, arcane charges), **animal forms** | Delivered, [U] |
 | 15 | **Events, phase 1** (`EventData`, choices, effects, catalog, generator, code-built `EventDialog`, `tools/make_events.gd`) | Delivered in `/mnt/user-data/outputs/events/`, **[U] not run yet** |
 | - | **Card owner icon**: the head of the card's hero in `%CharIcon` on each card (`card_view.gd`) | Delivered, [U] |
+| - | **Provocation**: status effect `PROVOKE`; a card re-aims the planned action of the enemies it hits at its caster (`Battle._provoke`; an AOE spot moves onto the caster); one-shot | Delivered (`battle.gd`, `StatusData.gd`, `StatusComponent.gd`), [U] |
+| - | **Character animations**: `hit_animation` / `dodge_animation` played from `%AnimationPlayer` in `character.gd`; form status icon hidden when the form changes the sprite | Delivered (`character.gd`), [U] |
 | - | **Fix**: `KillRoleObjective._alive_count()` crashed on a freed target (`has` on a typed array); now checks `is_instance_valid` | Delivered, [U] (reported by the developer, found while playing the Enrage card) |
 
 **Opened loose ends:**

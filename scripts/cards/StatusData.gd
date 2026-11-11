@@ -24,12 +24,15 @@ extends Resource
 ##             when it started and are taken back when it ends (what is left of them), the owner's attack cards
 ##             also put `attack_statuses` on every enemy they hit, and give at least `attack_knockback`.
 ##             See StatusComponent._add_form. Forms work for hero cards (Battle.play_card) only.
+##   PROVOKE : provocation. A card gives it to the enemies it hits (recipient TARGET, `stacks` ignored, use 1):
+##             each enemy's planned action is re-aimed at the hero who played the card (an AOE spot moves
+##             onto that hero). Instant, nothing is stored on the character. See Battle._provoke.
 ##   NONE    : a plain marker, stored on the character (for future effects/relics). With duration USES
 ##             it is also the way to build a stack that cards consume (arcane charges, rage): it never decays
 ##             and StatusComponent.consume / consume_all take stacks away.
 
 enum DurationType { TURNS, USES }
-enum Effect { NONE, ARMOR, HEAL, EVASION, BLEED, STUN, CLEANSE, POISON, SLEEP, FORM }  # append only: saved as integers
+enum Effect { NONE, ARMOR, HEAL, EVASION, BLEED, STUN, CLEANSE, POISON, SLEEP, FORM, PROVOKE }  # append only: saved as integers
 
 const TILE_SIZE := 32
 
@@ -89,6 +92,11 @@ func is_form() -> bool:
 	return get_effect() == Effect.FORM
 
 
+## PROVOKE: re-aims the planned action of the enemies a card hits at the card's caster (Battle._provoke).
+func is_provoke() -> bool:
+	return get_effect() == Effect.PROVOKE
+
+
 ## FORM: the sprite of the form (null without form_tileset).
 func get_form_sprite() -> AtlasTexture:
 	if form_tileset == null:
@@ -137,7 +145,7 @@ func is_value_effect() -> bool:
 
 
 func _validate_property(property: Dictionary) -> void:
-	var instant := is_value_effect() or get_effect() == Effect.CLEANSE
+	var instant := is_value_effect() or get_effect() == Effect.CLEANSE or is_provoke()
 	if instant and property.name in ["duration_type", "decay_per_turn"]:
 		property.usage = PROPERTY_USAGE_NO_EDITOR
 	var ticks := effect == Effect.BLEED or effect == Effect.POISON

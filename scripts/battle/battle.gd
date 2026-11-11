@@ -676,10 +676,16 @@ func _apply_effects(card: CardInstance, targets: Array[Character], killed: Array
 		if _is_form_effect(effect):
 			continue  # already applied before the hit, see _apply_form_effects
 		if effect.recipient == StatusApplication.Recipient.SELF:
+			if effect.status != null and effect.status.is_provoke():
+				continue  # provoking yourself means nothing
 			card.caster.apply_status(effect.status, effect.stacks)  # once per card
 		else:
 			for target in targets:
-				if not target.is_dead():
+				if target.is_dead():
+					continue
+				if effect.status != null and effect.status.is_provoke():
+					_provoke(target, card.caster)
+				else:
 					target.apply_status(effect.status, effect.stacks)
 
 	# ON_KILL: once per kill. Only SELF makes sense (the target is already dead).
@@ -687,6 +693,27 @@ func _apply_effects(card: CardInstance, targets: Array[Character], killed: Array
 		if effect.recipient == StatusApplication.Recipient.SELF:
 			for _kill in killed:
 				card.caster.apply_status(effect.status, effect.stacks)
+
+
+## Provocation (StatusData effect PROVOKE): the planned action of `enemy` is re-aimed at `caster`.
+## Same action, same wind-up (a HEAVY keeps charging, now at the provoker). An AOE intent has its
+## spot moved onto the caster's current position (the caster can still walk out of it). Nothing
+## happens to enemies without an intent (they do not act), nor to BUFF intents (they aim at their own side).
+func _provoke(enemy: Character, caster: Character) -> void:
+	if not is_instance_valid(enemy) or not is_instance_valid(caster) or caster.is_dead():
+		return
+	if not enemies.has(enemy) or not allies.has(caster):
+		return
+	var intent := enemy.intent
+	if intent == null or intent.action.targets_own_side():
+		return
+	if intent.action.kind == EnemyAction.Kind.AOE:
+		intent.spot = caster.global_position
+	else:
+		intent.target = caster
+	enemy.refresh_intent()
+	_face_intent(enemy)
+	intents_changed.emit()
 
 
 ## Animal forms (StatusData effect FORM): a card puts its caster in a form with an ON_PLAY SELF
